@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Agent Runtime · Salman Adnan</title>
+  <meta name="description" content="agent-runtime: an event-sourced runtime for LLM agents with deterministic byte-identical replay, crash-safe resume, an approval gate, failure injection, and a 24-scenario regression suite. 93 offline tests.">
+  <meta name="author" content="Salman Adnan">
+  <meta name="theme-color" content="#FFFDF5">
+
+  <!--
+    SITE_URL: the site's absolute base URL is https://salmanadnan2257.github.io
+    Before deploying to a custom domain, find-and-replace that exact string across
+    all HTML files, sitemap.xml, and robots.txt. It is the only absolute host used.
+  -->
+  <link rel="canonical" href="https://salmanadnan2257.github.io/projects/agent-runtime.html">
+
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="Salman Adnan">
+  <meta property="og:title" content="Agent Runtime · Salman Adnan">
+  <meta property="og:description" content="agent-runtime: an event-sourced runtime for LLM agents with deterministic byte-identical replay, crash-safe resume, an approval gate, failure injection, and a 24-scenario regression suite. 93 offline tests.">
+  <meta property="og:url" content="https://salmanadnan2257.github.io/projects/agent-runtime.html">
+  <meta property="og:image" content="https://salmanadnan2257.github.io/assets/og/agent-runtime.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Agent Runtime · Salman Adnan">
+  <meta name="twitter:description" content="agent-runtime: an event-sourced runtime for LLM agents with deterministic byte-identical replay, crash-safe resume, an approval gate, failure injection, and a 24-scenario regression suite. 93 offline tests.">
+  <meta name="twitter:image" content="https://salmanadnan2257.github.io/assets/og/agent-runtime.png">
+
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="../assets/favicon.png" sizes="any">
+  <link rel="apple-touch-icon" href="../assets/apple-touch-icon.png">
+  <link rel="stylesheet" href="../styles.css">
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareSourceCode",
+    "name": "Agent Runtime",
+    "description": "agent-runtime: an event-sourced runtime for LLM agents with deterministic byte-identical replay, crash-safe resume, an approval gate, failure injection, and a 24-scenario regression suite. 93 offline tests.",
+    "codeRepository": "https://github.com/salmanadnan2257/agent-runtime",
+    "programmingLanguage": ["Python"],
+    "url": "https://salmanadnan2257.github.io/projects/agent-runtime.html",
+    "author": {
+      "@type": "Person",
+      "name": "Salman Adnan",
+      "url": "https://salmanadnan2257.github.io/"
+    }
+  }
+  </script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+
+<header class="nav" id="top">
+  <div class="wrap nav__inner">
+    <a class="nav__brand" href="../index.html" aria-label="Salman Adnan, home">
+      <span class="nav__mark" aria-hidden="true">SA</span>
+      <span class="nav__name">Salman Adnan</span>
+    </a>
+    <nav class="nav__links" aria-label="Primary">
+      <a href="../index.html#work">Work</a>
+      <a href="../index.html#process">Process</a>
+      <a href="../index.html#about">About</a>
+      <a href="../index.html#contact" class="nav__cta">Contact</a>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+
+  <section class="proj-hero acc-yellow" aria-labelledby="proj-title">
+    <div class="wrap">
+      <a class="proj-crumb" href="../index.html"><span aria-hidden="true">&larr;</span> Salman Adnan</a>
+      <p class="proj-kicker">agent-runtime</p>
+      <h1 id="proj-title" class="proj-title">Agent Runtime</h1>
+      <p class="proj-lede">An event-sourced runtime for tool-using LLM agents, with the operations layer that agent demos usually skip: deterministic replay, crash-safe resume, an approval gate for side effects, config-driven failure injection, and a YAML scenario suite that regression-tests agent behavior between model versions.</p>
+      <div class="proj-actions">
+        <a class="btn btn--primary" href="https://github.com/salmanadnan2257/agent-runtime" rel="noopener" target="_blank">View code on GitHub</a>
+        <a class="btn btn--ghost" href="../index.html#work">All projects</a>
+      </div>
+        <div class="proj-note">
+          <div>
+            <strong>Verified offline</strong>
+            <p>The Anthropic and OpenAI adapters are implemented against their current APIs and covered by offline contract tests, but no live API calls were made because no keys were available. Everything else, including the full test suite, the CLI, and the web UI, runs and was verified offline.</p>
+          </div>
+        </div>
+      <div class="proj-stats">
+          <div class="proj-stat"><b>93</b><span>tests, all offline</span></div>
+          <div class="proj-stat"><b>byte-identical</b><span>deterministic replay</span></div>
+          <div class="proj-stat"><b>24</b><span>YAML regression scenarios</span></div>
+          <div class="proj-stat"><b>1</b><span>side effect on crash-resume</span></div>
+      </div>
+    </div>
+  </section>
+
+  <div class="proj-body acc-yellow">
+    <div class="wrap">
+      <div class="proj-layout">
+      <section class="proj-section">
+        <h2>Overview</h2>
+        <p>The agent loop itself (plan, call a tool, observe, continue) is a weekend's work. What makes agents deployable is everything around it: what exactly happened in a given run, can I reproduce it, did the agent email a customer before anyone approved it, and does the new model version still pass the flows that worked last week.</p>
+        <p>This project treats those as the core problem. Every run is an append-only event log, and every feature (replay, resume, approvals, cost accounting, regression diffs) is a function of that log.</p>
+      </section>
+      <section class="proj-section">
+        <h2>Key features</h2>
+        <ul class="proj-list">
+          <li>An agent loop over a ModelAdapter interface with a deterministic mock adapter plus Anthropic and OpenAI adapters.</li>
+          <li>A typed tool registry with JSON-schema parameters, a side-effect flag, timeouts, and retries with backoff; shipped tools include sandboxed filesystem access, allowlisted HTTP GET, a CSV updater, an email drafter that writes .eml files and never sends, and a SQLite calendar.</li>
+          <li>Event sourcing: an append-only SQLite log per run, with one projection as the single interpreter of what a log means.</li>
+          <li>Deterministic replay that re-drives the loop purely from recorded turns with no network, compared byte for byte, with --until for stepwise state.</li>
+          <li>Checkpoint and resume without duplicate side effects, using idempotency keys derived from the log.</li>
+          <li>An approval queue that pauses side-effecting calls, driven from the CLI or a FastAPI UI with diff-style previews, plus failure injection proving the loop degrades cleanly.</li>
+        </ul>
+      </section>
+      <section class="proj-section">
+        <h2>Results</h2>
+        <ul class="proj-list">
+          <li>93 tests, all offline, covering replay, resume, approvals, faults, and the scenario suite.</li>
+          <li>24 YAML scenarios across 3 example agents; the regression runner prints pass/fail with a first-divergence diff per scenario and an HTML report.</li>
+          <li>Replay is byte-identical across happy paths, denials, faults, and failed runs.</li>
+          <li>A resume test crashes a run at the worst instant and asserts a side-effect counter stays at 1.</li>
+        </ul>
+      </section>
+      <section class="proj-section">
+        <h2>Tech stack</h2>
+        <ul class="tech-tags">
+          <li>Python 3.10+</li>
+          <li>SQLite event log</li>
+          <li>FastAPI</li>
+          <li>YAML scenarios</li>
+          <li>pytest</li>
+        </ul>
+      </section>
+      <section class="proj-section">
+        <h2>Challenges</h2>
+        <ul class="proj-list">
+          <li>Byte-identical replay fought every source of nondeterminism: the store takes an injectable clock, sleeps are injectable no-ops, and model_requested records a digest rather than anything time-dependent.</li>
+          <li>The mock adapter's script index and call counter had to be different numbers; splitting them fixed fault plans and turned out to be exactly what resume needed.</li>
+          <li>Closing the duplicate-side-effect window took ordering, not locks: the executor writes the result to an INSERT OR IGNORE ledger before the runtime appends the event.</li>
+        </ul>
+      </section>
+      <section class="proj-section">
+        <h2>What I learned</h2>
+        <ul class="proj-list">
+          <li>Deriving all state from a projection collapses feature count: resume after crash, continue after approval, and a plain next iteration became the same function.</li>
+          <li>Determinism is a budget you spend field by field; any payload value not a pure function of the log is a future replay divergence.</li>
+          <li>Separating expected tool failures from unexpected ones buys a retry policy for free.</li>
+          <li>A per-event type-and-detail signature is enough for useful regression diffs with no diffing library.</li>
+        </ul>
+      </section>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<footer class="proj-foot">
+  <div class="wrap proj-foot__row">
+    <a class="proj-foot__link" href="../index.html">&larr; Back to all work</a>
+    <nav class="proj-foot__nav" aria-label="More projects">
+      <a class="proj-foot__link" href="raft-kv.html">Prev: Raft Consensus KV Store</a>
+      <a class="proj-foot__link" href="vector-db.html">Next: Vector Database Engine</a>
+    </nav>
+  </div>
+</footer>
+
+<script src="../script.js" defer></script>
+</body>
+</html>

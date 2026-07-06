@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>C++ Ray Tracer · Salman Adnan</title>
+  <meta name="description" content="C++ Ray Tracer: a from-scratch CPU ray tracer in C++17 with Whitted recursive tracing, a BVH, and multiple materials, rendering a 1.29-million-triangle showcase scene. A team project.">
+  <meta name="author" content="Salman Adnan">
+  <meta name="theme-color" content="#FFFDF5">
+
+  <!--
+    SITE_URL: the site's absolute base URL is https://salmanadnan2257.github.io
+    Before deploying to a custom domain, find-and-replace that exact string across
+    all HTML files, sitemap.xml, and robots.txt. It is the only absolute host used.
+  -->
+  <link rel="canonical" href="https://salmanadnan2257.github.io/projects/cpp-ray-tracer.html">
+
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="Salman Adnan">
+  <meta property="og:title" content="C++ Ray Tracer · Salman Adnan">
+  <meta property="og:description" content="C++ Ray Tracer: a from-scratch CPU ray tracer in C++17 with Whitted recursive tracing, a BVH, and multiple materials, rendering a 1.29-million-triangle showcase scene. A team project.">
+  <meta property="og:url" content="https://salmanadnan2257.github.io/projects/cpp-ray-tracer.html">
+  <meta property="og:image" content="https://salmanadnan2257.github.io/assets/og/cpp-ray-tracer.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="C++ Ray Tracer · Salman Adnan">
+  <meta name="twitter:description" content="C++ Ray Tracer: a from-scratch CPU ray tracer in C++17 with Whitted recursive tracing, a BVH, and multiple materials, rendering a 1.29-million-triangle showcase scene. A team project.">
+  <meta name="twitter:image" content="https://salmanadnan2257.github.io/assets/og/cpp-ray-tracer.png">
+
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="../assets/favicon.png" sizes="any">
+  <link rel="apple-touch-icon" href="../assets/apple-touch-icon.png">
+  <link rel="stylesheet" href="../styles.css">
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareSourceCode",
+    "name": "C++ Ray Tracer",
+    "description": "C++ Ray Tracer: a from-scratch CPU ray tracer in C++17 with Whitted recursive tracing, a BVH, and multiple materials, rendering a 1.29-million-triangle showcase scene. A team project.",
+    "codeRepository": "https://github.com/salmanadnan2257/cpp-ray-tracer",
+    "programmingLanguage": ["C++"],
+    "url": "https://salmanadnan2257.github.io/projects/cpp-ray-tracer.html",
+    "author": {
+      "@type": "Person",
+      "name": "Salman Adnan",
+      "url": "https://salmanadnan2257.github.io/"
+    }
+  }
+  </script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+
+<header class="nav" id="top">
+  <div class="wrap nav__inner">
+    <a class="nav__brand" href="../index.html" aria-label="Salman Adnan, home">
+      <span class="nav__mark" aria-hidden="true">SA</span>
+      <span class="nav__name">Salman Adnan</span>
+    </a>
+    <nav class="nav__links" aria-label="Primary">
+      <a href="../index.html#work">Work</a>
+      <a href="../index.html#process">Process</a>
+      <a href="../index.html#about">About</a>
+      <a href="../index.html#contact" class="nav__cta">Contact</a>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+
+  <section class="proj-hero acc-purple" aria-labelledby="proj-title">
+    <div class="wrap">
+      <a class="proj-crumb" href="../index.html"><span aria-hidden="true">&larr;</span> Salman Adnan</a>
+      <p class="proj-kicker">cpp-ray-tracer</p>
+      <h1 id="proj-title" class="proj-title">C++ Ray Tracer <span class="badge badge--purple">Team</span></h1>
+      <p class="proj-lede">A CPU ray tracer in C++17 whose showcase scene, Crystal Cavern, is a procedurally generated cave of 1.29 million triangles rendered at 1920x1080 with Whitted recursive tracing, a reflective floor, Phong crystals, and multiple shadow-casting lights.</p>
+      <div class="proj-actions">
+        <a class="btn btn--primary" href="https://github.com/salmanadnan2257/cpp-ray-tracer" rel="noopener" target="_blank">View code on GitHub</a>
+        <a class="btn btn--ghost" href="../index.html#work">All projects</a>
+      </div>
+        <div class="proj-note">
+          <div>
+            <strong>Team project</strong>
+            <p>A three-person course project (CS 440 at Habib University). Salman Adnan wrote the shading and materials layer: the Lambertian, GlossySpecular, and PerfectSpecular BRDFs, the Matte, Phong, and Reflective materials, the Whitted tracer with its reflection math, and shadow-ray integration. Teammates contributed the BVH and sampling work, the scene generator, and the lights.</p>
+          </div>
+        </div>
+      <div class="proj-stats">
+          <div class="proj-stat"><b>1.29M</b><span>triangles in the scene</span></div>
+          <div class="proj-stat"><b>~4000x</b><span>BVH per-pixel speedup</span></div>
+          <div class="proj-stat"><b>~9 min</b><span>final 1920x1080 render</span></div>
+      </div>
+    </div>
+  </section>
+
+  <div class="proj-body acc-purple">
+    <div class="wrap">
+      <div class="proj-layout">
+      <section class="proj-section">
+        <h2>Overview</h2>
+        <p>Roughly 3,000 lines of C++ with no external dependencies beyond a C++17 compiler. The class hierarchy derives from Kevin Suffern's Ray Tracing from the Ground Up scaffold.</p>
+      </section>
+      <section class="proj-section">
+        <h2>Key features</h2>
+        <ul class="proj-list">
+          <li>Whitted recursive ray tracing with configurable depth (default 5).</li>
+          <li>BRDFs (Lambertian, glossy specular, perfect specular) and materials (Matte, Phong, Reflective).</li>
+          <li>Geometry: spheres, planes, and triangles with Moller-Trumbore intersection.</li>
+          <li>A top-down BVH (median split on the longest axis, leaf threshold 4).</li>
+          <li>Point, directional, and shadow-casting lights; one-ray or n by n jittered antialiasing; perspective and parallel cameras.</li>
+          <li>OpenMP parallel rendering with PNG output via bundled stb_image_write.</li>
+        </ul>
+      </section>
+      <section class="proj-section">
+        <h2>Results</h2>
+        <ul class="proj-list">
+          <li>Brute force costs 166.6 ms per pixel on the cavern scene; the BVH drops it to 0.040 ms per pixel, roughly a 4000x per-pixel speedup on 1.29 million triangles.</li>
+          <li>A 480x360 image renders in about 5.4 s on 8 threads; the final 1920x1080 Crystal Cavern at 4 samples per pixel takes about 9 minutes.</li>
+        </ul>
+      </section>
+      <section class="proj-section">
+        <h2>Tech stack</h2>
+        <ul class="tech-tags">
+          <li>C++17</li>
+          <li>OpenMP</li>
+          <li>bundled stb_image_write</li>
+          <li>No external dependencies</li>
+        </ul>
+      </section>
+      <section class="proj-section">
+        <h2>A challenge worth noting</h2>
+        <p>Brute-force intersection was unusable at cavern scale, because every primary ray tested every triangle. A top-down BVH dropped per-pixel cost from 166.6 ms to 0.040 ms. The acceleration structure is the whole ballgame for a scene this size: the speedup came entirely from not touching most of the geometry, not from micro-optimizing intersection.</p>
+      </section>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<footer class="proj-foot">
+  <div class="wrap proj-foot__row">
+    <a class="proj-foot__link" href="../index.html">&larr; Back to all work</a>
+    <nav class="proj-foot__nav" aria-label="More projects">
+      <a class="proj-foot__link" href="postgres-scaling-lab.html">Prev: Postgres Scaling Lab</a>
+      <a class="proj-foot__link" href="webgl-terrain-explorer.html">Next: WebGL Terrain Explorer</a>
+    </nav>
+  </div>
+</footer>
+
+<script src="../script.js" defer></script>
+</body>
+</html>

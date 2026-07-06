@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Codeforces Mashup Generator · Salman Adnan</title>
+  <meta name="description" content="Codeforces Mashup Generator: a single-script tool that builds fair practice contests from the Codeforces API, filtering by rating, tags, and solver history so no group member gets a problem they solved.">
+  <meta name="author" content="Salman Adnan">
+  <meta name="theme-color" content="#FFFDF5">
+
+  <!--
+    SITE_URL: the site's absolute base URL is https://salmanadnan2257.github.io
+    Before deploying to a custom domain, find-and-replace that exact string across
+    all HTML files, sitemap.xml, and robots.txt. It is the only absolute host used.
+  -->
+  <link rel="canonical" href="https://salmanadnan2257.github.io/projects/codeforces-mashup-generator.html">
+
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="Salman Adnan">
+  <meta property="og:title" content="Codeforces Mashup Generator · Salman Adnan">
+  <meta property="og:description" content="Codeforces Mashup Generator: a single-script tool that builds fair practice contests from the Codeforces API, filtering by rating, tags, and solver history so no group member gets a problem they solved.">
+  <meta property="og:url" content="https://salmanadnan2257.github.io/projects/codeforces-mashup-generator.html">
+  <meta property="og:image" content="https://salmanadnan2257.github.io/assets/og/codeforces-mashup-generator.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Codeforces Mashup Generator · Salman Adnan">
+  <meta name="twitter:description" content="Codeforces Mashup Generator: a single-script tool that builds fair practice contests from the Codeforces API, filtering by rating, tags, and solver history so no group member gets a problem they solved.">
+  <meta name="twitter:image" content="https://salmanadnan2257.github.io/assets/og/codeforces-mashup-generator.png">
+
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="../assets/favicon.png" sizes="any">
+  <link rel="apple-touch-icon" href="../assets/apple-touch-icon.png">
+  <link rel="stylesheet" href="../styles.css">
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareSourceCode",
+    "name": "Codeforces Mashup Generator",
+    "description": "Codeforces Mashup Generator: a single-script tool that builds fair practice contests from the Codeforces API, filtering by rating, tags, and solver history so no group member gets a problem they solved.",
+    "codeRepository": "https://github.com/salmanadnan2257/codeforces-mashup-generator",
+    "programmingLanguage": ["Python"],
+    "url": "https://salmanadnan2257.github.io/projects/codeforces-mashup-generator.html",
+    "author": {
+      "@type": "Person",
+      "name": "Salman Adnan",
+      "url": "https://salmanadnan2257.github.io/"
+    }
+  }
+  </script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+
+<header class="nav" id="top">
+  <div class="wrap nav__inner">
+    <a class="nav__brand" href="../index.html" aria-label="Salman Adnan, home">
+      <span class="nav__mark" aria-hidden="true">SA</span>
+      <span class="nav__name">Salman Adnan</span>
+    </a>
+    <nav class="nav__links" aria-label="Primary">
+      <a href="../index.html#work">Work</a>
+      <a href="../index.html#process">Process</a>
+      <a href="../index.html#about">About</a>
+      <a href="../index.html#contact" class="nav__cta">Contact</a>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+
+  <section class="proj-hero acc-yellow" aria-labelledby="proj-title">
+    <div class="wrap">
+      <a class="proj-crumb" href="../index.html"><span aria-hidden="true">&larr;</span> Salman Adnan</a>
+      <p class="proj-kicker">codeforces-mashup-generator</p>
+      <h1 id="proj-title" class="proj-title">Codeforces Mashup Generator</h1>
+      <p class="proj-lede">A single-script tool that builds fair mashup contests for a study group by querying the public Codeforces API, filtering the problemset by rating band, tags, and solver history, then writing candidate problems to an Excel sheet.</p>
+      <div class="proj-actions">
+        <a class="btn btn--primary" href="https://github.com/salmanadnan2257/codeforces-mashup-generator" rel="noopener" target="_blank">View code on GitHub</a>
+        <a class="btn btn--ghost" href="../index.html#work">All projects</a>
+      </div>
+        <div class="proj-note">
+          <div>
+            <strong>Solo</strong>
+            <p>Solo work by Salman Adnan.</p>
+          </div>
+        </div>
+      <div class="proj-stats">
+          <div class="proj-stat"><b>800-2000</b><span>rating band, step 100</span></div>
+          <div class="proj-stat"><b>~14 s</b><span>verified live run</span></div>
+          <div class="proj-stat"><b>2</b><span>Codeforces API endpoints</span></div>
+      </div>
+    </div>
+  </section>
+
+  <div class="proj-body acc-yellow">
+    <div class="wrap">
+      <div class="proj-layout">
+      <section class="proj-section">
+        <h2>Overview</h2>
+        <p>When the study group ran mashup contests, someone always got a problem they had already solved, which ruins the point. This script only picks problems that no listed group member has an accepted submission on, and optionally requires that a trusted strong user has solved it as a rough quality signal.</p>
+      </section>
+      <section class="proj-section">
+        <h2>Key features</h2>
+        <ul class="proj-list">
+          <li>Filter by any set of rating bands (default 800 to 2000 in steps of 100).</li>
+          <li>An include filter (keep only problems solved by a trusted handle) and an exclude filter (drop any problem solved by a group member).</li>
+          <li>Tag filtering with four modes.</li>
+          <li>Uses two endpoints, problemset.problems and user.status (paginated 10,000 submissions at a time), reducing both to (contestId, index) identity sets.</li>
+          <li>Output is a flat Excel sheet via pandas and openpyxl.</li>
+        </ul>
+      </section>
+      <section class="proj-section">
+        <h2>Results</h2>
+        <div class="proj-callout"><p>A verified small run against the live API took about 14 seconds and produced 9 rows (3 per rating), all tagged greedy, none solved by the two excluded members, all solved by the trusted handle; two stale handles returned HTTP 400 and the sheet still generated.</p></div>
+      </section>
+      <section class="proj-section">
+        <h2>Tech stack</h2>
+        <ul class="tech-tags">
+          <li>Python 3.10+ (tested on 3.12)</li>
+          <li>requests</li>
+          <li>argparse</li>
+          <li>pandas + openpyxl</li>
+        </ul>
+      </section>
+      <section class="proj-section">
+        <h2>A challenge worth noting</h2>
+        <p>The API splits the needed data across two differently shaped endpoints: problemset.problems returns flat objects while user.status wraps the problem under a key, so both had to be reduced to the same (contestId, index) identity for the filters to line up. A related gotcha: raise_for_status() only covers transport-level failures, and Codeforces returns HTTP 200 with a FAILED JSON body for an unknown handle, so a second check on the payload's own status field is needed.</p>
+      </section>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<footer class="proj-foot">
+  <div class="wrap proj-foot__row">
+    <a class="proj-foot__link" href="../index.html">&larr; Back to all work</a>
+    <nav class="proj-foot__nav" aria-label="More projects">
+      <a class="proj-foot__link" href="hitec-shopify-automation.html">Prev: Hi-Tec Shopify Automation</a>
+      <a class="proj-foot__link" href="paws-rescue-donations.html">Next: Paws Rescue Donations</a>
+    </nav>
+  </div>
+</footer>
+
+<script src="../script.js" defer></script>
+</body>
+</html>

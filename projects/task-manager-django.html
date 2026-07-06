@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Task Manager · Salman Adnan</title>
+  <meta name="description" content="Task Manager: a Django and WebSockets task manager with task sharing, real-time notifications via Channels and Redis, and a matplotlib dashboard. 22 tests.">
+  <meta name="author" content="Salman Adnan">
+  <meta name="theme-color" content="#FFFDF5">
+
+  <!--
+    SITE_URL: the site's absolute base URL is https://salmanadnan2257.github.io
+    Before deploying to a custom domain, find-and-replace that exact string across
+    all HTML files, sitemap.xml, and robots.txt. It is the only absolute host used.
+  -->
+  <link rel="canonical" href="https://salmanadnan2257.github.io/projects/task-manager-django.html">
+
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="Salman Adnan">
+  <meta property="og:title" content="Task Manager · Salman Adnan">
+  <meta property="og:description" content="Task Manager: a Django and WebSockets task manager with task sharing, real-time notifications via Channels and Redis, and a matplotlib dashboard. 22 tests.">
+  <meta property="og:url" content="https://salmanadnan2257.github.io/projects/task-manager-django.html">
+  <meta property="og:image" content="https://salmanadnan2257.github.io/assets/og/task-manager-django.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Task Manager · Salman Adnan">
+  <meta name="twitter:description" content="Task Manager: a Django and WebSockets task manager with task sharing, real-time notifications via Channels and Redis, and a matplotlib dashboard. 22 tests.">
+  <meta name="twitter:image" content="https://salmanadnan2257.github.io/assets/og/task-manager-django.png">
+
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="../assets/favicon.png" sizes="any">
+  <link rel="apple-touch-icon" href="../assets/apple-touch-icon.png">
+  <link rel="stylesheet" href="../styles.css">
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareSourceCode",
+    "name": "Task Manager",
+    "description": "Task Manager: a Django and WebSockets task manager with task sharing, real-time notifications via Channels and Redis, and a matplotlib dashboard. 22 tests.",
+    "codeRepository": "https://github.com/salmanadnan2257/task-manager-django",
+    "programmingLanguage": ["Python"],
+    "url": "https://salmanadnan2257.github.io/projects/task-manager-django.html",
+    "author": {
+      "@type": "Person",
+      "name": "Salman Adnan",
+      "url": "https://salmanadnan2257.github.io/"
+    }
+  }
+  </script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+
+<header class="nav" id="top">
+  <div class="wrap nav__inner">
+    <a class="nav__brand" href="../index.html" aria-label="Salman Adnan, home">
+      <span class="nav__mark" aria-hidden="true">SA</span>
+      <span class="nav__name">Salman Adnan</span>
+    </a>
+    <nav class="nav__links" aria-label="Primary">
+      <a href="../index.html#work">Work</a>
+      <a href="../index.html#process">Process</a>
+      <a href="../index.html#about">About</a>
+      <a href="../index.html#contact" class="nav__cta">Contact</a>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+
+  <section class="proj-hero acc-purple" aria-labelledby="proj-title">
+    <div class="wrap">
+      <a class="proj-crumb" href="../index.html"><span aria-hidden="true">&larr;</span> Salman Adnan</a>
+      <p class="proj-kicker">task-manager-django</p>
+      <h1 id="proj-title" class="proj-title">Task Manager</h1>
+      <p class="proj-lede">A web-based task manager built with Django where users register, manage and share tasks, and receive real-time WebSocket notifications when tasks are assigned or updated.</p>
+      <div class="proj-actions">
+        <a class="btn btn--primary" href="https://github.com/salmanadnan2257/task-manager-django" rel="noopener" target="_blank">View code on GitHub</a>
+        <a class="btn btn--ghost" href="../index.html#work">All projects</a>
+      </div>
+        <div class="proj-note">
+          <div>
+            <strong>Internship project</strong>
+            <p>Built by Salman Adnan during a Developers Hub internship.</p>
+          </div>
+        </div>
+      <div class="proj-stats">
+          <div class="proj-stat"><b>22</b><span>tests</span></div>
+          <div class="proj-stat"><b>real-time</b><span>WebSocket notifications</span></div>
+          <div class="proj-stat"><b>Channels</b><span>+ Redis</span></div>
+      </div>
+    </div>
+  </section>
+
+  <div class="proj-body acc-purple">
+    <div class="wrap">
+      <div class="proj-layout">
+      <section class="proj-section">
+        <h2>Overview</h2>
+        <p>The brief was to go beyond a basic CRUD app: add multi-user collaboration, real-time updates, and a small analytics view. It covers that ground with Django Channels for the WebSocket layer, Redis as the channel backend, and matplotlib for server-rendered charts.</p>
+      </section>
+      <section class="proj-section">
+        <h2>Key features</h2>
+        <ul class="proj-list">
+          <li>Task CRUD with status, due date, search, filtering, and a progress bar.</li>
+          <li>Task sharing: the owner grants or revokes access by username, and shared users can update status.</li>
+          <li>Real-time notifications via Django Channels and Redis, plus a persistent notifications page.</li>
+          <li>A dashboard with completion rate, overdue count, and a matplotlib status pie chart rendered server-side.</li>
+          <li>A ProtocolTypeRouter so HTTP and WebSocket traffic share one Daphne server.</li>
+        </ul>
+      </section>
+      <section class="proj-section">
+        <h2>Results</h2>
+        <div class="proj-callout"><p>22 tests cover registration, login, access control on views, task CRUD, past-due-date validation, search and filter, sharing permissions (non-owners get 403), and notification listing. Checked end to end against a local Redis 8.</p></div>
+      </section>
+      <section class="proj-section">
+        <h2>Tech stack</h2>
+        <ul class="tech-tags">
+          <li>Django 4.2</li>
+          <li>Django Channels</li>
+          <li>Redis</li>
+          <li>Daphne</li>
+          <li>matplotlib</li>
+          <li>Bootstrap</li>
+          <li>SQLite</li>
+        </ul>
+      </section>
+      <section class="proj-section">
+        <h2>A challenge worth noting</h2>
+        <p>The status endpoint was wide open: update_task_status had no auth check and fetched the task by id alone, so any request guessing a task id could change anyone's status without logging in. The fix required authentication, then returned 403 unless the requester owns or shares the task. Object-level permission is separate from requiring login.</p>
+      </section>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<footer class="proj-foot">
+  <div class="wrap proj-foot__row">
+    <a class="proj-foot__link" href="../index.html">&larr; Back to all work</a>
+    <nav class="proj-foot__nav" aria-label="More projects">
+      <a class="proj-foot__link" href="blog-posting-pipeline.html">Prev: Blog Posting Pipeline</a>
+      <a class="proj-foot__link" href="prompt-evolution-ga.html">Next: Prompt Evolution GA</a>
+    </nav>
+  </div>
+</footer>
+
+<script src="../script.js" defer></script>
+</body>
+</html>

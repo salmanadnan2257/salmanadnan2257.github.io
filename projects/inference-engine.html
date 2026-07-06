@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>LLM Inference Engine · Salman Adnan</title>
+  <meta name="description" content="A from-scratch LLM inference engine: paged KV cache with copy-on-write, continuous batching, prefix caching, and speculative decoding behind an OpenAI-compatible API. About 2.8x batched throughput on CPU.">
+  <meta name="author" content="Salman Adnan">
+  <meta name="theme-color" content="#FFFDF5">
+
+  <!--
+    SITE_URL: the site's absolute base URL is https://salmanadnan2257.github.io
+    Before deploying to a custom domain, find-and-replace that exact string across
+    all HTML files, sitemap.xml, and robots.txt. It is the only absolute host used.
+  -->
+  <link rel="canonical" href="https://salmanadnan2257.github.io/projects/inference-engine.html">
+
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="Salman Adnan">
+  <meta property="og:title" content="LLM Inference Engine · Salman Adnan">
+  <meta property="og:description" content="A from-scratch LLM inference engine: paged KV cache with copy-on-write, continuous batching, prefix caching, and speculative decoding behind an OpenAI-compatible API. About 2.8x batched throughput on CPU.">
+  <meta property="og:url" content="https://salmanadnan2257.github.io/projects/inference-engine.html">
+  <meta property="og:image" content="https://salmanadnan2257.github.io/assets/og/inference-engine.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="LLM Inference Engine · Salman Adnan">
+  <meta name="twitter:description" content="A from-scratch LLM inference engine: paged KV cache with copy-on-write, continuous batching, prefix caching, and speculative decoding behind an OpenAI-compatible API. About 2.8x batched throughput on CPU.">
+  <meta name="twitter:image" content="https://salmanadnan2257.github.io/assets/og/inference-engine.png">
+
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="../assets/favicon.png" sizes="any">
+  <link rel="apple-touch-icon" href="../assets/apple-touch-icon.png">
+  <link rel="stylesheet" href="../styles.css">
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareSourceCode",
+    "name": "LLM Inference Engine",
+    "description": "A from-scratch LLM inference engine: paged KV cache with copy-on-write, continuous batching, prefix caching, and speculative decoding behind an OpenAI-compatible API. About 2.8x batched throughput on CPU.",
+    "codeRepository": "https://github.com/salmanadnan2257/inference-engine",
+    "programmingLanguage": ["Python"],
+    "url": "https://salmanadnan2257.github.io/projects/inference-engine.html",
+    "author": {
+      "@type": "Person",
+      "name": "Salman Adnan",
+      "url": "https://salmanadnan2257.github.io/"
+    }
+  }
+  </script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+
+<header class="nav" id="top">
+  <div class="wrap nav__inner">
+    <a class="nav__brand" href="../index.html" aria-label="Salman Adnan, home">
+      <span class="nav__mark" aria-hidden="true">SA</span>
+      <span class="nav__name">Salman Adnan</span>
+    </a>
+    <nav class="nav__links" aria-label="Primary">
+      <a href="../index.html#work">Work</a>
+      <a href="../index.html#process">Process</a>
+      <a href="../index.html#about">About</a>
+      <a href="../index.html#contact" class="nav__cta">Contact</a>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+
+  <section class="proj-hero acc-yellow" aria-labelledby="proj-title">
+    <div class="wrap">
+      <a class="proj-crumb" href="../index.html"><span aria-hidden="true">&larr;</span> Salman Adnan</a>
+      <p class="proj-kicker">inference-engine</p>
+      <h1 id="proj-title" class="proj-title">LLM Inference Engine</h1>
+      <p class="proj-lede">A from-scratch LLM inference and serving engine in Python and PyTorch, built to understand how systems like vLLM actually work: a paged KV cache with copy-on-write, prefix caching, continuous batching with preemption, speculative decoding, and token streaming behind an OpenAI-compatible API.</p>
+      <div class="proj-actions">
+        <a class="btn btn--primary" href="https://github.com/salmanadnan2257/inference-engine" rel="noopener" target="_blank">View code on GitHub</a>
+        <a class="btn btn--ghost" href="../index.html#work">All projects</a>
+      </div>
+        <div class="proj-note">
+          <div>
+            <strong>CPU numbers, read as relative</strong>
+            <p>Runs GPT-2 family models on CPU. Hugging Face is used only to download weights; the forward pass, attention, cache, and scheduler are all implemented here. The benchmarks are single-machine CPU numbers and are honest about what they are.</p>
+          </div>
+        </div>
+      <div class="proj-stats">
+          <div class="proj-stat"><b>~3e-5</b><span>max logit diff vs transformers</span></div>
+          <div class="proj-stat"><b>~2.8x</b><span>batched vs sequential throughput</span></div>
+          <div class="proj-stat"><b>0.54</b><span>speculative acceptance rate</span></div>
+          <div class="proj-stat"><b>16 tok</b><span>KV cache block size</span></div>
+      </div>
+    </div>
+  </section>
+
+  <div class="proj-body acc-yellow">
+    <div class="wrap">
+      <div class="proj-layout">
+      <section class="proj-section">
+        <h2>Overview</h2>
+        <p>Serving engines are where ML meets systems programming: memory allocators, schedulers, cache coherence, admission control. Reading vLLM's paper is one thing; the goal here was to rebuild the core mechanisms small enough to fit in one head, verify them against a reference implementation, and measure them honestly on real hardware.</p>
+      </section>
+      <section class="proj-section">
+        <h2>Key features</h2>
+        <ul class="proj-list">
+          <li>An own GPT-2 forward implementation loading Hugging Face weights into plain nn.Linear, verified against transformers to a max abs logit diff under 1e-3 (measured about 3e-5 on distilgpt2).</li>
+          <li>A paged KV cache: fixed-size 16-token blocks, refcounted free lists, per-sequence block tables, and copy-on-write on shared-block writes.</li>
+          <li>Prefix caching: full blocks are content-hashed, so identical prompt prefixes reuse cached blocks with LRU eviction.</li>
+          <li>Continuous batching: requests join and leave the running batch at token boundaries, and when blocks run out the newest sequence is preempted and recomputed later.</li>
+          <li>Speculative decoding: distilgpt2 drafts k tokens, gpt2 verifies them in one forward with accept/reject sampling that preserves the target distribution.</li>
+          <li>A FastAPI server with /v1/completions and SSE streaming, /v1/models, /healthz, and /metrics.</li>
+        </ul>
+      </section>
+      <section class="proj-section">
+        <h2>Benchmarks</h2>
+        <p>Measured on an Intel i7-1185G7 (8 threads), PyTorch CPU float32, greedy decoding, 32 new tokens per request.</p>
+      </section>
+      <section class="proj-section">
+        <h2>Throughput vs concurrency</h2>
+        <div class="proj-table-wrap"><table class="proj-table">
+          <thead><tr><th>Concurrency</th><th>Throughput (tok/s)</th><th>TTFT mean (s)</th></tr></thead>
+          <tbody>
+            <tr><td>1</td><td>44.7</td><td>0.07</td></tr>
+            <tr><td>4</td><td>83.8</td><td>0.27</td></tr>
+            <tr><td>8</td><td>113.5</td><td>0.54</td></tr>
+            <tr><td>16</td><td>108.5</td><td>1.27</td></tr>
+          </tbody></table></div>
+      </section>
+      <section class="proj-section">
+        <h2>What the numbers say</h2>
+        <p>At equal settings the engine matches Hugging Face one-at-a-time (44.7 vs 40.0 tok/s) and reaches about 2.8x once it can batch 8 requests (113.5 tok/s).</p>
+        <p>Speculative decoding is correct (identical greedy output, 54% of drafts accepted) but about 0.7x slower on CPU, where the draft forward is not cheap relative to the target. It stays in the codebase as a correctness-verified feature, not a CPU speedup. A comparison against vLLM is deliberately absent because this machine has no GPU.</p>
+      </section>
+      <section class="proj-section">
+        <h2>Tech stack</h2>
+        <ul class="tech-tags">
+          <li>Python</li>
+          <li>PyTorch (CPU)</li>
+          <li>FastAPI</li>
+          <li>SSE streaming</li>
+          <li>GPT-2 / distilgpt2</li>
+          <li>pytest</li>
+        </ul>
+      </section>
+      <section class="proj-section">
+        <h2>Challenges</h2>
+        <ul class="proj-list">
+          <li>Prefix-cache correctness with in-place rewrites: speculative rollback and stop-token truncation rewrite already-hashed positions, so the fix deregisters a block's content hash the moment it is about to be rewritten.</li>
+          <li>Cumulative vs per-sequence capacity checks: per-sequence checks admit a batch that collectively does not fit and crash mid-step, so the check is now summed across the whole batch and pinned by a test.</li>
+          <li>UTF-8 across token boundaries: byte-level BPE can split a character over two tokens, so detokenization holds back a partial tail until it decodes cleanly.</li>
+        </ul>
+      </section>
+      <section class="proj-section">
+        <h2>What I learned</h2>
+        <ul class="proj-list">
+          <li>Paged attention is mostly a bookkeeping problem, not a math problem: the attention kernel barely changes, but the allocator, refcounting, and hashing are where the design lives.</li>
+          <li>Continuous batching's throughput win is real even on CPU (2.5x from concurrency 1 to 8) and comes entirely from not wasting compute on padding.</li>
+          <li>Speculative decoding's speedup is conditional on the draft being much cheaper than the target; measuring it honestly on CPU showed it going backwards, which is a more useful thing to know than assuming GPU numbers transfer.</li>
+        </ul>
+      </section>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<footer class="proj-foot">
+  <div class="wrap proj-foot__row">
+    <a class="proj-foot__link" href="../index.html">&larr; Back to all work</a>
+    <nav class="proj-foot__nav" aria-label="More projects">
+      <a class="proj-foot__link" href="trade-intelligence-copilot.html">Prev: Trade Intelligence Copilot</a>
+      <a class="proj-foot__link" href="sqlmill.html">Next: SQL Database Engine</a>
+    </nav>
+  </div>
+</footer>
+
+<script src="../script.js" defer></script>
+</body>
+</html>

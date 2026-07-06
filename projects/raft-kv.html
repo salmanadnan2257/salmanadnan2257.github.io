@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Raft Consensus KV Store · Salman Adnan</title>
+  <meta name="description" content="raft-kv: a distributed key-value store with Raft from scratch, a deterministic chaos simulator, and a hand-written linearizability checker. 57 tests, a 5,000-seed run of 564,170 ops with zero violations.">
+  <meta name="author" content="Salman Adnan">
+  <meta name="theme-color" content="#FFFDF5">
+
+  <!--
+    SITE_URL: the site's absolute base URL is https://salmanadnan2257.github.io
+    Before deploying to a custom domain, find-and-replace that exact string across
+    all HTML files, sitemap.xml, and robots.txt. It is the only absolute host used.
+  -->
+  <link rel="canonical" href="https://salmanadnan2257.github.io/projects/raft-kv.html">
+
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="Salman Adnan">
+  <meta property="og:title" content="Raft Consensus KV Store · Salman Adnan">
+  <meta property="og:description" content="raft-kv: a distributed key-value store with Raft from scratch, a deterministic chaos simulator, and a hand-written linearizability checker. 57 tests, a 5,000-seed run of 564,170 ops with zero violations.">
+  <meta property="og:url" content="https://salmanadnan2257.github.io/projects/raft-kv.html">
+  <meta property="og:image" content="https://salmanadnan2257.github.io/assets/og/raft-kv.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Raft Consensus KV Store · Salman Adnan">
+  <meta name="twitter:description" content="raft-kv: a distributed key-value store with Raft from scratch, a deterministic chaos simulator, and a hand-written linearizability checker. 57 tests, a 5,000-seed run of 564,170 ops with zero violations.">
+  <meta name="twitter:image" content="https://salmanadnan2257.github.io/assets/og/raft-kv.png">
+
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="../assets/favicon.png" sizes="any">
+  <link rel="apple-touch-icon" href="../assets/apple-touch-icon.png">
+  <link rel="stylesheet" href="../styles.css">
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareSourceCode",
+    "name": "Raft Consensus KV Store",
+    "description": "raft-kv: a distributed key-value store with Raft from scratch, a deterministic chaos simulator, and a hand-written linearizability checker. 57 tests, a 5,000-seed run of 564,170 ops with zero violations.",
+    "codeRepository": "https://github.com/salmanadnan2257/raft-kv",
+    "programmingLanguage": ["Python"],
+    "url": "https://salmanadnan2257.github.io/projects/raft-kv.html",
+    "author": {
+      "@type": "Person",
+      "name": "Salman Adnan",
+      "url": "https://salmanadnan2257.github.io/"
+    }
+  }
+  </script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+
+<header class="nav" id="top">
+  <div class="wrap nav__inner">
+    <a class="nav__brand" href="../index.html" aria-label="Salman Adnan, home">
+      <span class="nav__mark" aria-hidden="true">SA</span>
+      <span class="nav__name">Salman Adnan</span>
+    </a>
+    <nav class="nav__links" aria-label="Primary">
+      <a href="../index.html#work">Work</a>
+      <a href="../index.html#process">Process</a>
+      <a href="../index.html#about">About</a>
+      <a href="../index.html#contact" class="nav__cta">Contact</a>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+
+  <section class="proj-hero acc-coral" aria-labelledby="proj-title">
+    <div class="wrap">
+      <a class="proj-crumb" href="../index.html"><span aria-hidden="true">&larr;</span> Salman Adnan</a>
+      <p class="proj-kicker">raft-kv</p>
+      <h1 id="proj-title" class="proj-title">Raft Consensus KV Store</h1>
+      <p class="proj-lede">A distributed key-value store with Raft consensus implemented from scratch in Python, plus a deterministic simulation harness that runs thousands of seeded chaos schedules against the real consensus code, and a from-scratch linearizability checker that verifies the client histories those runs produce.</p>
+      <div class="proj-actions">
+        <a class="btn btn--primary" href="https://github.com/salmanadnan2257/raft-kv" rel="noopener" target="_blank">View code on GitHub</a>
+        <a class="btn btn--ghost" href="../index.html#work">All projects</a>
+      </div>
+      <div class="proj-stats">
+          <div class="proj-stat"><b>57</b><span>tests passing</span></div>
+          <div class="proj-stat"><b>5,000</b><span>seed chaos sweep</span></div>
+          <div class="proj-stat"><b>564,170</b><span>client ops, 0 violations</span></div>
+          <div class="proj-stat"><b>0</b><span>runtime dependencies</span></div>
+      </div>
+    </div>
+  </section>
+
+  <div class="proj-body acc-coral">
+    <div class="wrap">
+      <div class="proj-layout">
+      <section class="proj-section">
+        <h2>Overview</h2>
+        <p>Consensus code is easy to write and nearly impossible to trust from example-based tests, because the bugs live in message interleavings you never hit on a laptop loopback.</p>
+        <p>This project takes the FoundationDB position: the same RaftNode class runs unmodified on a real TCP cluster and inside a simulator where time, delivery order, loss, partitions, crashes, and clock skew are all derived from one seeded RNG. A failing seed replays its exact schedule every time.</p>
+      </section>
+      <section class="proj-section">
+        <h2>Key features</h2>
+        <ul class="proj-list">
+          <li>Raft core: randomized-timeout leader election, log replication with fast conflict backoff, commit advancement restricted to current-term entries, fsync'd crash-safe persistence with torn-tail truncation, snapshot-based log compaction with InstallSnapshot, and single-server membership changes.</li>
+          <li>A KV state machine with get, put, delete, and cas, plus client sessions that deduplicate retried writes for exactly-once apply across leader failover.</li>
+          <li>Linearizable reads through ReadIndex with heartbeat-quorum confirmation and no clock assumptions.</li>
+          <li>Two transports behind one Env interface: asyncio TCP, and a deterministic simulated network with a virtual clock and seeded faults.</li>
+          <li>A linearizability checker (Wing and Gong search with Lowe-style memoization, per-key decomposition) that rejects known-bad synthetic histories.</li>
+        </ul>
+      </section>
+      <section class="proj-section">
+        <h2>Verification</h2>
+        <ul class="proj-list">
+          <li>pytest: 57 tests, including the paper's Figure 7 replication scenarios, torn-write recovery, membership changes over both transports, exactly-once failover retries, and real 3-node TCP cluster integration tests.</li>
+          <li>A long randomized run: 5,000 seeds in 84.7s, 564,170 client ops total, 0 failures. Each seed is 12 virtual seconds of a 3-node cluster under partitions, crashes, 5% message loss, 5% duplication, and election-timer skew, with every completed history checked for linearizability.</li>
+          <li>The harness has teeth: weakening the quorum rule makes the sweep detect split brain within a few dozen seeds.</li>
+          <li>A real kill -9 leader-failover demo with no data lost.</li>
+        </ul>
+      </section>
+      <section class="proj-section">
+        <h2>Tech stack</h2>
+        <ul class="tech-tags">
+          <li>Python 3.12</li>
+          <li>asyncio</li>
+          <li>Zero runtime dependencies</li>
+          <li>Deterministic simulation</li>
+          <li>pytest</li>
+        </ul>
+      </section>
+      <section class="proj-section">
+        <h2>Challenges</h2>
+        <ul class="proj-list">
+          <li>Python 3.12 changed asyncio Server.wait_closed() to wait for in-flight handlers, deadlocking shutdown; the fix tracks and closes every accepted writer before awaiting it.</li>
+          <li>A fresh leader cannot serve ReadIndex reads before committing an entry in its own term, so pending reads register with no read index and get one when the leader's no-op commits.</li>
+          <li>The Figure 7 tests could not be set up through real elections, so leadership is installed directly and the follower's timer frozen, keeping the scenario exact without weakening the vote rule.</li>
+          <li>Bit-for-bit determinism required treating randomness as plumbing: one root seed fans out to per-node, network, nemesis, and client RNGs, and every event goes through a single (time, seq) heap.</li>
+        </ul>
+      </section>
+      <section class="proj-section">
+        <h2>What I learned</h2>
+        <ul class="proj-list">
+          <li>Sans-IO is the whole ballgame for testable distributed systems: once the core stopped owning sockets and clocks, running 5,000 chaos schedules in 90 seconds became an ordinary function call.</li>
+          <li>Exactly-once is a state machine feature, not a networking feature; the dedup table has to live inside the replicated state and its snapshots.</li>
+          <li>Crash safety falls out of one discipline: never acknowledge before fsync, and make every on-disk structure atomic-rename or scan-and-truncate recoverable.</li>
+          <li>Safety nets need their own tests; a checker that never fires is indistinguishable from one that cannot fire.</li>
+        </ul>
+      </section>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<footer class="proj-foot">
+  <div class="wrap proj-foot__row">
+    <a class="proj-foot__link" href="../index.html">&larr; Back to all work</a>
+    <nav class="proj-foot__nav" aria-label="More projects">
+      <a class="proj-foot__link" href="sqlmill.html">Prev: SQL Database Engine</a>
+      <a class="proj-foot__link" href="agent-runtime.html">Next: Agent Runtime</a>
+    </nav>
+  </div>
+</footer>
+
+<script src="../script.js" defer></script>
+</body>
+</html>

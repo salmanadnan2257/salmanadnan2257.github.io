@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SQL Database Engine · Salman Adnan</title>
+  <meta name="description" content="sqlmill: a relational database engine from scratch in Python with a SQL parser, B+tree storage, WAL crash recovery, and MVCC. 85 tests, 300/300 SIGKILL crash rounds, 300/300 queries matching SQLite.">
+  <meta name="author" content="Salman Adnan">
+  <meta name="theme-color" content="#FFFDF5">
+
+  <!--
+    SITE_URL: the site's absolute base URL is https://salmanadnan2257.github.io
+    Before deploying to a custom domain, find-and-replace that exact string across
+    all HTML files, sitemap.xml, and robots.txt. It is the only absolute host used.
+  -->
+  <link rel="canonical" href="https://salmanadnan2257.github.io/projects/sqlmill.html">
+
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="Salman Adnan">
+  <meta property="og:title" content="SQL Database Engine · Salman Adnan">
+  <meta property="og:description" content="sqlmill: a relational database engine from scratch in Python with a SQL parser, B+tree storage, WAL crash recovery, and MVCC. 85 tests, 300/300 SIGKILL crash rounds, 300/300 queries matching SQLite.">
+  <meta property="og:url" content="https://salmanadnan2257.github.io/projects/sqlmill.html">
+  <meta property="og:image" content="https://salmanadnan2257.github.io/assets/og/sqlmill.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="SQL Database Engine · Salman Adnan">
+  <meta name="twitter:description" content="sqlmill: a relational database engine from scratch in Python with a SQL parser, B+tree storage, WAL crash recovery, and MVCC. 85 tests, 300/300 SIGKILL crash rounds, 300/300 queries matching SQLite.">
+  <meta name="twitter:image" content="https://salmanadnan2257.github.io/assets/og/sqlmill.png">
+
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="../assets/favicon.png" sizes="any">
+  <link rel="apple-touch-icon" href="../assets/apple-touch-icon.png">
+  <link rel="stylesheet" href="../styles.css">
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareSourceCode",
+    "name": "SQL Database Engine",
+    "description": "sqlmill: a relational database engine from scratch in Python with a SQL parser, B+tree storage, WAL crash recovery, and MVCC. 85 tests, 300/300 SIGKILL crash rounds, 300/300 queries matching SQLite.",
+    "codeRepository": "https://github.com/salmanadnan2257/sqlmill",
+    "programmingLanguage": ["Python"],
+    "url": "https://salmanadnan2257.github.io/projects/sqlmill.html",
+    "author": {
+      "@type": "Person",
+      "name": "Salman Adnan",
+      "url": "https://salmanadnan2257.github.io/"
+    }
+  }
+  </script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+
+<header class="nav" id="top">
+  <div class="wrap nav__inner">
+    <a class="nav__brand" href="../index.html" aria-label="Salman Adnan, home">
+      <span class="nav__mark" aria-hidden="true">SA</span>
+      <span class="nav__name">Salman Adnan</span>
+    </a>
+    <nav class="nav__links" aria-label="Primary">
+      <a href="../index.html#work">Work</a>
+      <a href="../index.html#process">Process</a>
+      <a href="../index.html#about">About</a>
+      <a href="../index.html#contact" class="nav__cta">Contact</a>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+
+  <section class="proj-hero acc-purple" aria-labelledby="proj-title">
+    <div class="wrap">
+      <a class="proj-crumb" href="../index.html"><span aria-hidden="true">&larr;</span> Salman Adnan</a>
+      <p class="proj-kicker">sqlmill</p>
+      <h1 id="proj-title" class="proj-title">SQL Database Engine</h1>
+      <p class="proj-lede">A relational database engine written from scratch in Python: a hand-written SQL parser, a cost-based planner, B+tree storage on slotted 4KB pages, a write-ahead log with real crash recovery, and MVCC snapshot-isolation transactions. The core uses only the standard library.</p>
+      <div class="proj-actions">
+        <a class="btn btn--primary" href="https://github.com/salmanadnan2257/sqlmill" rel="noopener" target="_blank">View code on GitHub</a>
+        <a class="btn btn--ghost" href="../index.html#work">All projects</a>
+      </div>
+      <div class="proj-stats">
+          <div class="proj-stat"><b>85</b><span>tests passing</span></div>
+          <div class="proj-stat"><b>300 / 300</b><span>SIGKILL crash rounds</span></div>
+          <div class="proj-stat"><b>300 / 300</b><span>queries match SQLite</span></div>
+          <div class="proj-stat"><b>8,504</b><span>committed txns verified durable</span></div>
+      </div>
+    </div>
+  </section>
+
+  <div class="proj-body acc-purple">
+    <div class="wrap">
+      <div class="proj-layout">
+      <section class="proj-section">
+        <h2>Overview</h2>
+        <p>Databases are the best systems-programming curriculum there is: parsing, query optimization, on-disk data structures, caching, logging protocols, and concurrency control, all forced to cooperate.</p>
+        <p>sqlmill owns each layer end to end, including the parts tutorials usually skip: crash recovery that survives a SIGKILL mid-page-write, and transaction semantics precise enough to state which anomalies are and are not possible.</p>
+      </section>
+      <section class="proj-section">
+        <h2>Key features</h2>
+        <ul class="proj-list">
+          <li>SQL: a hand-written lexer and recursive-descent parser covering DDL, indexes, INNER and LEFT joins, GROUP BY with aggregates and HAVING, transactions, EXPLAIN, and VACUUM. Syntax errors report line, column, and a caret under the offending token.</li>
+          <li>Planner: predicate pushdown, index selection with a row-count cost model, left-deep join-order search, and a hash join vs nested loop choice.</li>
+          <li>Storage: slotted heap pages, a from-scratch B+tree with variable-length keys and split, borrow, and merge rebalancing, an LRU buffer pool, and per-page CRC32 checksums.</li>
+          <li>Durability: write-ahead logging with full-page after-images batched atomically per safe point, fsync on commit, checkpointing, and torn pages detected by checksum and repaired from the log.</li>
+          <li>Transactions: MVCC snapshot isolation with first-committer-wins conflict detection and VACUUM garbage collection. Readers never block writers.</li>
+        </ul>
+      </section>
+      <section class="proj-section">
+        <h2>Verification</h2>
+        <ul class="proj-list">
+          <li>85 tests covering the parser, planner, B+tree property tests, buffer pool eviction, WAL recovery including torn pages, MVCC, and the differential suite.</li>
+          <li>Crash campaign: 300 rounds passed (seed 2026, 105s); each round SIGKILLs a workload subprocess at a random moment, and 135 rounds also corrupted half of a written page before recovery. 8,504 committed transactions were verified durable; uncommitted work never survived.</li>
+          <li>Differential suite: 300 seeded generated queries run against both sqlmill and stdlib sqlite3, compared modulo row order. 300 of 300 match.</li>
+          <li>Benchmarks: about 1,000 inserts/s with an fsync per commit vs about 2,800/s with fsync off; indexed point lookups stay around 0.2 to 0.3 ms while full scans grow linearly, about 390x slower at 50k rows.</li>
+        </ul>
+      </section>
+      <section class="proj-section">
+        <h2>Tech stack</h2>
+        <ul class="tech-tags">
+          <li>Python 3.12</li>
+          <li>Standard library only</li>
+          <li>B+tree storage</li>
+          <li>Write-ahead log</li>
+          <li>MVCC</li>
+          <li>pytest</li>
+        </ul>
+      </section>
+      <section class="proj-section">
+        <h2>Challenges</h2>
+        <ul class="proj-list">
+          <li>Torn multi-page operations in the WAL: the first crash campaign failed around round 200 because page images were logged individually and a SIGKILL left exactly one of a heap-chain append's images in the replayable prefix. Logging the whole dirty set of each safe point as a single length-and-CRC-framed batch record fixed it.</li>
+          <li>Unique indexes vs MVCC versions: an UPDATE that keeps the key creates a second version with the same key, so the RID is appended to every index key and UNIQUE is enforced logically at insert time.</li>
+          <li>Rebalancing with variable-length keys: count-based split and merge rules break for keys from 9 to 400 bytes, so the tree uses serialized-size thresholds throughout.</li>
+          <li>Negative integers broke the order-preserving key encoding on Python's arbitrary-precision ints, caught by a property test over the full 64-bit range.</li>
+        </ul>
+      </section>
+      <section class="proj-section">
+        <h2>What I learned</h2>
+        <ul class="proj-list">
+          <li>Full-page-image redo plus MVCC-as-undo is a legitimately simple recovery scheme, but only if checkpoints quiesce transactions and rollback physically undoes before the durable horizon advances.</li>
+          <li>Atomicity boundaries have to match at every layer; the batch-record bug was invisible to every deterministic test and appeared only under randomized SIGKILL timing.</li>
+          <li>Appending the RID to secondary-index keys makes non-unique indexes, version chains, and range scans fall out of one unique-key B+tree.</li>
+          <li>Build the crash harness first: it found the only serious correctness bug in the project within 200 rounds.</li>
+        </ul>
+      </section>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<footer class="proj-foot">
+  <div class="wrap proj-foot__row">
+    <a class="proj-foot__link" href="../index.html">&larr; Back to all work</a>
+    <nav class="proj-foot__nav" aria-label="More projects">
+      <a class="proj-foot__link" href="inference-engine.html">Prev: LLM Inference Engine</a>
+      <a class="proj-foot__link" href="raft-kv.html">Next: Raft Consensus KV Store</a>
+    </nav>
+  </div>
+</footer>
+
+<script src="../script.js" defer></script>
+</body>
+</html>

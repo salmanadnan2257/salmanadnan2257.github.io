@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Prompt Evolution GA · Salman Adnan</title>
+  <meta name="description" content="Prompt Evolution GA: a genetic algorithm that evolves LLM instruction prompts for code generation, scored objectively by compiling and running the generated C++ against real test cases.">
+  <meta name="author" content="Salman Adnan">
+  <meta name="theme-color" content="#FFFDF5">
+
+  <!--
+    SITE_URL: the site's absolute base URL is https://salmanadnan2257.github.io
+    Before deploying to a custom domain, find-and-replace that exact string across
+    all HTML files, sitemap.xml, and robots.txt. It is the only absolute host used.
+  -->
+  <link rel="canonical" href="https://salmanadnan2257.github.io/projects/prompt-evolution-ga.html">
+
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="Salman Adnan">
+  <meta property="og:title" content="Prompt Evolution GA · Salman Adnan">
+  <meta property="og:description" content="Prompt Evolution GA: a genetic algorithm that evolves LLM instruction prompts for code generation, scored objectively by compiling and running the generated C++ against real test cases.">
+  <meta property="og:url" content="https://salmanadnan2257.github.io/projects/prompt-evolution-ga.html">
+  <meta property="og:image" content="https://salmanadnan2257.github.io/assets/og/prompt-evolution-ga.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Prompt Evolution GA · Salman Adnan">
+  <meta name="twitter:description" content="Prompt Evolution GA: a genetic algorithm that evolves LLM instruction prompts for code generation, scored objectively by compiling and running the generated C++ against real test cases.">
+  <meta name="twitter:image" content="https://salmanadnan2257.github.io/assets/og/prompt-evolution-ga.png">
+
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="../assets/favicon.png" sizes="any">
+  <link rel="apple-touch-icon" href="../assets/apple-touch-icon.png">
+  <link rel="stylesheet" href="../styles.css">
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareSourceCode",
+    "name": "Prompt Evolution GA",
+    "description": "Prompt Evolution GA: a genetic algorithm that evolves LLM instruction prompts for code generation, scored objectively by compiling and running the generated C++ against real test cases.",
+    "codeRepository": "https://github.com/salmanadnan2257/prompt-evolution-ga",
+    "programmingLanguage": ["Python", "C++"],
+    "url": "https://salmanadnan2257.github.io/projects/prompt-evolution-ga.html",
+    "author": {
+      "@type": "Person",
+      "name": "Salman Adnan",
+      "url": "https://salmanadnan2257.github.io/"
+    }
+  }
+  </script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+
+<header class="nav" id="top">
+  <div class="wrap nav__inner">
+    <a class="nav__brand" href="../index.html" aria-label="Salman Adnan, home">
+      <span class="nav__mark" aria-hidden="true">SA</span>
+      <span class="nav__name">Salman Adnan</span>
+    </a>
+    <nav class="nav__links" aria-label="Primary">
+      <a href="../index.html#work">Work</a>
+      <a href="../index.html#process">Process</a>
+      <a href="../index.html#about">About</a>
+      <a href="../index.html#contact" class="nav__cta">Contact</a>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+
+  <section class="proj-hero acc-coral" aria-labelledby="proj-title">
+    <div class="wrap">
+      <a class="proj-crumb" href="../index.html"><span aria-hidden="true">&larr;</span> Salman Adnan</a>
+      <p class="proj-kicker">prompt-evolution-ga</p>
+      <h1 id="proj-title" class="proj-title">Prompt Evolution GA</h1>
+      <p class="proj-lede">A genetic algorithm that evolves system-level instruction prompts for LLM code generation. Each candidate prompt is scored by an objective fitness function: how many real test cases the generated C++ passes.</p>
+      <div class="proj-actions">
+        <a class="btn btn--primary" href="https://github.com/salmanadnan2257/prompt-evolution-ga" rel="noopener" target="_blank">View code on GitHub</a>
+        <a class="btn btn--ghost" href="../index.html#work">All projects</a>
+      </div>
+        <div class="proj-note">
+          <div>
+            <strong>Course project, solo implementation</strong>
+            <p>Built for a Computational Intelligence course; the paper is co-authored with Ghufran Alvi, and the implementation here is Salman Adnan's work.</p>
+          </div>
+        </div>
+      <div class="proj-stats">
+          <div class="proj-stat"><b>65</b><span>training problems</span></div>
+          <div class="proj-stat"><b>200</b><span>held-out problems</span></div>
+          <div class="proj-stat"><b>~$5-6</b><span>cost per full run</span></div>
+      </div>
+    </div>
+  </section>
+
+  <div class="proj-body acc-coral">
+    <div class="wrap">
+      <div class="proj-layout">
+      <section class="proj-section">
+        <h2>Overview</h2>
+        <p>Gemini generates a C++ solution per competitive-programming problem, g++ compiles it, the binary runs against real test cases, and fitness is the fraction of tests passed. Crossover and mutation are performed by a second, stronger LLM operating directly on the prompt text.</p>
+      </section>
+      <section class="proj-section">
+        <h2>Key features</h2>
+        <ul class="proj-list">
+          <li>Chromosome: a natural-language instruction prompt, starting from 5 hand-written seeds.</li>
+          <li>Fitness: the mean pass rate of gemini-2.5-flash-generated C++ over 65 APPS problems, compiled with g++ -O2 -std=c++23.</li>
+          <li>Operators: LLM-mediated crossover plus three mutations, done by gemini-2.5-pro.</li>
+          <li>Selection: tournament, roulette, or tournament with elitism.</li>
+          <li>12 generations, population 5, then evaluation on a 200-problem held-out split, with parallel fitness evaluation, per-call cost tracking, and resumable checkpoints.</li>
+        </ul>
+      </section>
+      <section class="proj-section">
+        <h2>Results</h2>
+        <ul class="proj-list">
+          <li>Mean pass rate on the 200 test problems: baseline (best hand-written seed) 0.7900, tournament-evolved 0.7857, roulette 0.7717, elitism 0.7713. The strong hand-written seed held its own, which is reported plainly.</li>
+          <li>Three runs made roughly 13,000 LLM calls and cost about $17; a single full run is about 4,000 to 4,700 calls, 4 to 6 hours, and $5 to $6.</li>
+        </ul>
+      </section>
+      <section class="proj-section">
+        <h2>Tech stack</h2>
+        <ul class="tech-tags">
+          <li>Python 3.11+</li>
+          <li>Vertex AI (gemini-2.5-flash, gemini-2.5-pro)</li>
+          <li>g++ with C++23</li>
+          <li>APPS benchmark subset</li>
+          <li>matplotlib</li>
+        </ul>
+      </section>
+      <section class="proj-section">
+        <h2>A challenge worth noting</h2>
+        <p>Making fitness objective at all: rather than asking a model whether output looks right, each candidate is scored by compiling and running the generated C++ against the problem's real test cases. That made the signal trustworthy but pinned the project to a working g++ toolchain, which is a system dependency that has nothing to do with genetic algorithms.</p>
+      </section>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<footer class="proj-foot">
+  <div class="wrap proj-foot__row">
+    <a class="proj-foot__link" href="../index.html">&larr; Back to all work</a>
+    <nav class="proj-foot__nav" aria-label="More projects">
+      <a class="proj-foot__link" href="task-manager-django.html">Prev: Task Manager</a>
+      <a class="proj-foot__link" href="postgres-scaling-lab.html">Next: Postgres Scaling Lab</a>
+    </nav>
+  </div>
+</footer>
+
+<script src="../script.js" defer></script>
+</body>
+</html>

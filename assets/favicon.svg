@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" role="img" aria-label="Salman Adnan monogram">
+  <!-- offset shadow tile, echoing the site's bold-outline offset-shadow style -->
+  <rect x="12" y="12" width="46" height="46" rx="12" fill="#FF6B6B"/>
+  <!-- main tile -->
+  <rect x="5" y="5" width="46" height="46" rx="12" fill="#16130E" stroke="#16130E" stroke-width="2"/>
+  <!-- SA monogram: coral S, cream A -->
+  <text x="28" y="39" font-family="'Space Grotesk','Segoe UI',system-ui,sans-serif" font-size="27" font-weight="700" letter-spacing="-1" text-anchor="middle">
+    <tspan fill="#FFD93D">S</tspan><tspan fill="#FFFDF5">A</tspan>
+  </text>
+</svg>

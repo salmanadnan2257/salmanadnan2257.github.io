@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>WebGL Terrain Explorer · Salman Adnan</title>
+  <meta name="description" content="WebGL Terrain Explorer: a first-person procedural landscape in raw WebGL 1.0 with no engine, hand-written matrix math, three shading modes, animated water, and a fly camera.">
+  <meta name="author" content="Salman Adnan">
+  <meta name="theme-color" content="#FFFDF5">
+
+  <!--
+    SITE_URL: the site's absolute base URL is https://salmanadnan2257.github.io
+    Before deploying to a custom domain, find-and-replace that exact string across
+    all HTML files, sitemap.xml, and robots.txt. It is the only absolute host used.
+  -->
+  <link rel="canonical" href="https://salmanadnan2257.github.io/projects/webgl-terrain-explorer.html">
+
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="Salman Adnan">
+  <meta property="og:title" content="WebGL Terrain Explorer · Salman Adnan">
+  <meta property="og:description" content="WebGL Terrain Explorer: a first-person procedural landscape in raw WebGL 1.0 with no engine, hand-written matrix math, three shading modes, animated water, and a fly camera.">
+  <meta property="og:url" content="https://salmanadnan2257.github.io/projects/webgl-terrain-explorer.html">
+  <meta property="og:image" content="https://salmanadnan2257.github.io/assets/og/webgl-terrain-explorer.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="WebGL Terrain Explorer · Salman Adnan">
+  <meta name="twitter:description" content="WebGL Terrain Explorer: a first-person procedural landscape in raw WebGL 1.0 with no engine, hand-written matrix math, three shading modes, animated water, and a fly camera.">
+  <meta name="twitter:image" content="https://salmanadnan2257.github.io/assets/og/webgl-terrain-explorer.png">
+
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="../assets/favicon.png" sizes="any">
+  <link rel="apple-touch-icon" href="../assets/apple-touch-icon.png">
+  <link rel="stylesheet" href="../styles.css">
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareSourceCode",
+    "name": "WebGL Terrain Explorer",
+    "description": "WebGL Terrain Explorer: a first-person procedural landscape in raw WebGL 1.0 with no engine, hand-written matrix math, three shading modes, animated water, and a fly camera.",
+    "codeRepository": "https://github.com/salmanadnan2257/webgl-terrain-explorer",
+    "programmingLanguage": ["JavaScript"],
+    "url": "https://salmanadnan2257.github.io/projects/webgl-terrain-explorer.html",
+    "author": {
+      "@type": "Person",
+      "name": "Salman Adnan",
+      "url": "https://salmanadnan2257.github.io/"
+    }
+  }
+  </script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+
+<header class="nav" id="top">
+  <div class="wrap nav__inner">
+    <a class="nav__brand" href="../index.html" aria-label="Salman Adnan, home">
+      <span class="nav__mark" aria-hidden="true">SA</span>
+      <span class="nav__name">Salman Adnan</span>
+    </a>
+    <nav class="nav__links" aria-label="Primary">
+      <a href="../index.html#work">Work</a>
+      <a href="../index.html#process">Process</a>
+      <a href="../index.html#about">About</a>
+      <a href="../index.html#contact" class="nav__cta">Contact</a>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+
+  <section class="proj-hero acc-coral" aria-labelledby="proj-title">
+    <div class="wrap">
+      <a class="proj-crumb" href="../index.html"><span aria-hidden="true">&larr;</span> Salman Adnan</a>
+      <p class="proj-kicker">webgl-terrain-explorer</p>
+      <h1 id="proj-title" class="proj-title">WebGL Terrain Explorer</h1>
+      <p class="proj-lede">A first-person explorable low-poly landscape written in raw WebGL 1.0, with no engine and no libraries. Procedural terrain, trees, houses, a gradient sky dome, distance fog, and an animated water plane, all generated in JavaScript at load time.</p>
+      <div class="proj-actions">
+        <a class="btn btn--primary" href="https://github.com/salmanadnan2257/webgl-terrain-explorer" rel="noopener" target="_blank">View code on GitHub</a>
+        <a class="btn btn--ghost" href="../index.html#work">All projects</a>
+      </div>
+        <div class="proj-note">
+          <div>
+            <strong>Course project</strong>
+            <p>Built as a Computer Graphics course project to practice the full pipeline by hand: mesh generation, view and projection matrices, shading models, and shader programs.</p>
+          </div>
+        </div>
+      <div class="proj-stats">
+          <div class="proj-stat"><b>0</b><span>dependencies</span></div>
+          <div class="proj-stat"><b>3</b><span>shading modes</span></div>
+          <div class="proj-stat"><b>40x40</b><span>terrain grid</span></div>
+      </div>
+    </div>
+  </section>
+
+  <div class="proj-body acc-coral">
+    <div class="wrap">
+      <div class="proj-layout">
+      <section class="proj-section">
+        <h2>Overview</h2>
+        <p>It runs by opening index.html in any WebGL-capable browser: no build step, no dependencies.</p>
+      </section>
+      <section class="proj-section">
+        <h2>Key features</h2>
+        <ul class="proj-list">
+          <li>Three shading modes over the same mesh data: wireframe, flat (per-face normals), and smooth Phong (per-vertex normals with ambient, Lambertian diffuse, and specular, blended toward the fog color with distance).</li>
+          <li>Terrain is a 40x40 quad grid; vertex height is a sum of three sine and cosine terms, with smooth normals from the analytic height gradient and color chosen by height.</li>
+          <li>Water is a grid recomputed on the CPU each frame from three layered sine waves and re-uploaded, rendered semi-transparent with blending.</li>
+          <li>The camera avoids rotation matrices: forward, right, and up axes are computed from yaw, pitch, and roll trig directly, with position clamped inside boundary walls.</li>
+          <li>Four separate GLSL programs: lit, wireframe, sky dome, and water.</li>
+        </ul>
+      </section>
+      <section class="proj-section">
+        <h2>Results</h2>
+        <div class="proj-callout"><p>No test suite or performance metrics are claimed; it is a hand-written graphics pipeline that renders interactively in the browser, with all vector and matrix math rolled by hand.</p></div>
+      </section>
+      <section class="proj-section">
+        <h2>Tech stack</h2>
+        <ul class="tech-tags">
+          <li>Raw WebGL 1.0</li>
+          <li>JavaScript</li>
+          <li>GLSL</li>
+          <li>No libraries</li>
+        </ul>
+      </section>
+      <section class="proj-section">
+        <h2>A challenge worth noting</h2>
+        <p>With no engine, every matrix is hand-written. The view matrix is assembled by hand from the camera's basis vectors, and getting the signs right (the -forward row and the translation column) took care. The takeaway: analytic normals from a height function are cheaper and cleaner than averaging face normals, as long as the surface comes from a function you can sample.</p>
+      </section>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<footer class="proj-foot">
+  <div class="wrap proj-foot__row">
+    <a class="proj-foot__link" href="../index.html">&larr; Back to all work</a>
+    <nav class="proj-foot__nav" aria-label="More projects">
+      <a class="proj-foot__link" href="cpp-ray-tracer.html">Prev: C++ Ray Tracer</a>
+      <a class="proj-foot__link" href="reelflow-studio.html">Next: ReelFlow Studio</a>
+    </nav>
+  </div>
+</footer>
+
+<script src="../script.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Agency Blog SaaS · Salman Adnan</title>
+  <meta name="description" content="Agency Blog SaaS: the production Django SaaS behind digitalise.agency for AI blog generation, with credits, a client portal, Postgres, and Docker. 132/132 tests, 56% coverage.">
+  <meta name="author" content="Salman Adnan">
+  <meta name="theme-color" content="#FFFDF5">
+
+  <!--
+    SITE_URL: the site's absolute base URL is https://salmanadnan2257.github.io
+    Before deploying to a custom domain, find-and-replace that exact string across
+    all HTML files, sitemap.xml, and robots.txt. It is the only absolute host used.
+  -->
+  <link rel="canonical" href="https://salmanadnan2257.github.io/projects/agency-blog-saas.html">
+
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="Salman Adnan">
+  <meta property="og:title" content="Agency Blog SaaS · Salman Adnan">
+  <meta property="og:description" content="Agency Blog SaaS: the production Django SaaS behind digitalise.agency for AI blog generation, with credits, a client portal, Postgres, and Docker. 132/132 tests, 56% coverage.">
+  <meta property="og:url" content="https://salmanadnan2257.github.io/projects/agency-blog-saas.html">
+  <meta property="og:image" content="https://salmanadnan2257.github.io/assets/og/agency-blog-saas.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Agency Blog SaaS · Salman Adnan">
+  <meta name="twitter:description" content="Agency Blog SaaS: the production Django SaaS behind digitalise.agency for AI blog generation, with credits, a client portal, Postgres, and Docker. 132/132 tests, 56% coverage.">
+  <meta name="twitter:image" content="https://salmanadnan2257.github.io/assets/og/agency-blog-saas.png">
+
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="../assets/favicon.png" sizes="any">
+  <link rel="apple-touch-icon" href="../assets/apple-touch-icon.png">
+  <link rel="stylesheet" href="../styles.css">
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareSourceCode",
+    "name": "Agency Blog SaaS",
+    "description": "Agency Blog SaaS: the production Django SaaS behind digitalise.agency for AI blog generation, with credits, a client portal, Postgres, and Docker. 132/132 tests, 56% coverage.",
+    "codeRepository": "https://github.com/salmanadnan2257/agency-blog-saas",
+    "programmingLanguage": ["Python", "JavaScript"],
+    "url": "https://salmanadnan2257.github.io/projects/agency-blog-saas.html",
+    "author": {
+      "@type": "Person",
+      "name": "Salman Adnan",
+      "url": "https://salmanadnan2257.github.io/"
+    }
+  }
+  </script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+
+<header class="nav" id="top">
+  <div class="wrap nav__inner">
+    <a class="nav__brand" href="../index.html" aria-label="Salman Adnan, home">
+      <span class="nav__mark" aria-hidden="true">SA</span>
+      <span class="nav__name">Salman Adnan</span>
+    </a>
+    <nav class="nav__links" aria-label="Primary">
+      <a href="../index.html#work">Work</a>
+      <a href="../index.html#process">Process</a>
+      <a href="../index.html#about">About</a>
+      <a href="../index.html#contact" class="nav__cta">Contact</a>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+
+  <section class="proj-hero acc-coral" aria-labelledby="proj-title">
+    <div class="wrap">
+      <a class="proj-crumb" href="../index.html"><span aria-hidden="true">&larr;</span> Salman Adnan</a>
+      <p class="proj-kicker">agency-blog-saas</p>
+      <h1 id="proj-title" class="proj-title">Agency Blog SaaS</h1>
+      <p class="proj-lede">The production codebase behind digitalise.agency: a static marketing site plus a Django SaaS that generates, stores, and publishes AI-written blog posts, gates premium workflows behind redemption codes, and gives clients a portal for progress updates.</p>
+      <div class="proj-actions">
+        <a class="btn btn--primary" href="https://github.com/salmanadnan2257/agency-blog-saas" rel="noopener" target="_blank">View code on GitHub</a>
+        <a class="btn btn--ghost" href="../index.html#work">All projects</a>
+      </div>
+        <div class="proj-note">
+          <div>
+            <strong>Solo, in production</strong>
+            <p>Built and operated solo by Salman Adnan for his own agency. Full functionality needs external services (an n8n instance, a Gmail app password, optionally Twilio, Redis, and Sentry) that were not available in this environment.</p>
+          </div>
+        </div>
+      <div class="proj-stats">
+          <div class="proj-stat"><b>132 / 132</b><span>tests pass</span></div>
+          <div class="proj-stat"><b>56%</b><span>line coverage</span></div>
+          <div class="proj-stat"><b>2</b><span>free posts per 24 hours</span></div>
+      </div>
+    </div>
+  </section>
+
+  <div class="proj-body acc-coral">
+    <div class="wrap">
+      <div class="proj-layout">
+      <section class="proj-section">
+        <h2>Overview</h2>
+        <p>It optimizes for one operator running real client work: everything is admin-manageable, failures refund credits, and destructive actions land in an audit log.</p>
+      </section>
+      <section class="proj-section">
+        <h2>Key features</h2>
+        <ul class="proj-list">
+          <li>Blog generation: an authenticated user submits a topic, the server creates a PendingRequest and calls an n8n webhook, so generation survives the browser closing. 100 credits per post, deducted atomically and refunded on failure.</li>
+          <li>PDF export of any post through a Node and Puppeteer subprocess.</li>
+          <li>A custom user model with email verification codes and optional Twilio SMS phone verification.</li>
+          <li>Credits and subscriptions redeemed via one-time backend-generated codes, with no payment processor in the loop.</li>
+          <li>A client portal where staff assign users and post updates that export to PDF and PPTX.</li>
+          <li>Ops: an audit log, a DB-backed cache, rotating file logs, CSP middleware, rate limiting with JSON 429s, and optional Sentry and Celery.</li>
+        </ul>
+      </section>
+      <section class="proj-section">
+        <h2>Results</h2>
+        <ul class="proj-list">
+          <li>132 of 132 tests pass against local PostgreSQL 18, with 56% line coverage gated at 50%.</li>
+          <li>An internal audit found 53 issues (hardcoded secrets, CSRF exemptions, N+1 queries); views.py is the least-tested module at 31% coverage.</li>
+        </ul>
+      </section>
+      <section class="proj-section">
+        <h2>Tech stack</h2>
+        <ul class="tech-tags">
+          <li>Django 4.2</li>
+          <li>PostgreSQL</li>
+          <li>Gunicorn + nginx</li>
+          <li>Docker</li>
+          <li>Node / Puppeteer</li>
+          <li>optional Celery / Redis / Twilio / Sentry</li>
+          <li>n8n</li>
+        </ul>
+      </section>
+      <section class="proj-section">
+        <h2>A challenge worth noting</h2>
+        <p>The cache backend is DatabaseCache and context processors call it on every request, but migrate does not create the cache table, so a migrations-only deploy would 500 on the first page load. The fix makes createcachetable a first-class deploy step, and the lesson learned was that a guarded UPDATE with F() beats read-modify-write for anything that behaves like a balance.</p>
+      </section>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<footer class="proj-foot">
+  <div class="wrap proj-foot__row">
+    <a class="proj-foot__link" href="../index.html">&larr; Back to all work</a>
+    <nav class="proj-foot__nav" aria-label="More projects">
+      <a class="proj-foot__link" href="balochi-poet-classifier.html">Prev: Balochi Poet Classifier</a>
+      <a class="proj-foot__link" href="blog-posting-pipeline.html">Next: Blog Posting Pipeline</a>
+    </nav>
+  </div>
+</footer>
+
+<script src="../script.js" defer></script>
+</body>
+</html>

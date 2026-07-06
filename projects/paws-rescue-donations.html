@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Paws Rescue Donations · Salman Adnan</title>
+  <meta name="description" content="Paws Rescue Donations: a Django donation-management app for a pet rescue with per-pet tracking, filtering, CSV export, and a dashboard, behind an admin login. 11 tests.">
+  <meta name="author" content="Salman Adnan">
+  <meta name="theme-color" content="#FFFDF5">
+
+  <!--
+    SITE_URL: the site's absolute base URL is https://salmanadnan2257.github.io
+    Before deploying to a custom domain, find-and-replace that exact string across
+    all HTML files, sitemap.xml, and robots.txt. It is the only absolute host used.
+  -->
+  <link rel="canonical" href="https://salmanadnan2257.github.io/projects/paws-rescue-donations.html">
+
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="Salman Adnan">
+  <meta property="og:title" content="Paws Rescue Donations · Salman Adnan">
+  <meta property="og:description" content="Paws Rescue Donations: a Django donation-management app for a pet rescue with per-pet tracking, filtering, CSV export, and a dashboard, behind an admin login. 11 tests.">
+  <meta property="og:url" content="https://salmanadnan2257.github.io/projects/paws-rescue-donations.html">
+  <meta property="og:image" content="https://salmanadnan2257.github.io/assets/og/paws-rescue-donations.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Paws Rescue Donations · Salman Adnan">
+  <meta name="twitter:description" content="Paws Rescue Donations: a Django donation-management app for a pet rescue with per-pet tracking, filtering, CSV export, and a dashboard, behind an admin login. 11 tests.">
+  <meta name="twitter:image" content="https://salmanadnan2257.github.io/assets/og/paws-rescue-donations.png">
+
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="../assets/favicon.png" sizes="any">
+  <link rel="apple-touch-icon" href="../assets/apple-touch-icon.png">
+  <link rel="stylesheet" href="../styles.css">
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareSourceCode",
+    "name": "Paws Rescue Donations",
+    "description": "Paws Rescue Donations: a Django donation-management app for a pet rescue with per-pet tracking, filtering, CSV export, and a dashboard, behind an admin login. 11 tests.",
+    "codeRepository": "https://github.com/salmanadnan2257/paws-rescue-donations",
+    "programmingLanguage": ["Python"],
+    "url": "https://salmanadnan2257.github.io/projects/paws-rescue-donations.html",
+    "author": {
+      "@type": "Person",
+      "name": "Salman Adnan",
+      "url": "https://salmanadnan2257.github.io/"
+    }
+  }
+  </script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+
+<header class="nav" id="top">
+  <div class="wrap nav__inner">
+    <a class="nav__brand" href="../index.html" aria-label="Salman Adnan, home">
+      <span class="nav__mark" aria-hidden="true">SA</span>
+      <span class="nav__name">Salman Adnan</span>
+    </a>
+    <nav class="nav__links" aria-label="Primary">
+      <a href="../index.html#work">Work</a>
+      <a href="../index.html#process">Process</a>
+      <a href="../index.html#about">About</a>
+      <a href="../index.html#contact" class="nav__cta">Contact</a>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+
+  <section class="proj-hero acc-purple" aria-labelledby="proj-title">
+    <div class="wrap">
+      <a class="proj-crumb" href="../index.html"><span aria-hidden="true">&larr;</span> Salman Adnan</a>
+      <p class="proj-kicker">paws-rescue-donations</p>
+      <h1 id="proj-title" class="proj-title">Paws Rescue Donations</h1>
+      <p class="proj-lede">A Django web app for tracking donations at a pet rescue, built for the Khidmat community-service program at Habib University. Staff log in, record donations against individual pets, filter and export the records, and see running totals on a dashboard.</p>
+      <div class="proj-actions">
+        <a class="btn btn--primary" href="https://github.com/salmanadnan2257/paws-rescue-donations" rel="noopener" target="_blank">View code on GitHub</a>
+        <a class="btn btn--ghost" href="../index.html#work">All projects</a>
+      </div>
+      <div class="proj-stats">
+          <div class="proj-stat"><b>11</b><span>tests</span></div>
+          <div class="proj-stat"><b>20</b><span>rows per page</span></div>
+          <div class="proj-stat"><b>CSV</b><span>filtered export</span></div>
+      </div>
+    </div>
+  </section>
+
+  <div class="proj-body acc-purple">
+    <div class="wrap">
+      <div class="proj-layout">
+      <section class="proj-section">
+        <h2>Overview</h2>
+        <p>There is no public-facing side; the whole app sits behind an admin login. It replaces the spreadsheet small rescues usually use, which lacks access control and consistent fields, with a single database and a login, while staying simple enough to run on a free hosting tier.</p>
+      </section>
+      <section class="proj-section">
+        <h2>Key features</h2>
+        <ul class="proj-list">
+          <li>Email and password login with a custom user model (no usernames, no public signup).</li>
+          <li>Donation CRUD with donor contact info, pet name, amount, currency, payment method, reference number, and notes.</li>
+          <li>Filtering by name, date range, payment method, currency, and amount range, with sorting and pagination at 20 rows per page.</li>
+          <li>Dashboard analytics: an all-time total, a filtered total, and the top 5 pets within the current filters, with CSV export of the filtered set.</li>
+          <li>Admin user management from the web UI, with a management command to bootstrap the first admin from environment variables.</li>
+        </ul>
+      </section>
+      <section class="proj-section">
+        <h2>Results</h2>
+        <div class="proj-callout"><p>Eleven tests cover auth redirects, admin creation and self-deletion protection, donation CRUD, filtering, amount validation, and the CSV export.</p></div>
+      </section>
+      <section class="proj-section">
+        <h2>Tech stack</h2>
+        <ul class="tech-tags">
+          <li>Django 4.2</li>
+          <li>Python 3.9+</li>
+          <li>PostgreSQL / SQLite</li>
+          <li>Whitenoise</li>
+          <li>Gunicorn</li>
+          <li>Bootstrap 5</li>
+        </ul>
+      </section>
+      <section class="proj-section">
+        <h2>A challenge worth noting</h2>
+        <p>Production security settings broke the whole test suite: SECURE_SSL_REDIRECT turned every test-client request into a 301 to https and Whitenoise manifest storage raised errors because tests never run collectstatic. The fix gates the security block on an explicit TESTING flag, since manage.py test does not set DEBUG=True.</p>
+      </section>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<footer class="proj-foot">
+  <div class="wrap proj-foot__row">
+    <a class="proj-foot__link" href="../index.html">&larr; Back to all work</a>
+    <nav class="proj-foot__nav" aria-label="More projects">
+      <a class="proj-foot__link" href="codeforces-mashup-generator.html">Prev: Codeforces Mashup Generator</a>
+      <a class="proj-foot__link" href="trade-intelligence-copilot.html">Next: Trade Intelligence Copilot</a>
+    </nav>
+  </div>
+</footer>
+
+<script src="../script.js" defer></script>
+</body>
+</html>

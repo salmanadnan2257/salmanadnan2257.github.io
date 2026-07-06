@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Blog Posting Pipeline · Salman Adnan</title>
+  <meta name="description" content="Blog Posting Pipeline: a production 7-step AI content pipeline that researches, writes, illustrates, and publishes SEO posts for real agency clients, with the exact API cost measured per post.">
+  <meta name="author" content="Salman Adnan">
+  <meta name="theme-color" content="#FFFDF5">
+
+  <!--
+    SITE_URL: the site's absolute base URL is https://salmanadnan2257.github.io
+    Before deploying to a custom domain, find-and-replace that exact string across
+    all HTML files, sitemap.xml, and robots.txt. It is the only absolute host used.
+  -->
+  <link rel="canonical" href="https://salmanadnan2257.github.io/projects/blog-posting-pipeline.html">
+
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="Salman Adnan">
+  <meta property="og:title" content="Blog Posting Pipeline · Salman Adnan">
+  <meta property="og:description" content="Blog Posting Pipeline: a production 7-step AI content pipeline that researches, writes, illustrates, and publishes SEO posts for real agency clients, with the exact API cost measured per post.">
+  <meta property="og:url" content="https://salmanadnan2257.github.io/projects/blog-posting-pipeline.html">
+  <meta property="og:image" content="https://salmanadnan2257.github.io/assets/og/blog-posting-pipeline.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Blog Posting Pipeline · Salman Adnan">
+  <meta name="twitter:description" content="Blog Posting Pipeline: a production 7-step AI content pipeline that researches, writes, illustrates, and publishes SEO posts for real agency clients, with the exact API cost measured per post.">
+  <meta name="twitter:image" content="https://salmanadnan2257.github.io/assets/og/blog-posting-pipeline.png">
+
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="../assets/favicon.png" sizes="any">
+  <link rel="apple-touch-icon" href="../assets/apple-touch-icon.png">
+  <link rel="stylesheet" href="../styles.css">
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareSourceCode",
+    "name": "Blog Posting Pipeline",
+    "description": "Blog Posting Pipeline: a production 7-step AI content pipeline that researches, writes, illustrates, and publishes SEO posts for real agency clients, with the exact API cost measured per post.",
+    "codeRepository": "https://github.com/salmanadnan2257/blog-posting-pipeline",
+    "programmingLanguage": ["Python"],
+    "url": "https://salmanadnan2257.github.io/projects/blog-posting-pipeline.html",
+    "author": {
+      "@type": "Person",
+      "name": "Salman Adnan",
+      "url": "https://salmanadnan2257.github.io/"
+    }
+  }
+  </script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+
+<header class="nav" id="top">
+  <div class="wrap nav__inner">
+    <a class="nav__brand" href="../index.html" aria-label="Salman Adnan, home">
+      <span class="nav__mark" aria-hidden="true">SA</span>
+      <span class="nav__name">Salman Adnan</span>
+    </a>
+    <nav class="nav__links" aria-label="Primary">
+      <a href="../index.html#work">Work</a>
+      <a href="../index.html#process">Process</a>
+      <a href="../index.html#about">About</a>
+      <a href="../index.html#contact" class="nav__cta">Contact</a>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+
+  <section class="proj-hero acc-yellow" aria-labelledby="proj-title">
+    <div class="wrap">
+      <a class="proj-crumb" href="../index.html"><span aria-hidden="true">&larr;</span> Salman Adnan</a>
+      <p class="proj-kicker">blog-posting-pipeline</p>
+      <h1 id="proj-title" class="proj-title">Blog Posting Pipeline</h1>
+      <p class="proj-lede">A production pipeline that researches, writes, illustrates, and publishes SEO blog posts for agency client sites. One CLI run produces one post, with the exact API cost written to cost.json.</p>
+      <div class="proj-actions">
+        <a class="btn btn--primary" href="https://github.com/salmanadnan2257/blog-posting-pipeline" rel="noopener" target="_blank">View code on GitHub</a>
+        <a class="btn btn--ghost" href="../index.html#work">All projects</a>
+      </div>
+        <div class="proj-note">
+          <div>
+            <strong>Solo, in production</strong>
+            <p>Built and operated by Salman Adnan; it runs unattended on a VPS and serves several agency clients. None of the API credentials are in this repo copy, so end-to-end generation was not verified here.</p>
+          </div>
+        </div>
+      <div class="proj-stats">
+          <div class="proj-stat"><b>$0.37-0.40</b><span>typical cost per post</span></div>
+          <div class="proj-stat"><b>7</b><span>pipeline steps</span></div>
+          <div class="proj-stat"><b>7</b><span>clients configured</span></div>
+      </div>
+    </div>
+  </section>
+
+  <div class="proj-body acc-yellow">
+    <div class="wrap">
+      <div class="proj-layout">
+      <section class="proj-section">
+        <h2>Overview</h2>
+        <p>Two packages live here: simple_blog (the live system) and blog_generator (the retired first generation). Every LLM step in the live pipeline uses one fixed, client-agnostic system prompt; all client-specific data travels in the user message.</p>
+      </section>
+      <section class="proj-section">
+        <h2>Key features</h2>
+        <ul class="proj-list">
+          <li>A standardized 7-step pipeline: brief, keyword strategy, section plan, a cited article with real internal links, a hero image, and a push to the client's publish endpoint.</li>
+          <li>Internal links cannot be invented: the writer gets links only through a Pinecone search over the client's own crawled site, and validate_links() strips any URL the tool did not return.</li>
+          <li>Citations cannot be hallucinated: external source URLs come only from Perplexity's API response.</li>
+          <li>Compliance is enforced per client via a non-negotiable block injected at the top of every prompt.</li>
+          <li>Cost is measured, not guessed: pricing.py bills every token, cache write, cache storage hour, Perplexity request, and Pinecone read against verified rates.</li>
+        </ul>
+      </section>
+      <section class="proj-section">
+        <h2>Results</h2>
+        <ul class="proj-list">
+          <li>Typical cost is about $0.37 to $0.40 per post, an honest correction from a once-claimed ~$0.16.</li>
+          <li>Embeddings via gemini-embedding-001 at 3072 dimensions; about 70% of the step-4 writer input served from cache.</li>
+        </ul>
+      </section>
+      <section class="proj-section">
+        <h2>Tech stack</h2>
+        <ul class="tech-tags">
+          <li>Python 3.12</li>
+          <li>Vertex AI (Gemini text/image/embedding)</li>
+          <li>Perplexity API</li>
+          <li>Pinecone</li>
+          <li>Docker + systemd timers</li>
+          <li>Playwright crawler</li>
+        </ul>
+      </section>
+      <section class="proj-section">
+        <h2>A challenge worth noting</h2>
+        <p>Generation and context caching for the Gemini 3.x previews are served only from the global endpoint while embeddings are served from a region, and re-pointing the shared location mid-run breaks in-flight models. The fix is a separate region-pinned client for embeddings. The design lesson: fixed prompt with variable data beats fixed data with a variable prompt, which turned client onboarding from a code change into a data change.</p>
+      </section>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<footer class="proj-foot">
+  <div class="wrap proj-foot__row">
+    <a class="proj-foot__link" href="../index.html">&larr; Back to all work</a>
+    <nav class="proj-foot__nav" aria-label="More projects">
+      <a class="proj-foot__link" href="agency-blog-saas.html">Prev: Agency Blog SaaS</a>
+      <a class="proj-foot__link" href="task-manager-django.html">Next: Task Manager</a>
+    </nav>
+  </div>
+</footer>
+
+<script src="../script.js" defer></script>
+</body>
+</html>

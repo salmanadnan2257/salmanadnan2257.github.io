@@ -1,0 +1,507 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Salman Adnan · AI &amp; Full-Stack Engineer</title>
+  <meta name="description" content="Salman Adnan builds AI systems and the infrastructure under them: a from-scratch LLM serving engine, a database engine, a Raft store, agent tooling, and retrieval systems, each measured with real tests.">
+  <meta name="author" content="Salman Adnan">
+  <meta name="theme-color" content="#FFFDF5">
+
+  <!--
+    SITE_URL: the site's absolute base URL is https://salmanadnan2257.github.io
+    Before deploying to a custom domain, find-and-replace that exact string across
+    all HTML files, sitemap.xml, and robots.txt. It is the only absolute host used.
+  -->
+  <link rel="canonical" href="https://salmanadnan2257.github.io/">
+
+  <!-- Open Graph / Twitter -->
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Salman Adnan">
+  <meta property="og:title" content="Salman Adnan · AI &amp; Full-Stack Engineer">
+  <meta property="og:description" content="AI systems and the infrastructure under them: a from-scratch LLM serving engine, a database engine, a Raft store, agent tooling, and retrieval systems.">
+  <meta property="og:url" content="https://salmanadnan2257.github.io/">
+  <meta property="og:image" content="https://salmanadnan2257.github.io/assets/og.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Salman Adnan · AI &amp; Full-Stack Engineer">
+  <meta name="twitter:description" content="AI systems and the infrastructure under them: a from-scratch LLM serving engine, a database engine, a Raft store, agent tooling, and retrieval systems.">
+  <meta name="twitter:image" content="https://salmanadnan2257.github.io/assets/og.png">
+
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="assets/favicon.png" sizes="any">
+  <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+  <link rel="stylesheet" href="styles.css">
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Person",
+    "name": "Salman Adnan",
+    "jobTitle": "AI & Full-Stack Engineer",
+    "url": "https://salmanadnan2257.github.io/",
+    "image": "https://salmanadnan2257.github.io/assets/portrait.webp",
+    "email": "mailto:salmanadnan2257@gmail.com",
+    "sameAs": [
+      "https://github.com/salmanadnan2257",
+      "https://www.linkedin.com/in/salman-adnan/"
+    ],
+    "worksFor": { "@type": "Organization", "name": "Digitalise Agency" },
+    "address": { "@type": "PostalAddress", "addressCountry": "PK" },
+    "knowsAbout": [
+      "LLM inference", "Database engines", "Distributed consensus",
+      "Vector search", "Retrieval-augmented generation", "Agent runtimes",
+      "Django", "PyTorch"
+    ]
+  }
+  </script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+
+<header class="nav" id="top">
+  <div class="wrap nav__inner">
+    <a class="nav__brand" href="#top" aria-label="Salman Adnan, home">
+      <span class="nav__mark" aria-hidden="true">SA</span>
+      <span class="nav__name">Salman Adnan</span>
+    </a>
+    <nav class="nav__links" aria-label="Primary">
+      <a href="#work">Work</a>
+      <a href="#process">Process</a>
+      <a href="#about">About</a>
+      <a href="#contact" class="nav__cta">Contact</a>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+
+  <!-- HERO -->
+  <section class="hero" aria-labelledby="hero-title">
+    <div class="wrap hero__grid">
+      <div class="hero__copy">
+        <p class="eyebrow">AI &amp; Full-Stack Engineer</p>
+        <h1 id="hero-title" class="hero__title">
+          I build AI systems and the <mark>infrastructure</mark> under them.
+        </h1>
+        <p class="hero__lead">
+          From a from-scratch LLM serving engine and a database engine to a Raft store,
+          production agent tooling, and retrieval systems. Self-taught, five-plus years,
+          based in Pakistan.
+        </p>
+        <div class="hero__actions">
+          <a class="btn btn--primary" href="#work">See the work</a>
+          <a class="btn btn--ghost" href="#contact">Get in touch</a>
+        </div>
+        <ul class="hero__meta" aria-label="Links">
+          <li><a data-repo="" class="hero__link" rel="noopener">GitHub</a></li>
+          <li><a href="https://www.linkedin.com/in/salman-adnan/" rel="noopener">LinkedIn</a></li>
+          <li><a href="mailto:salmanadnan2257@gmail.com">Email</a></li>
+        </ul>
+      </div>
+      <div class="hero__photo">
+        <div class="photo-frame">
+          <img
+            src="assets/portrait.webp"
+            srcset="assets/portrait.webp 1000w, assets/portrait@2x.webp 1400w"
+            sizes="(max-width: 720px) 80vw, 380px"
+            width="1000" height="1250"
+            alt="Salman Adnan" loading="eager" decoding="async">
+        </div>
+        <span class="photo-badge">Founder, Digitalise Agency</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- STATS STRIP -->
+  <section class="stats" aria-label="At a glance">
+    <div class="wrap stats__row">
+      <div class="stat"><span class="stat__num">7</span><span class="stat__label">systems built from scratch</span></div>
+      <div class="stat"><span class="stat__num">550+</span><span class="stat__label">automated tests across the projects</span></div>
+      <div class="stat"><span class="stat__num">5+</span><span class="stat__label">years shipping software</span></div>
+    </div>
+  </section>
+
+  <!-- FEATURED WORK -->
+  <section class="section" id="work" aria-labelledby="work-title">
+    <div class="wrap">
+      <div class="section__head">
+        <p class="eyebrow">Featured work</p>
+        <h2 id="work-title" class="section__title">Nine systems, and what each one proved.</h2>
+        <p class="section__intro">
+          Every card is a real system with tests you can run. The headline number is measured,
+          including the unflattering ones. Open a project for the full write-up.
+        </p>
+      </div>
+
+      <div class="featured-grid">
+
+        <a class="pcard pcard--feature span-4 acc-coral" href="projects/trade-intelligence-copilot.html">
+          <div class="pcard__head">
+            <span class="pcard__idx">01</span>
+            <span class="pcard__metric">SQL correctness 15 / 15</span>
+          </div>
+          <h3 class="pcard__title">Trade Intelligence Copilot</h3>
+          <code class="pcard__repo">trade-intelligence-copilot</code>
+          <p class="pcard__what">Agentic retrieval over agricultural-trade data with a real, published evaluation layer, running on live Gemini. A planner routes guarded text-to-SQL, regulation retrieval, and HS-code lookup, then cites its sources or refuses.</p>
+          <ul class="pcard__tags"><li>Python</li><li>FastAPI</li><li>Gemini</li><li>Evaluation</li></ul>
+          <span class="pcard__go">View project <span aria-hidden="true">&rarr;</span></span>
+        </a>
+
+        <a class="pcard span-2 acc-yellow" href="projects/inference-engine.html">
+          <div class="pcard__head">
+            <span class="pcard__idx">02</span>
+            <span class="pcard__metric">~2.8x batched throughput</span>
+          </div>
+          <h3 class="pcard__title">LLM Inference Engine</h3>
+          <code class="pcard__repo">inference-engine</code>
+          <p class="pcard__what">An LLM serving engine from scratch: paged KV cache, continuous batching, speculative decoding.</p>
+          <ul class="pcard__tags"><li>Python</li><li>PyTorch</li></ul>
+          <span class="pcard__go">View project <span aria-hidden="true">&rarr;</span></span>
+        </a>
+
+        <a class="pcard span-2 acc-purple" href="projects/sqlmill.html">
+          <div class="pcard__head">
+            <span class="pcard__idx">03</span>
+            <span class="pcard__metric">300 / 300 crash recovery</span>
+          </div>
+          <h3 class="pcard__title">SQL Database Engine</h3>
+          <code class="pcard__repo">sqlmill</code>
+          <p class="pcard__what">A relational database from scratch: SQL parser, B+tree storage, WAL crash recovery, MVCC.</p>
+          <ul class="pcard__tags"><li>Python</li><li>B+tree</li><li>WAL</li></ul>
+          <span class="pcard__go">View project <span aria-hidden="true">&rarr;</span></span>
+        </a>
+
+        <a class="pcard span-2 acc-coral" href="projects/raft-kv.html">
+          <div class="pcard__head">
+            <span class="pcard__idx">04</span>
+            <span class="pcard__metric">5,000-seed chaos run</span>
+          </div>
+          <h3 class="pcard__title">Raft Consensus KV Store</h3>
+          <code class="pcard__repo">raft-kv</code>
+          <p class="pcard__what">A distributed key-value store with Raft, deterministic simulation, and a linearizability checker.</p>
+          <ul class="pcard__tags"><li>Python</li><li>asyncio</li></ul>
+          <span class="pcard__go">View project <span aria-hidden="true">&rarr;</span></span>
+        </a>
+
+        <a class="pcard span-2 acc-yellow" href="projects/agent-runtime.html">
+          <div class="pcard__head">
+            <span class="pcard__idx">05</span>
+            <span class="pcard__metric">byte-identical replay</span>
+          </div>
+          <h3 class="pcard__title">Agent Runtime</h3>
+          <code class="pcard__repo">agent-runtime</code>
+          <p class="pcard__what">Event-sourced agent runs with deterministic replay, approvals, and scenario regression testing.</p>
+          <ul class="pcard__tags"><li>Python</li><li>SQLite</li></ul>
+          <span class="pcard__go">View project <span aria-hidden="true">&rarr;</span></span>
+        </a>
+
+        <a class="pcard span-2 acc-purple" href="projects/vector-db.html">
+          <div class="pcard__head">
+            <span class="pcard__idx">06</span>
+            <span class="pcard__metric">recall matches FAISS</span>
+          </div>
+          <h3 class="pcard__title">Vector Database Engine</h3>
+          <code class="pcard__repo">vector-db</code>
+          <p class="pcard__what">A vector database with HNSW built from the paper, WAL persistence, and filtered search.</p>
+          <ul class="pcard__tags"><li>Python</li><li>HNSW</li><li>numpy</li></ul>
+          <span class="pcard__go">View project <span aria-hidden="true">&rarr;</span></span>
+        </a>
+
+        <a class="pcard pcard--feature span-4 acc-coral" href="projects/urdu-slm.html">
+          <div class="pcard__head">
+            <span class="pcard__idx">07</span>
+            <span class="pcard__metric">5.23x fewer tokens on Urdu</span>
+          </div>
+          <h3 class="pcard__title">Urdu Language Model, from scratch</h3>
+          <code class="pcard__repo">urdu-slm</code>
+          <p class="pcard__what">A full pretraining stack for a small Urdu language model: a 2.5M-document corpus pipeline, a 32k tokenizer, and a from-scratch transformer with RMSNorm, RoPE, and SwiGLU. Corpus to transformer, measured honestly.</p>
+          <ul class="pcard__tags"><li>Python</li><li>PyTorch</li><li>Tokenizer</li><li>Transformer</li></ul>
+          <span class="pcard__go">View project <span aria-hidden="true">&rarr;</span></span>
+        </a>
+
+        <a class="pcard span-3 acc-yellow" href="projects/zarailink.html">
+          <div class="pcard__head">
+            <span class="pcard__idx">08</span>
+            <span class="pcard__metric">112 tests, led the team</span>
+          </div>
+          <h3 class="pcard__title">ZaraiLink <span class="badge badge--purple">Team</span></h3>
+          <code class="pcard__repo">zarailink</code>
+          <p class="pcard__what">An agricultural trade-intelligence platform: a Django and DRF backend, a React frontend, NLU intent search, and entity resolution. A final-year team project that Salman led.</p>
+          <ul class="pcard__tags"><li>Django</li><li>DRF</li><li>React</li></ul>
+          <span class="pcard__go">View project <span aria-hidden="true">&rarr;</span></span>
+        </a>
+
+        <a class="pcard span-3 acc-purple" href="projects/balochi-poet-classifier.html">
+          <div class="pcard__head">
+            <span class="pcard__idx">09</span>
+            <span class="pcard__metric">pipeline verified</span>
+          </div>
+          <h3 class="pcard__title">Balochi Poet Classifier <span class="badge badge--purple">Team</span></h3>
+          <code class="pcard__repo">balochi-poet-classifier</code>
+          <p class="pcard__what">Low-resource NLP: an XLM-RoBERTa pipeline that attributes Balochi couplets to one of three poets, from a 1,670-verse corpus. Pipeline and dataset complete; the GPU training run is the honest next step.</p>
+          <ul class="pcard__tags"><li>Python</li><li>XLM-RoBERTa</li><li>NLP</li></ul>
+          <span class="pcard__go">View project <span aria-hidden="true">&rarr;</span></span>
+        </a>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- SECONDARY GRID -->
+  <section class="section section--tint" id="more" aria-labelledby="more-title">
+    <div class="wrap">
+      <div class="section__head section__head--row">
+        <div>
+          <p class="eyebrow">Also built</p>
+          <h2 id="more-title" class="section__title">Twelve more, same standards.</h2>
+        </div>
+        <a class="btn btn--ghost" data-repo="" rel="noopener">All repositories</a>
+      </div>
+      <div class="minis">
+
+        <a class="mini" href="projects/agency-blog-saas.html">
+          <span class="mini__repo">agency-blog-saas</span>
+          <h3>Agency Blog SaaS</h3>
+          <p>A production Django SaaS for AI blog generation. 132 tests, Postgres, Docker.</p>
+          <span class="mini__go">Detail <span aria-hidden="true">&rarr;</span></span>
+        </a>
+
+        <a class="mini" href="projects/blog-posting-pipeline.html">
+          <span class="mini__repo">blog-posting-pipeline</span>
+          <h3>Blog Posting Pipeline</h3>
+          <p>A 7-step AI content pipeline that has served real agency clients.</p>
+          <span class="mini__go">Detail <span aria-hidden="true">&rarr;</span></span>
+        </a>
+
+        <a class="mini" href="projects/task-manager-django.html">
+          <span class="mini__repo">task-manager-django</span>
+          <h3>Task Manager</h3>
+          <p>A Django and WebSockets task manager with real-time notifications. 22 tests.</p>
+          <span class="mini__go">Detail <span aria-hidden="true">&rarr;</span></span>
+        </a>
+
+        <a class="mini" href="projects/prompt-evolution-ga.html">
+          <span class="mini__repo">prompt-evolution-ga</span>
+          <h3>Prompt Evolution GA</h3>
+          <p>A genetic algorithm that evolves LLM prompts, judged by running the generated code.</p>
+          <span class="mini__go">Detail <span aria-hidden="true">&rarr;</span></span>
+        </a>
+
+        <a class="mini" href="projects/postgres-scaling-lab.html">
+          <span class="mini__repo">postgres-scaling-lab</span>
+          <h3>Postgres Scaling Lab</h3>
+          <p>An indexing, partitioning, and streaming-replication study on PostgreSQL.</p>
+          <span class="mini__go">Detail <span aria-hidden="true">&rarr;</span></span>
+        </a>
+
+        <a class="mini" href="projects/cpp-ray-tracer.html">
+          <span class="mini__repo">cpp-ray-tracer</span>
+          <h3>C++ Ray Tracer <span class="badge badge--purple">Team</span></h3>
+          <p>A from-scratch C++ ray tracer with a BVH and multiple materials.</p>
+          <span class="mini__go">Detail <span aria-hidden="true">&rarr;</span></span>
+        </a>
+
+        <a class="mini" href="projects/webgl-terrain-explorer.html">
+          <span class="mini__repo">webgl-terrain-explorer</span>
+          <h3>WebGL Terrain Explorer</h3>
+          <p>A raw-WebGL procedural landscape explorer with a fly camera.</p>
+          <span class="mini__go">Detail <span aria-hidden="true">&rarr;</span></span>
+        </a>
+
+        <a class="mini" href="projects/reelflow-studio.html">
+          <span class="mini__repo">reelflow-studio</span>
+          <h3>ReelFlow Studio</h3>
+          <p>A web front end over n8n workflows for video approval, captioning, and publishing.</p>
+          <span class="mini__go">Detail <span aria-hidden="true">&rarr;</span></span>
+        </a>
+
+        <a class="mini" href="projects/university-enrollment-system.html">
+          <span class="mini__repo">university-enrollment-system</span>
+          <h3>University Enrollment System <span class="badge badge--purple">Team</span></h3>
+          <p>A PyQt6 desktop course-registration app with SQLite and Excel export.</p>
+          <span class="mini__go">Detail <span aria-hidden="true">&rarr;</span></span>
+        </a>
+
+        <a class="mini" href="projects/hitec-shopify-automation.html">
+          <span class="mini__repo">hitec-shopify-automation</span>
+          <h3>Hi-Tec Shopify Automation</h3>
+          <p>Client automation: Shopify stock, pricing, and dimension tooling over CSV exports.</p>
+          <span class="mini__go">Detail <span aria-hidden="true">&rarr;</span></span>
+        </a>
+
+        <a class="mini" href="projects/codeforces-mashup-generator.html">
+          <span class="mini__repo">codeforces-mashup-generator</span>
+          <h3>Codeforces Mashup Generator</h3>
+          <p>A tool that builds fair practice contests from the Codeforces API.</p>
+          <span class="mini__go">Detail <span aria-hidden="true">&rarr;</span></span>
+        </a>
+
+        <a class="mini" href="projects/paws-rescue-donations.html">
+          <span class="mini__repo">paws-rescue-donations</span>
+          <h3>Paws Rescue Donations</h3>
+          <p>A Django donation-management system for a pet rescue. 11 tests.</p>
+          <span class="mini__go">Detail <span aria-hidden="true">&rarr;</span></span>
+        </a>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- PROCESS -->
+  <section class="section" id="process" aria-labelledby="process-title">
+    <div class="wrap">
+      <div class="section__head">
+        <p class="eyebrow">How I build</p>
+        <h2 id="process-title" class="section__title">Durability proven, not claimed.</h2>
+      </div>
+      <ol class="steps">
+        <li class="step acc-coral">
+          <span class="step__num">01</span>
+          <div class="step__body">
+            <h3>Scope it end to end</h3>
+            <p>I write the tests early, so the thing that ships is proven under failure, not hoped to work.</p>
+          </div>
+        </li>
+        <li class="step acc-yellow">
+          <span class="step__num">02</span>
+          <div class="step__body">
+            <h3>Build the hard core from scratch</h3>
+            <p>Storage engines, consensus, inference. I build the difficult part myself so I actually understand it.</p>
+          </div>
+        </li>
+        <li class="step acc-purple">
+          <span class="step__num">03</span>
+          <div class="step__body">
+            <h3>Measure honestly</h3>
+            <p>I report the real numbers, including the ones that make a feature look worse. Speculative decoding was slower on CPU, so I said so.</p>
+          </div>
+        </li>
+        <li class="step acc-coral">
+          <span class="step__num">04</span>
+          <div class="step__body">
+            <h3>Document so it runs</h3>
+            <p>Every project ships with a README and tests someone else can run without me in the room.</p>
+          </div>
+        </li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- ABOUT -->
+  <section class="section section--tint" id="about" aria-labelledby="about-title">
+    <div class="wrap about">
+      <div class="about__photo">
+        <div class="photo-frame photo-frame--yellow">
+          <img
+            src="assets/avatar.webp"
+            width="640" height="640"
+            alt="Salman Adnan" loading="lazy" decoding="async">
+        </div>
+        <blockquote class="about__quote">
+          Correct under failure, or it does not count.
+        </blockquote>
+      </div>
+      <div class="about__copy">
+        <p class="eyebrow">About</p>
+        <h2 id="about-title" class="section__title">Salman Adnan</h2>
+        <p>
+          I am an AI and full-stack engineer based in Pakistan. Self-taught over five-plus years,
+          I like the parts of software other people call the hard part: storage engines, consensus,
+          inference, and the plumbing that makes an agent safe to run in production.
+        </p>
+        <p>
+          Since 2022 I have run <strong>Digitalise Agency</strong>, an AI automation consultancy, where I
+          build content pipelines and internal tooling for real clients. The systems on this page are how
+          I learn the fundamentals: build the hard thing from scratch, test it until it holds, and write
+          down the honest numbers.
+        </p>
+        <div class="about__links">
+          <a class="btn btn--primary" href="#contact">Work with me</a>
+          <a class="btn btn--ghost" data-repo="" rel="noopener">See the code</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SKILLS -->
+  <section class="section" id="skills" aria-labelledby="skills-title">
+    <div class="wrap">
+      <div class="section__head">
+        <p class="eyebrow">Skills</p>
+        <h2 id="skills-title" class="section__title">What I work with.</h2>
+      </div>
+      <div class="skills">
+        <div class="skills__group acc-coral">
+          <h3>Languages</h3>
+          <ul class="chips">
+            <li>Python <span>expert</span></li>
+            <li>C++</li>
+            <li>JavaScript</li>
+            <li>SQL</li>
+          </ul>
+        </div>
+        <div class="skills__group acc-yellow">
+          <h3>AI &amp; ML</h3>
+          <ul class="chips">
+            <li>LLM integration</li>
+            <li>Prompt engineering</li>
+            <li>RAG</li>
+            <li>Agents</li>
+            <li>Evaluation</li>
+          </ul>
+        </div>
+        <div class="skills__group acc-purple">
+          <h3>Web</h3>
+          <ul class="chips">
+            <li>Django</li>
+            <li>Flask</li>
+            <li>FastAPI</li>
+            <li>React</li>
+            <li>PostgreSQL</li>
+            <li>REST APIs</li>
+          </ul>
+        </div>
+        <div class="skills__group acc-coral">
+          <h3>Systems</h3>
+          <ul class="chips">
+            <li>Storage engines</li>
+            <li>Consensus</li>
+            <li>Inference</li>
+            <li>Vector search</li>
+            <li>Workflow automation</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CONTACT -->
+  <section class="contact" id="contact" aria-labelledby="contact-title">
+    <div class="wrap contact__inner">
+      <p class="eyebrow eyebrow--light">Contact</p>
+      <h2 id="contact-title" class="contact__title">Have a system that needs building?</h2>
+      <p class="contact__lead">
+        I take on AI and infrastructure work, and I am happy to talk through a hard problem before you commit.
+      </p>
+      <div class="contact__actions">
+        <a class="btn btn--primary btn--big" href="mailto:salmanadnan2257@gmail.com">salmanadnan2257@gmail.com</a>
+        <a class="btn btn--ghost btn--big" href="https://www.linkedin.com/in/salman-adnan/" rel="noopener">LinkedIn</a>
+        <a class="btn btn--ghost btn--big" data-repo="" rel="noopener">GitHub</a>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="footer">
+  <div class="wrap footer__inner">
+    <span>Salman Adnan</span>
+    <span>Built from scratch. &copy; <span id="year">2026</span></span>
+  </div>
+</footer>
+
+<script src="script.js" defer></script>
+</body>
+</html>

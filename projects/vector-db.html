@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Vector Database Engine · Salman Adnan</title>
+  <meta name="description" content="vector-db: a vector database engine with HNSW built from the paper, WAL crash recovery, and filtered kNN. Recall@10 matches FAISS at matched parameters across a 17,000-vector benchmark. 25 tests.">
+  <meta name="author" content="Salman Adnan">
+  <meta name="theme-color" content="#FFFDF5">
+
+  <!--
+    SITE_URL: the site's absolute base URL is https://salmanadnan2257.github.io
+    Before deploying to a custom domain, find-and-replace that exact string across
+    all HTML files, sitemap.xml, and robots.txt. It is the only absolute host used.
+  -->
+  <link rel="canonical" href="https://salmanadnan2257.github.io/projects/vector-db.html">
+
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="Salman Adnan">
+  <meta property="og:title" content="Vector Database Engine · Salman Adnan">
+  <meta property="og:description" content="vector-db: a vector database engine with HNSW built from the paper, WAL crash recovery, and filtered kNN. Recall@10 matches FAISS at matched parameters across a 17,000-vector benchmark. 25 tests.">
+  <meta property="og:url" content="https://salmanadnan2257.github.io/projects/vector-db.html">
+  <meta property="og:image" content="https://salmanadnan2257.github.io/assets/og/vector-db.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Vector Database Engine · Salman Adnan">
+  <meta name="twitter:description" content="vector-db: a vector database engine with HNSW built from the paper, WAL crash recovery, and filtered kNN. Recall@10 matches FAISS at matched parameters across a 17,000-vector benchmark. 25 tests.">
+  <meta name="twitter:image" content="https://salmanadnan2257.github.io/assets/og/vector-db.png">
+
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="../assets/favicon.png" sizes="any">
+  <link rel="apple-touch-icon" href="../assets/apple-touch-icon.png">
+  <link rel="stylesheet" href="../styles.css">
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareSourceCode",
+    "name": "Vector Database Engine",
+    "description": "vector-db: a vector database engine with HNSW built from the paper, WAL crash recovery, and filtered kNN. Recall@10 matches FAISS at matched parameters across a 17,000-vector benchmark. 25 tests.",
+    "codeRepository": "https://github.com/salmanadnan2257/vector-db",
+    "programmingLanguage": ["Python"],
+    "url": "https://salmanadnan2257.github.io/projects/vector-db.html",
+    "author": {
+      "@type": "Person",
+      "name": "Salman Adnan",
+      "url": "https://salmanadnan2257.github.io/"
+    }
+  }
+  </script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+
+<header class="nav" id="top">
+  <div class="wrap nav__inner">
+    <a class="nav__brand" href="../index.html" aria-label="Salman Adnan, home">
+      <span class="nav__mark" aria-hidden="true">SA</span>
+      <span class="nav__name">Salman Adnan</span>
+    </a>
+    <nav class="nav__links" aria-label="Primary">
+      <a href="../index.html#work">Work</a>
+      <a href="../index.html#process">Process</a>
+      <a href="../index.html#about">About</a>
+      <a href="../index.html#contact" class="nav__cta">Contact</a>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+
+  <section class="proj-hero acc-purple" aria-labelledby="proj-title">
+    <div class="wrap">
+      <a class="proj-crumb" href="../index.html"><span aria-hidden="true">&larr;</span> Salman Adnan</a>
+      <p class="proj-kicker">vector-db</p>
+      <h1 id="proj-title" class="proj-title">Vector Database Engine</h1>
+      <p class="proj-lede">A vector database engine written from scratch in Python, built around an HNSW index implemented directly from the paper rather than wrapping a library. Approximate nearest-neighbor search with configurable recall, exact brute-force ground truth, metadata-filtered kNN, crash-safe WAL persistence, and a small HTTP server.</p>
+      <div class="proj-actions">
+        <a class="btn btn--primary" href="https://github.com/salmanadnan2257/vector-db" rel="noopener" target="_blank">View code on GitHub</a>
+        <a class="btn btn--ghost" href="../index.html#work">All projects</a>
+      </div>
+      <div class="proj-stats">
+          <div class="proj-stat"><b>25</b><span>tests passing</span></div>
+          <div class="proj-stat"><b>0.9997</b><span>recall@10 at efSearch 320</span></div>
+          <div class="proj-stat"><b>matches FAISS</b><span>recall at matched params</span></div>
+          <div class="proj-stat"><b>17,000</b><span>vectors indexed (768-dim)</span></div>
+      </div>
+    </div>
+  </section>
+
+  <div class="proj-body acc-purple">
+    <div class="wrap">
+      <div class="proj-layout">
+      <section class="proj-section">
+        <h2>Overview</h2>
+        <p>The point is understanding, not beating C. The graph construction, greedy search, neighbor-selection heuristic, and level generation are all hand-written; numpy is used only for vectorized distance math, and FAISS appears in one place, the benchmark, purely as a reference.</p>
+        <p>HNSW is the interesting part: a layered small-world graph you navigate greedily in roughly O(log n) hops. Getting recall above 0.95 on real embeddings, making deletes and persistence correct, and measuring honestly against a C library is where the understanding lands.</p>
+      </section>
+      <section class="proj-section">
+        <h2>Key features</h2>
+        <ul class="proj-list">
+          <li>An HNSW index from scratch: a multi-layer graph, probabilistic level assignment, greedy per-layer search, the Algorithm-4 neighbor-selection heuristic with keep_pruned_connections, and configurable M, efConstruction, and efSearch across L2, cosine, and inner-product metrics.</li>
+          <li>A flat brute-force index for exact recall ground truth.</li>
+          <li>Soft delete with tombstones and a compact() rebuild.</li>
+          <li>Crash-safe persistence: a binary snapshot plus an fsync'd write-ahead log, verified by a test that kills a real subprocess mid-batch.</li>
+          <li>Metadata and filtered kNN with both pre-filter (exact) and post-filter (approximate) strategies, both tested.</li>
+          <li>A FastAPI server with a Python client.</li>
+        </ul>
+      </section>
+      <section class="proj-section">
+        <h2>Benchmark</h2>
+        <p>18,000 real 20-Newsgroups embeddings (text-embedding-005, 768-dim), 17,000 indexed and 1,000 held out. M = 16, efConstruction = 200, k = 10, efSearch swept.</p>
+      </section>
+      <section class="proj-section">
+        <h2>Recall vs FAISS</h2>
+        <div class="proj-table-wrap"><table class="proj-table">
+          <thead><tr><th>efSearch</th><th>ours recall@10</th><th>ours p50 ms</th><th>FAISS recall@10</th></tr></thead>
+          <tbody>
+            <tr><td>10</td><td>0.9473</td><td>1.67</td><td>0.9038</td></tr>
+            <tr><td>40</td><td>0.9938</td><td>3.73</td><td>0.9886</td></tr>
+            <tr><td>80</td><td>0.9980</td><td>5.38</td><td>0.9970</td></tr>
+            <tr><td>160</td><td>0.9994</td><td>10.73</td><td>0.9987</td></tr>
+            <tr><td>320</td><td>0.9997</td><td>17.97</td><td>0.9991</td></tr>
+          </tbody></table></div>
+      </section>
+      <section class="proj-section">
+        <h2>What the numbers say</h2>
+        <p>At every matched efSearch our recall is at least as high as FAISS, which confirms the graph and search are implemented correctly. FAISS is roughly 10 to 13x faster per query and builds the index in seconds rather than about 20 minutes, because it is optimized C with SIMD and this is CPython with per-node numpy calls. That gap is expected and is the whole reason libraries like FAISS exist.</p>
+      </section>
+      <section class="proj-section">
+        <h2>Tech stack</h2>
+        <ul class="tech-tags">
+          <li>Python 3.12</li>
+          <li>numpy</li>
+          <li>FastAPI</li>
+          <li>HNSW from the paper</li>
+          <li>faiss-cpu (benchmark only)</li>
+          <li>pytest</li>
+        </ul>
+      </section>
+      <section class="proj-section">
+        <h2>Challenges</h2>
+        <ul class="proj-list">
+          <li>Neighbor heuristic vs plain top-M: the first graph kept the M nearest candidates and recall stalled around 0.7; implementing Algorithm 4 (keep a candidate only if it is closer to the base than to any already-selected neighbor) pushed recall past 0.95.</li>
+          <li>Crash recovery needed config separate from the snapshot: a WAL-only directory could not reconstruct the index, so config.json is persisted durably at collection creation.</li>
+          <li>Vertex token limits on real text blew the 20,000-token cap on one 36,610-token batch; token-budgeted batching kept every request under the cap.</li>
+          <li>Python insert speed is dominated by many tiny numpy calls; batching helped, but a from-scratch Python HNSW is still far slower to build than FAISS, and that is reported rather than hidden.</li>
+        </ul>
+      </section>
+      <section class="proj-section">
+        <h2>What I learned</h2>
+        <ul class="proj-list">
+          <li>The layer stack is a skip-list for geometry: sparse top layers give long-range hops, the dense bottom layer does local search, and the neighbor heuristic keeps links diverse enough to navigate.</li>
+          <li>Squared L2 and normalized-vector cosine share one distance code path, removing a sqrt and a division from the hot loop.</li>
+          <li>efSearch is a pure recall/latency dial you can turn after the index is built; efConstruction is a build-time quality dial you cannot.</li>
+          <li>Durability is about ordering: fsync the WAL record before applying the operation, and frame each record with a length and a CRC so a torn tail fails its check.</li>
+        </ul>
+      </section>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<footer class="proj-foot">
+  <div class="wrap proj-foot__row">
+    <a class="proj-foot__link" href="../index.html">&larr; Back to all work</a>
+    <nav class="proj-foot__nav" aria-label="More projects">
+      <a class="proj-foot__link" href="agent-runtime.html">Prev: Agent Runtime</a>
+      <a class="proj-foot__link" href="urdu-slm.html">Next: Urdu Language Model, from scratch</a>
+    </nav>
+  </div>
+</footer>
+
+<script src="../script.js" defer></script>
+</body>
+</html>

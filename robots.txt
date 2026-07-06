@@ -1,0 +1,6 @@
+# SITE_URL: replace https://salmanadnan2257.github.io with the real domain at deploy
+# (single find-replace across all HTML files, sitemap.xml, and this file).
+User-agent: *
+Allow: /
+
+Sitemap: https://salmanadnan2257.github.io/sitemap.xml
