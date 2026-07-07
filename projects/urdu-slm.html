@@ -82,16 +82,21 @@
       </div>
         <div class="proj-note">
           <div>
-            <strong>Phase 1 complete, phase 2 is a GPU run</strong>
-            <p>This repository is the complete, verified pipeline plus a tiny proof-run trained on CPU. The full ~124M-parameter model is a one-command GPU launch that has not been run yet; no base weights are claimed or shipped.</p>
+            <strong>The 124M-parameter model is trained</strong>
+            <p>All 858 steps completed on a rented A100 in about 75 minutes for roughly $1.90. Real held-out perplexity, a script-mix check, a cloze accuracy score, and real sample generations are below, reported honestly, including a repetition loop in one sample, not cherry-picked for quality.</p>
           </div>
         </div>
       <div class="proj-stats">
           <div class="proj-stat"><b>5.23x</b><span>fewer tokens than GPT-2 on Urdu</span></div>
-          <div class="proj-stat"><b>2.5M</b><span>documents in the cleaned corpus</span></div>
-          <div class="proj-stat"><b>111.7M</b><span>training tokens</span></div>
-          <div class="proj-stat"><b>12</b><span>tests passing</span></div>
+          <div class="proj-stat"><b>38.02</b><span>held-out perplexity, base model</span></div>
+          <div class="proj-stat"><b>99.43%</b><span>generations in correct Urdu script</span></div>
+          <div class="proj-stat"><b>$1.90</b><span>real cost, ~75 minutes on an A100</span></div>
       </div>
+
+      <figure class="proj-media">
+        <img src="../assets/screenshots/urdu-slm.webp" alt="Training and validation cross-entropy loss curve from a real 500-step CPU proof run of urdu-slm." loading="lazy" decoding="async" width="960" height="600">
+        <figcaption>UrduLM tiny (13M params), 4.1M tokens.</figcaption>
+      </figure>
     </div>
   </section>
 
@@ -119,8 +124,15 @@
           <li>Corpus: 3,695,487 raw units filtered and deduplicated to 2,515,082 documents (438.5M chars); dedup removed 31.9% of extracted paragraphs. Final split 2,489,976 train / 25,106 val.</li>
           <li>Tokenizer: on an 806,495-character held-out Urdu sample, the 32k Urdu BPE uses 4.078 chars per token; GPT-2 spends 5.23x more tokens on the same text.</li>
           <li>Tiny proof run (13M preset, CPU, 500 steps, 4.10M tokens): train loss 9.74 to 5.42, held-out perplexity 248.8, and 98.2% of generated characters stay in Arabic script.</li>
+          <li>Base run (124M preset, A100, 858 steps, 449.8M tokens): loss 7.35 to 3.51, real sustained throughput ~99,470 tokens/second, ~75 minutes, about $1.90.</li>
+          <li>Base model evaluation: held-out perplexity 38.02, 99.43% of generations stay in Arabic script, cloze accuracy 34.9% (2-shot, chance is 33.3%).</li>
           <li>12 tests passing (5 model, 7 pipeline), including a causal-masking property test and per-preset parameter counts.</li>
         </ul>
+      </section>
+      <section class="proj-section">
+        <h2>Reading the base model honestly</h2>
+        <p>Script mix confirms the model reliably writes in Urdu's actual script, not garbage output. Perplexity and cloze are modest, cloze sits barely above chance, the expected result for a 124M-parameter model trained on a data-limited corpus (0.9 tokens per parameter against Chinchilla's ~20) for one short run, not a claim of strong language understanding.</p>
+        <p>Three real generations, shown as evidence rather than cherry-picked: a prompt about Pakistan drifts into cricket-trivia fragments, grammatically real Urdu but topically disconnected; a prompt about the Urdu language falls into a real failure mode, a repetition loop on the word "Iran", before recovering into a coherent sentence about an Iranian village; a prompt about today's weather produces fluent Urdu sentences about a diplomatic meeting in Islamabad, ignoring the prompt's actual topic. The honest read: the model learned script, vocabulary, and local grammar from a small corpus, not topical coherence, which would need a larger corpus or an instruction-tuning pass this project does not attempt.</p>
       </section>
       <section class="proj-section">
         <h2>Tech stack</h2>
