@@ -39,7 +39,6 @@
     "@type": "SoftwareSourceCode",
     "name": "ReelFlow Studio",
     "description": "ReelFlow Studio: a single-file operator console over n8n workflows for video approval, captioning, and publishing, with retry logic so a flaky run never drops an approval. Client work.",
-    "codeRepository": "https://github.com/salmanadnan2257/reelflow-studio",
     "programmingLanguage": ["JavaScript", "Python"],
     "url": "https://salmanadnan2257.github.io/projects/reelflow-studio.html",
     "author": {
@@ -76,14 +75,15 @@
       <p class="proj-kicker">reelflow-studio</p>
       <h1 id="proj-title" class="proj-title">ReelFlow Studio</h1>
       <p class="proj-lede">A single-file operator console for a set of n8n automation workflows: video approval and publishing, LinkedIn content generation, and a scripting agent. The browser talks directly to n8n webhooks, with retry logic so a flaky workflow run never silently drops an approval.</p>
+      <!-- DEMO_URL placeholder: swap for the real Netlify URL once reelflow-studio-demo is deployed -->
       <div class="proj-actions">
-        <a class="btn btn--primary" href="https://github.com/salmanadnan2257/reelflow-studio" rel="noopener" target="_blank">View code on GitHub</a>
+        <a class="btn btn--primary" href="https://reelflow-studio-demo.netlify.app" rel="noopener" target="_blank">Try the live demo</a>
         <a class="btn btn--ghost" href="../index.html#work">All projects</a>
       </div>
         <div class="proj-note">
           <div>
             <strong>Client work; frontend contract only</strong>
-            <p>Built by Salman Adnan for one of his agency's clients. End-to-end runs need a live n8n instance behind each slug; this repo is the frontend contract, so with the placeholder base URL every action fails after its retries by design.</p>
+            <p>Built by Salman Adnan for one of his agency's clients. Its source is private since it's a real client's operations tool. The linked demo replays the same approve, caption, publish, and schedule loop against a fabricated video queue, not the real client's workflows.</p>
           </div>
         </div>
       <div class="proj-stats">
@@ -91,6 +91,11 @@
           <div class="proj-stat"><b>6</b><span>retry attempts per call</span></div>
           <div class="proj-stat"><b>4</b><span>operator tabs</span></div>
       </div>
+
+      <figure class="proj-media">
+        <img src="../assets/screenshots/reelflow-studio.webp" alt="The real ReelFlow Studio UI shell, running locally." loading="lazy" decoding="async" width="1400" height="875">
+        <figcaption>Idle state before the video queue is loaded from n8n.</figcaption>
+      </figure>
     </div>
   </section>
 

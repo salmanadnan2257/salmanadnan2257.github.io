@@ -39,7 +39,6 @@
     "@type": "SoftwareSourceCode",
     "name": "Agency Blog SaaS",
     "description": "Agency Blog SaaS: the production Django SaaS behind digitalise.agency for AI blog generation, with credits, a client portal, Postgres, and Docker. 132/132 tests, 56% coverage.",
-    "codeRepository": "https://github.com/salmanadnan2257/agency-blog-saas",
     "programmingLanguage": ["Python", "JavaScript"],
     "url": "https://salmanadnan2257.github.io/projects/agency-blog-saas.html",
     "author": {
@@ -76,14 +75,15 @@
       <p class="proj-kicker">agency-blog-saas</p>
       <h1 id="proj-title" class="proj-title">Agency Blog SaaS</h1>
       <p class="proj-lede">The production codebase behind digitalise.agency: a static marketing site plus a Django SaaS that generates, stores, and publishes AI-written blog posts, gates premium workflows behind redemption codes, and gives clients a portal for progress updates.</p>
+      <!-- DEMO_URL placeholder: swap for the real Netlify URL once agency-blog-saas-demo is deployed -->
       <div class="proj-actions">
-        <a class="btn btn--primary" href="https://github.com/salmanadnan2257/agency-blog-saas" rel="noopener" target="_blank">View code on GitHub</a>
+        <a class="btn btn--primary" href="https://agency-blog-saas-demo.netlify.app" rel="noopener" target="_blank">Try the live demo</a>
         <a class="btn btn--ghost" href="../index.html#work">All projects</a>
       </div>
         <div class="proj-note">
           <div>
             <strong>Solo, in production</strong>
-            <p>Built and operated solo by Salman Adnan for his own agency. Full functionality needs external services (an n8n instance, a Gmail app password, optionally Twilio, Redis, and Sentry) that were not available in this environment.</p>
+            <p>Built and operated solo by Salman Adnan for his own agency. Its source is private since it's the agency's live product, not just data that can be scrubbed. The linked demo is a scripted product tour of the same features with fabricated data, not the real system.</p>
           </div>
         </div>
       <div class="proj-stats">
@@ -91,6 +91,11 @@
           <div class="proj-stat"><b>56%</b><span>line coverage</span></div>
           <div class="proj-stat"><b>2</b><span>free posts per 24 hours</span></div>
       </div>
+
+      <figure class="proj-media">
+        <img src="../assets/screenshots/agency-blog-saas.webp" alt="The real Agency Blog SaaS homepage, running locally." loading="lazy" decoding="async" width="1400" height="875">
+        <figcaption>Live local run of the Django app's public homepage.</figcaption>
+      </figure>
     </div>
   </section>
 
