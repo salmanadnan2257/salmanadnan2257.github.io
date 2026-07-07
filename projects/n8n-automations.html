@@ -93,8 +93,8 @@
       </div>
 
       <figure class="proj-media">
-        <img src="../assets/screenshots/n8n-automations.webp" alt="Terminal output listing the 59 built automation folders and confirming every one has its required README, LICENSE, and CREDENTIALS.md files." loading="lazy" decoding="async" width="1200" height="800">
-        <figcaption>Real terminal output from the folder verification pass.</figcaption>
+        <img src="../assets/screenshots/n8n-google-maps-to-email-scraper.webp" alt="The real node graph of the google-maps-to-email-scraper automation: 21 nodes, exact names, types, and positions read straight from its workflow.json." loading="lazy" decoding="async" width="1600" height="547">
+        <figcaption>google-maps-to-email-scraper's real node graph, rendered from its own workflow.json (not a screenshot, but every node name, type, position, and connection is exactly as exported).</figcaption>
       </figure>
     </div>
   </section>
@@ -105,6 +105,36 @@
       <section class="proj-section">
         <h2>Overview</h2>
         <p>Digitalise Agency runs a live n8n instance with well over a hundred workflows built up over time: some production systems serving real clients, some demos, some abandoned tests. This project is the curation pass over that instance: survey every workflow, decide what is genuinely worth showing, pull its real definition, strip anything sensitive, and document it to the same standard as the rest of this portfolio, including the parts that do not work as advertised.</p>
+      </section>
+      <section class="proj-section">
+        <h2>Six of the 59, as node graphs</h2>
+        <p>n8n builds automations visually, so a code snippet does not really show the work. These are not screenshots: each is rendered directly from that automation's real exported <code>workflow.json</code>, using its exact node names, types, canvas positions, and connections, colored by node role (trigger, AI/LLM, logic, action). Ranging from a 6-node utility to a 190-node content pipeline.</p>
+        <div class="proj-gallery">
+          <figure class="proj-media">
+            <img src="../assets/screenshots/n8n-crm-lead-to-stripe-invoice.webp" alt="Real node graph of crm-lead-to-stripe-invoice: a simple 6-node linear pipeline from webhook to Stripe to invoice creation." loading="lazy" decoding="async" width="1400" height="373">
+            <figcaption>crm-lead-to-stripe-invoice, 6 nodes: the simplest end of the collection.</figcaption>
+          </figure>
+          <figure class="proj-media">
+            <img src="../assets/screenshots/n8n-ultimate-personal-assistant-orchestrator.webp" alt="Real node graph of the ultimate-personal-assistant-system orchestrator: a Telegram trigger routing through a switch to voice transcription or text, into one agent, out to four tool sub-workflows." loading="lazy" decoding="async" width="1600" height="861">
+            <figcaption>ultimate-personal-assistant-system's orchestrator, 15 nodes, routing to four tool sub-workflows.</figcaption>
+          </figure>
+          <figure class="proj-media">
+            <img src="../assets/screenshots/n8n-google-maps-to-email-scraper.webp" alt="Real node graph of google-maps-to-email-scraper, a 21-node lead-scraping pipeline." loading="lazy" decoding="async" width="1600" height="547">
+            <figcaption>google-maps-to-email-scraper, 21 nodes.</figcaption>
+          </figure>
+          <figure class="proj-media">
+            <img src="../assets/screenshots/n8n-rag-ingestion-pipeline.webp" alt="Real node graph of rag-ingestion-pipeline, 47 nodes feeding a vector store." loading="lazy" decoding="async" width="1600" height="1335">
+            <figcaption>rag-ingestion-pipeline, 47 nodes.</figcaption>
+          </figure>
+          <figure class="proj-media">
+            <img src="../assets/screenshots/n8n-whatsapp-ai-sales-lead-system.webp" alt="Real node graph of whatsapp-ai-sales-lead-system, 48 nodes. Several clusters sit visibly disconnected from the main flow, matching the real, documented defect in this workflow: the WAHA trigger and a Cohere reranker are wired but not connected to the live path." loading="lazy" decoding="async" width="1600" height="1048">
+            <figcaption>whatsapp-ai-sales-lead-system, 48 nodes. The visibly disconnected clusters are real, not a rendering artifact: see this project's README for the documented WAHA-trigger and reranker wiring gap.</figcaption>
+          </figure>
+          <figure class="proj-media proj-media--wide">
+            <img src="../assets/screenshots/n8n-social-media-content-generator.webp" alt="Real node graph of social-media-content-generator, the largest automation in the collection at 190 nodes, generating and merging content across many parallel branches." loading="lazy" decoding="async" width="1800" height="2037">
+            <figcaption>social-media-content-generator, 190 nodes: the largest automation in the collection.</figcaption>
+          </figure>
+        </div>
       </section>
       <section class="proj-section">
         <h2>Key features</h2>
