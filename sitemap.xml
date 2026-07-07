@@ -117,6 +117,11 @@
     <priority>0.6</priority>
   </url>
   <url>
+    <loc>https://salmanadnan2257.github.io/projects/n8n-automations.html</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
     <loc>https://salmanadnan2257.github.io/projects/space-race-analysis.html</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
