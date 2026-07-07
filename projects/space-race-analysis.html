@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Space Race Analysis · Salman Adnan</title>
+  <meta name="description" content="Space Race Analysis: an interactive Flask dashboard and static analysis script covering 4,324 historical space launches by 56 organisations, from Cold War rivalry charts to a live-filterable choropleth.">
+  <meta name="author" content="Salman Adnan">
+  <meta name="theme-color" content="#FFFDF5">
+
+  <!--
+    SITE_URL: the site's absolute base URL is https://salmanadnan2257.github.io
+    Before deploying to a custom domain, find-and-replace that exact string across
+    all HTML files, sitemap.xml, and robots.txt. It is the only absolute host used.
+  -->
+  <link rel="canonical" href="https://salmanadnan2257.github.io/projects/space-race-analysis.html">
+
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="Salman Adnan">
+  <meta property="og:title" content="Space Race Analysis · Salman Adnan">
+  <meta property="og:description" content="Space Race Analysis: an interactive Flask dashboard and static analysis script covering 4,324 historical space launches by 56 organisations, from Cold War rivalry charts to a live-filterable choropleth.">
+  <meta property="og:url" content="https://salmanadnan2257.github.io/projects/space-race-analysis.html">
+  <meta property="og:image" content="https://salmanadnan2257.github.io/assets/og/space-race-analysis.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Space Race Analysis · Salman Adnan">
+  <meta name="twitter:description" content="Space Race Analysis: an interactive Flask dashboard and static analysis script covering 4,324 historical space launches by 56 organisations, from Cold War rivalry charts to a live-filterable choropleth.">
+  <meta name="twitter:image" content="https://salmanadnan2257.github.io/assets/og/space-race-analysis.png">
+
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="../assets/favicon.png" sizes="any">
+  <link rel="apple-touch-icon" href="../assets/apple-touch-icon.png">
+  <link rel="stylesheet" href="../styles.css">
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareSourceCode",
+    "name": "Space Race Analysis",
+    "description": "Space Race Analysis: an interactive Flask dashboard and static analysis script covering 4,324 historical space launches by 56 organisations, from Cold War rivalry charts to a live-filterable choropleth.",
+    "codeRepository": "https://github.com/salmanadnan2257/space-race-analysis",
+    "programmingLanguage": ["Python", "JavaScript"],
+    "url": "https://salmanadnan2257.github.io/projects/space-race-analysis.html",
+    "author": {
+      "@type": "Person",
+      "name": "Salman Adnan",
+      "url": "https://salmanadnan2257.github.io/"
+    }
+  }
+  </script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+
+<header class="nav" id="top">
+  <div class="wrap nav__inner">
+    <a class="nav__brand" href="../index.html" aria-label="Salman Adnan, home">
+      <span class="nav__mark" aria-hidden="true">SA</span>
+      <span class="nav__name">Salman Adnan</span>
+    </a>
+    <nav class="nav__links" aria-label="Primary">
+      <a href="../index.html#work">Work</a>
+      <a href="../index.html#process">Process</a>
+      <a href="../index.html#about">About</a>
+      <a href="../index.html#contact" class="nav__cta">Contact</a>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+
+  <section class="proj-hero acc-coral" aria-labelledby="proj-title">
+    <div class="wrap">
+      <a class="proj-crumb" href="../index.html"><span aria-hidden="true">&larr;</span> Salman Adnan</a>
+      <p class="proj-kicker">space-race-analysis</p>
+      <h1 id="proj-title" class="proj-title">Space Race Analysis</h1>
+      <p class="proj-lede">A data analysis script and interactive Flask dashboard covering every space mission launch on record from the start of the Space Race in 1957 through 2020: 4,324 launches by 56 organisations, cleaned and turned into 17 static charts plus a live-filterable dashboard covering launch counts, cost, geography, and the Cold War rivalry between the USA and the USSR.</p>
+      <div class="proj-actions">
+        <a class="btn btn--primary" href="https://github.com/salmanadnan2257/space-race-analysis" rel="noopener" target="_blank">View code on GitHub</a>
+        <a class="btn btn--ghost" href="../index.html#work">All projects</a>
+      </div>
+        <div class="proj-note">
+          <div>
+            <strong>Solo</strong>
+            <p>Solo work by Salman Adnan.</p>
+          </div>
+        </div>
+      <div class="proj-stats">
+          <div class="proj-stat"><b>4,324</b><span>launches analyzed</span></div>
+          <div class="proj-stat"><b>17</b><span>static charts generated</span></div>
+          <div class="proj-stat"><b>1957-2020</b><span>years covered</span></div>
+      </div>
+    </div>
+  </section>
+
+  <div class="proj-body acc-coral">
+    <div class="wrap">
+      <div class="proj-layout">
+      <section class="proj-section">
+        <h2>Overview</h2>
+        <p>Raw launch logs answer "what happened" one row at a time. This project turns those rows into answers to the questions people actually ask about spaceflight history: who launches the most, what does a launch cost, and how did the USA and USSR compare during the Cold War. What started as a one-shot static analysis script grew a second life as a live Flask dashboard sitting on top of the same cleaned data.</p>
+      </section>
+      <section class="proj-section">
+        <h2>Key features</h2>
+        <ul class="proj-list">
+          <li>Cleans the scraped CSV: drops duplicate rows and two junk index columns, then parses free-text launch locations down to ISO country codes with a graceful fallback for defunct sites like former USSR launch pads.</li>
+          <li>17 static charts: bar charts for launches per organisation/year/month, a price histogram, line charts for average price and launch cadence over time, a USA vs USSR pie chart, and two interactive Plotly charts (a world choropleth and a country-to-organisation sunburst).</li>
+          <li>Every chart writes to <code>output/</code> as a file (PNG or HTML), so the analysis is reproducible headless; an optional <code>SHOW_PLOTS=1</code> toggle pops each one up interactively too.</li>
+          <li>A spend analysis across the 25 organisations that report both launch counts and a non-zero price, since most of the dataset never discloses cost.</li>
+          <li>A Flask dashboard on the same cleaned data: filter by organisation, country, and launch-year range and watch five charts, including a real hover/zoom/click choropleth and sunburst, update live with no page reload.</li>
+        </ul>
+      </section>
+      <section class="proj-section">
+        <h2>Verification</h2>
+        <div class="proj-callout"><p>A verified run of <code>space_race_analysis.py</code> writes 17 chart files (15 PNGs, 2 HTMLs) into <code>output/</code>, which ships in the repo as a sample of a completed run. The dashboard loads all 4,324 launches on start, and its "USA vs USSR (1957-1991)" shortcut computes a real number on the fly: 1,876 launches split 111 NASA to 1,765 RVSN USSR, not a hardcoded figure.</p></div>
+      </section>
+      <section class="proj-section">
+        <h2>Tech stack</h2>
+        <ul class="tech-tags">
+          <li>Python</li>
+          <li>pandas</li>
+          <li>pycountry</li>
+          <li>matplotlib</li>
+          <li>Plotly</li>
+          <li>Flask</li>
+        </ul>
+      </section>
+      <section class="proj-section">
+        <h2>A challenge worth noting</h2>
+        <p>An early version built a launch-count column with <code>value_counts().reset_index()['Organisation']</code>, which in current pandas pulls the organisation names, not the counts, into that column. It didn't fail until later, when dividing price by that column threw a type error. The fix was to map counts back onto each row explicitly by key instead of relying on how <code>reset_index()</code> happens to name its output in a given pandas version. On the dashboard side, sending a filtered chart to the browser without a full reload needed <code>json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)</code> rather than <code>fig.to_html()</code>, since the page calls <code>Plotly.react</code> on the existing chart with that JSON instead of replacing the whole document.</p>
+      </section>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<footer class="proj-foot">
+  <div class="wrap proj-foot__row">
+    <a class="proj-foot__link" href="../index.html">&larr; Back to all work</a>
+    <nav class="proj-foot__nav" aria-label="More projects">
+      <a class="proj-foot__link" href="paws-rescue-donations.html">Prev: Paws Rescue Donations</a>
+      <a class="proj-foot__link" href="police-shootings-analysis.html">Next: Police Shootings Analysis</a>
+    </nav>
+  </div>
+</footer>
+
+<script src="../script.js" defer></script>
+</body>
+</html>

@@ -52,6 +52,11 @@
     <priority>0.8</priority>
   </url>
   <url>
+    <loc>https://salmanadnan2257.github.io/projects/voice-agent.html</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
     <loc>https://salmanadnan2257.github.io/projects/agency-blog-saas.html</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
@@ -108,6 +113,81 @@
   </url>
   <url>
     <loc>https://salmanadnan2257.github.io/projects/paws-rescue-donations.html</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://salmanadnan2257.github.io/projects/space-race-analysis.html</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://salmanadnan2257.github.io/projects/police-shootings-analysis.html</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://salmanadnan2257.github.io/projects/earnings-regression.html</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://salmanadnan2257.github.io/projects/flask-todo-list.html</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://salmanadnan2257.github.io/projects/flask-online-shop.html</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://salmanadnan2257.github.io/projects/pdf-to-audiobook.html</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://salmanadnan2257.github.io/projects/color-palette-generator.html</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://salmanadnan2257.github.io/projects/custom-web-scraper.html</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://salmanadnan2257.github.io/projects/morse-code-converter.html</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://salmanadnan2257.github.io/projects/tic-tac-toe-gui.html</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://salmanadnan2257.github.io/projects/image-watermarking-tool.html</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://salmanadnan2257.github.io/projects/typing-master-gui.html</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://salmanadnan2257.github.io/projects/breakout-game.html</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://salmanadnan2257.github.io/projects/disappearing-text-app.html</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://salmanadnan2257.github.io/projects/dino-game-bot.html</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>

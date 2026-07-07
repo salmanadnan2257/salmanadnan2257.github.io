@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Image Watermarking Tool · Salman Adnan</title>
+  <meta name="description" content="A tkinter and Pillow desktop tool that batch-stamps a logo onto photos with a live before/after preview, adjustable opacity and size, and a 3x3 position grid, without touching the original files.">
+  <meta name="author" content="Salman Adnan">
+  <meta name="theme-color" content="#FFFDF5">
+
+  <!--
+    SITE_URL: the site's absolute base URL is https://salmanadnan2257.github.io
+    Before deploying to a custom domain, find-and-replace that exact string across
+    all HTML files, sitemap.xml, and robots.txt. It is the only absolute host used.
+  -->
+  <link rel="canonical" href="https://salmanadnan2257.github.io/projects/image-watermarking-tool.html">
+
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="Salman Adnan">
+  <meta property="og:title" content="Image Watermarking Tool · Salman Adnan">
+  <meta property="og:description" content="A tkinter and Pillow desktop tool that batch-stamps a logo onto photos with a live before/after preview, adjustable opacity and size, and a 3x3 position grid, without touching the original files.">
+  <meta property="og:url" content="https://salmanadnan2257.github.io/projects/image-watermarking-tool.html">
+  <meta property="og:image" content="https://salmanadnan2257.github.io/assets/og/image-watermarking-tool.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Image Watermarking Tool · Salman Adnan">
+  <meta name="twitter:description" content="A tkinter and Pillow desktop tool that batch-stamps a logo onto photos with a live before/after preview, adjustable opacity and size, and a 3x3 position grid, without touching the original files.">
+  <meta name="twitter:image" content="https://salmanadnan2257.github.io/assets/og/image-watermarking-tool.png">
+
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="../assets/favicon.png" sizes="any">
+  <link rel="apple-touch-icon" href="../assets/apple-touch-icon.png">
+  <link rel="stylesheet" href="../styles.css">
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareSourceCode",
+    "name": "Image Watermarking Tool",
+    "description": "A tkinter and Pillow desktop tool that batch-stamps a logo onto photos with a live before/after preview, adjustable opacity and size, and a 3x3 position grid, without touching the original files.",
+    "codeRepository": "https://github.com/salmanadnan2257/image-watermarking-tool",
+    "programmingLanguage": ["Python"],
+    "url": "https://salmanadnan2257.github.io/projects/image-watermarking-tool.html",
+    "author": {
+      "@type": "Person",
+      "name": "Salman Adnan",
+      "url": "https://salmanadnan2257.github.io/"
+    }
+  }
+  </script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+
+<header class="nav" id="top">
+  <div class="wrap nav__inner">
+    <a class="nav__brand" href="../index.html" aria-label="Salman Adnan, home">
+      <span class="nav__mark" aria-hidden="true">SA</span>
+      <span class="nav__name">Salman Adnan</span>
+    </a>
+    <nav class="nav__links" aria-label="Primary">
+      <a href="../index.html#work">Work</a>
+      <a href="../index.html#process">Process</a>
+      <a href="../index.html#about">About</a>
+      <a href="../index.html#contact" class="nav__cta">Contact</a>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+
+  <section class="proj-hero acc-yellow" aria-labelledby="proj-title">
+    <div class="wrap">
+      <a class="proj-crumb" href="../index.html"><span aria-hidden="true">&larr;</span> Salman Adnan</a>
+      <p class="proj-kicker">image-watermarking-tool</p>
+      <h1 id="proj-title" class="proj-title">Image Watermarking Tool</h1>
+      <p class="proj-lede">A desktop GUI for stamping a logo or watermark image onto a batch of photos, built with tkinter and Pillow. Load a watermark once, size and fade it with sliders, and see the exact composited result in a live before/after preview before saving anything.</p>
+      <div class="proj-actions">
+        <a class="btn btn--primary" href="https://github.com/salmanadnan2257/image-watermarking-tool" rel="noopener" target="_blank">View code on GitHub</a>
+        <a class="btn btn--ghost" href="../index.html#work">All projects</a>
+      </div>
+        <div class="proj-note">
+          <div>
+            <strong>Solo</strong>
+            <p>Solo work by Salman Adnan.</p>
+          </div>
+        </div>
+      <div class="proj-stats">
+          <div class="proj-stat"><b>9</b><span>position presets (3x3 grid + offsets)</span></div>
+          <div class="proj-stat"><b>300px</b><span>preview thumbnail box, constant render cost</span></div>
+          <div class="proj-stat"><b>600px</b><span>max watermark size cap</span></div>
+      </div>
+    </div>
+  </section>
+
+  <div class="proj-body acc-yellow">
+    <div class="wrap">
+      <div class="proj-layout">
+      <section class="proj-section">
+        <h2>Overview</h2>
+        <p>Batch-watermarking photos is a repetitive job most people either do by hand in an image editor or skip entirely. This tool does one job: take a watermark image, let the user size, fade, and position it, then apply it to a set of photos in one pass and save the results without touching the originals.</p>
+      </section>
+      <section class="proj-section">
+        <h2>Key features</h2>
+        <ul class="proj-list">
+          <li>Live before/after preview: the right side of the window shows the original photo next to a live composited result, updating instantly as any slider changes.</li>
+          <li>Opacity slider (0-100%), applied as a real alpha blend against the photo underneath.</li>
+          <li>Watermark resizing with a slider, capped at 600px, applied as a bounding box that preserves aspect ratio.</li>
+          <li>Position control: a 3x3 grid of presets plus fine X/Y offset sliders for nudging off the preset.</li>
+          <li>Batch mode: select multiple photos and stamp all of them with the same settings in one click.</li>
+          <li>Output format choice (JPEG or PNG) and an optional custom save folder, defaulting to a `watermarked/` subfolder.</li>
+        </ul>
+      </section>
+      <section class="proj-section">
+        <h2>Verification</h2>
+        <div class="proj-callout"><p>Tested on Python 3.12.3 and Pillow 10.1.0. A synthetic-pixel test confirmed the alpha-blend fix: reading the same watermarked pixel under the old code gave a flat overwrite `(255, 0, 0, 127)`, while the fixed `paste_watermark_at()` produced a genuine blend `(127, 0, 128, 191)`. The GUI was confirmed to construct and update cleanly under a real X display, and a full in-process run (synthetic 600x400 photo, synthetic RGBA watermark, bypassing the native file dialogs) rendered a live preview and saved a real output file end to end. Not verified: the interactive file-picker flow itself (blocked on native dialogs) and behavior on Windows.</p></div>
+      </section>
+      <section class="proj-section">
+        <h2>Tech stack</h2>
+        <ul class="tech-tags">
+          <li>Python 3.12 (tkinter)</li>
+          <li>Pillow 10.1.0</li>
+          <li>pathlib</li>
+        </ul>
+      </section>
+      <section class="proj-section">
+        <h2>A challenge worth noting</h2>
+        <p>Pillow's `paste()` doesn't alpha-composite by default: calling it without a mask overwrites the destination pixels outright, alpha channel included, so the image still looked translucent in most viewers even though no real blending happened. The fix passes the watermark itself as the mask argument so Pillow uses its own alpha channel to blend. A second challenge was keeping the live preview fast regardless of source photo resolution: compositing at full size on every slider tick would lag, so the preview thumbnails the base photo down to a 300px box and scales the watermark's size and offsets by the same ratio, keeping preview cost constant while the final save still composites at full resolution.</p>
+      </section>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<footer class="proj-foot">
+  <div class="wrap proj-foot__row">
+    <a class="proj-foot__link" href="../index.html">&larr; Back to all work</a>
+    <nav class="proj-foot__nav" aria-label="More projects">
+      <a class="proj-foot__link" href="tic-tac-toe-gui.html">Prev: Tic Tac Toe</a>
+      <a class="proj-foot__link" href="typing-master-gui.html">Next: Typing Master</a>
+    </nav>
+  </div>
+</footer>
+
+<script src="../script.js" defer></script>
+</body>
+</html>

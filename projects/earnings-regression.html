@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Earnings Regression · Salman Adnan</title>
+  <meta name="description" content="Earnings Regression: a live Plotly/Flask dashboard predicting hourly earnings from schooling and experience on a 2,000-row NLSY97 subset, including a 3D prediction surface and a real (negative) held-out R-squared.">
+  <meta name="author" content="Salman Adnan">
+  <meta name="theme-color" content="#FFFDF5">
+
+  <!--
+    SITE_URL: the site's absolute base URL is https://salmanadnan2257.github.io
+    Before deploying to a custom domain, find-and-replace that exact string across
+    all HTML files, sitemap.xml, and robots.txt. It is the only absolute host used.
+  -->
+  <link rel="canonical" href="https://salmanadnan2257.github.io/projects/earnings-regression.html">
+
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="Salman Adnan">
+  <meta property="og:title" content="Earnings Regression · Salman Adnan">
+  <meta property="og:description" content="Earnings Regression: a live Plotly/Flask dashboard predicting hourly earnings from schooling and experience on a 2,000-row NLSY97 subset, including a 3D prediction surface and a real (negative) held-out R-squared.">
+  <meta property="og:url" content="https://salmanadnan2257.github.io/projects/earnings-regression.html">
+  <meta property="og:image" content="https://salmanadnan2257.github.io/assets/og/earnings-regression.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Earnings Regression · Salman Adnan">
+  <meta name="twitter:description" content="Earnings Regression: a live Plotly/Flask dashboard predicting hourly earnings from schooling and experience on a 2,000-row NLSY97 subset, including a 3D prediction surface and a real (negative) held-out R-squared.">
+  <meta name="twitter:image" content="https://salmanadnan2257.github.io/assets/og/earnings-regression.png">
+
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="../assets/favicon.png" sizes="any">
+  <link rel="apple-touch-icon" href="../assets/apple-touch-icon.png">
+  <link rel="stylesheet" href="../styles.css">
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareSourceCode",
+    "name": "Earnings Regression",
+    "description": "Earnings Regression: a live Plotly/Flask dashboard predicting hourly earnings from schooling and experience on a 2,000-row NLSY97 subset, including a 3D prediction surface and a real (negative) held-out R-squared.",
+    "codeRepository": "https://github.com/salmanadnan2257/earnings-regression",
+    "programmingLanguage": ["Python"],
+    "url": "https://salmanadnan2257.github.io/projects/earnings-regression.html",
+    "author": {
+      "@type": "Person",
+      "name": "Salman Adnan",
+      "url": "https://salmanadnan2257.github.io/"
+    }
+  }
+  </script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+
+<header class="nav" id="top">
+  <div class="wrap nav__inner">
+    <a class="nav__brand" href="../index.html" aria-label="Salman Adnan, home">
+      <span class="nav__mark" aria-hidden="true">SA</span>
+      <span class="nav__name">Salman Adnan</span>
+    </a>
+    <nav class="nav__links" aria-label="Primary">
+      <a href="../index.html#work">Work</a>
+      <a href="../index.html#process">Process</a>
+      <a href="../index.html#about">About</a>
+      <a href="../index.html#contact" class="nav__cta">Contact</a>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+
+  <section class="proj-hero acc-purple" aria-labelledby="proj-title">
+    <div class="wrap">
+      <a class="proj-crumb" href="../index.html"><span aria-hidden="true">&larr;</span> Salman Adnan</a>
+      <p class="proj-kicker">earnings-regression</p>
+      <h1 id="proj-title" class="proj-title">Earnings Regression</h1>
+      <p class="proj-lede">A multivariable linear regression that predicts hourly earnings from years of schooling and years of work experience, using a 2,000-row subset of the NLSY97 (National Longitudinal Survey of Youth 1997-2011), served through an interactive Plotly/Flask dashboard as well as a plain headless script.</p>
+      <div class="proj-actions">
+        <a class="btn btn--primary" href="https://github.com/salmanadnan2257/earnings-regression" rel="noopener" target="_blank">View code on GitHub</a>
+        <a class="btn btn--ghost" href="../index.html#work">All projects</a>
+      </div>
+        <div class="proj-note">
+          <div>
+            <strong>Solo</strong>
+            <p>Solo work by Salman Adnan.</p>
+          </div>
+        </div>
+      <div class="proj-stats">
+          <div class="proj-stat"><b>2,000</b><span>NLSY97 survey rows</span></div>
+          <div class="proj-stat"><b>492</b><span>usable rows after cleaning</span></div>
+          <div class="proj-stat"><b>-0.008</b><span>held-out test R-squared, real result</span></div>
+      </div>
+    </div>
+  </section>
+
+  <div class="proj-body acc-purple">
+    <div class="wrap">
+      <div class="proj-layout">
+      <section class="proj-section">
+        <h2>Overview</h2>
+        <p>This is a compact, end-to-end regression exercise: load survey data, clean it, explore it, fit a simple model then a multivariable model, check the residuals, and use the model to make a concrete prediction. The dashboard on top turns the static output into something you can actually interact with: move a slider, see a real prediction, and look at the whole schooling/experience plane at once instead of a single point estimate.</p>
+      </section>
+      <section class="proj-section">
+        <h2>Key features</h2>
+        <ul class="proj-list">
+          <li>Loads and cleans the NLSY97 subset (drops rows with missing values and duplicates), then fits a simple regression (earnings on schooling alone) and a multivariable regression (earnings on schooling and experience), reporting R-squared on both a training split and a held-out 20% test split.</li>
+          <li>A live prediction panel: two sliders (schooling, experience) that call a <code>/predict</code> API endpoint on every move and display the real model's output, not a hardcoded formula.</li>
+          <li>A Plotly scatter of actual vs. predicted earnings on the held-out test split, with a y = x reference line for perfect prediction.</li>
+          <li>A 3D Plotly surface of predicted earnings across the entire schooling/experience plane, with the real training rows plotted on top of it as points.</li>
+          <li>A residuals plot (predicted minus actual) against predicted earnings, plus a headless mode (<code>main.py</code>) that still prints the same exploration output and writes the same two static PNGs it always did.</li>
+        </ul>
+      </section>
+      <section class="proj-section">
+        <h2>Verification</h2>
+        <div class="proj-callout"><p>The prediction endpoint was hit directly and returned a real model output: <code>{"experience":5.0,"predicted_earnings":20.29,"schooling":16.0}</code> for 16 years of schooling and 5 years of experience. The multivariable model's held-out test R-squared came out at -0.008, meaning on this split it performs marginally worse than predicting the mean training earnings for everyone. That's reported as-is rather than hidden: with only two features and 492 usable rows after dropping missing values, the model isn't capturing much of what actually drives earnings.</p></div>
+      </section>
+      <section class="proj-section">
+        <h2>Tech stack</h2>
+        <ul class="tech-tags">
+          <li>Python</li>
+          <li>scikit-learn</li>
+          <li>pandas</li>
+          <li>Plotly</li>
+          <li>Flask</li>
+          <li>matplotlib / seaborn</li>
+        </ul>
+      </section>
+      <section class="proj-section">
+        <h2>A challenge worth noting</h2>
+        <p>The source script's comments claimed to fit a model on schooling alone, but the code actually fit schooling and experience together in one step, skipping the simple model entirely. Fixing that meant actually implementing both: a simple model on schooling alone and a multivariable model on both features, so the comparison the comments describe exists in the real output. Keeping two entry points (a headless script and the Flask dashboard) from silently drifting apart was solved by pulling all fitting logic into one shared <code>model.py</code>, so both call the same <code>fit_models()</code> and are structurally guaranteed to use the same split and coefficients rather than two copies that happen to agree.</p>
+      </section>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<footer class="proj-foot">
+  <div class="wrap proj-foot__row">
+    <a class="proj-foot__link" href="../index.html">&larr; Back to all work</a>
+    <nav class="proj-foot__nav" aria-label="More projects">
+      <a class="proj-foot__link" href="police-shootings-analysis.html">Prev: Police Shootings Analysis</a>
+      <a class="proj-foot__link" href="flask-todo-list.html">Next: Flask TODO List</a>
+    </nav>
+  </div>
+</footer>
+
+<script src="../script.js" defer></script>
+</body>
+</html>

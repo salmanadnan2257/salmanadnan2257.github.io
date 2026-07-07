@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Voice Appointment Agent · Salman Adnan</title>
+  <meta name="description" content="A Gemini-driven phone agent that books, reschedules, and cancels appointments over a real Twilio line, with real conflict detection and 54 tests passing.">
+  <meta name="author" content="Salman Adnan">
+  <meta name="theme-color" content="#FFFDF5">
+
+  <!--
+    SITE_URL: the site's absolute base URL is https://salmanadnan2257.github.io
+    Before deploying to a custom domain, find-and-replace that exact string across
+    all HTML files, sitemap.xml, and robots.txt. It is the only absolute host used.
+  -->
+  <link rel="canonical" href="https://salmanadnan2257.github.io/projects/voice-agent.html">
+
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="Salman Adnan">
+  <meta property="og:title" content="Voice Appointment Agent · Salman Adnan">
+  <meta property="og:description" content="A Gemini-driven phone agent that books, reschedules, and cancels appointments over a real Twilio line, with real conflict detection and 54 tests passing.">
+  <meta property="og:url" content="https://salmanadnan2257.github.io/projects/voice-agent.html">
+  <meta property="og:image" content="https://salmanadnan2257.github.io/assets/og/voice-agent.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Voice Appointment Agent · Salman Adnan">
+  <meta name="twitter:description" content="A Gemini-driven phone agent that books, reschedules, and cancels appointments over a real Twilio line, with real conflict detection and 54 tests passing.">
+  <meta name="twitter:image" content="https://salmanadnan2257.github.io/assets/og/voice-agent.png">
+
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="../assets/favicon.png" sizes="any">
+  <link rel="apple-touch-icon" href="../assets/apple-touch-icon.png">
+  <link rel="stylesheet" href="../styles.css">
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareSourceCode",
+    "name": "Voice Appointment Agent",
+    "description": "A Gemini-driven phone agent that books, reschedules, and cancels appointments over a real Twilio line, with real conflict detection and 54 tests passing.",
+    "codeRepository": "https://github.com/salmanadnan2257/voice-agent",
+    "programmingLanguage": ["Python"],
+    "url": "https://salmanadnan2257.github.io/projects/voice-agent.html",
+    "author": {
+      "@type": "Person",
+      "name": "Salman Adnan",
+      "url": "https://salmanadnan2257.github.io/"
+    }
+  }
+  </script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+
+<header class="nav" id="top">
+  <div class="wrap nav__inner">
+    <a class="nav__brand" href="../index.html" aria-label="Salman Adnan, home">
+      <span class="nav__mark" aria-hidden="true">SA</span>
+      <span class="nav__name">Salman Adnan</span>
+    </a>
+    <nav class="nav__links" aria-label="Primary">
+      <a href="../index.html#work">Work</a>
+      <a href="../index.html#process">Process</a>
+      <a href="../index.html#about">About</a>
+      <a href="../index.html#contact" class="nav__cta">Contact</a>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+
+  <section class="proj-hero acc-coral" aria-labelledby="proj-title">
+    <div class="wrap">
+      <a class="proj-crumb" href="../index.html"><span aria-hidden="true">&larr;</span> Salman Adnan</a>
+      <p class="proj-kicker">voice-agent</p>
+      <h1 id="proj-title" class="proj-title">Voice Appointment Agent</h1>
+      <p class="proj-lede">A phone agent that answers a real Twilio line and books, reschedules, or cancels appointments in natural conversation. Gemini handles the language, a SQLite calendar handles real conflict detection, and the whole multi-turn flow has been proven end to end over a real public tunnel with a genuine Twilio signature, not just unit-tested in isolation.</p>
+      <div class="proj-actions">
+        <a class="btn btn--primary" href="https://github.com/salmanadnan2257/voice-agent" rel="noopener" target="_blank">View code on GitHub</a>
+        <a class="btn btn--ghost" href="../index.html#work">All projects</a>
+      </div>
+        <div class="proj-note">
+          <div>
+            <strong>Verified on a real public tunnel</strong>
+            <p>A three-turn booking conversation was driven through a real HMAC-SHA1-signed request (the same algorithm Twilio uses, computed from the real auth token) over a public internet tunnel, ending in a real row written to the SQLite calendar. The live phone number itself was left untouched throughout.</p>
+          </div>
+        </div>
+      <div class="proj-stats">
+          <div class="proj-stat"><b>54 / 54</b><span>tests passing</span></div>
+          <div class="proj-stat"><b>25 / 25</b><span>scripted scenarios</span></div>
+          <div class="proj-stat"><b>3-turn</b><span>real signed booking, verified</span></div>
+          <div class="proj-stat"><b>&lt;$0.01</b><span>total real API cost</span></div>
+      </div>
+    </div>
+  </section>
+
+  <div class="proj-body acc-coral">
+    <div class="wrap">
+      <div class="proj-layout">
+      <section class="proj-section">
+        <h2>Overview</h2>
+        <p>Most voice-agent demos show a scripted happy path. This one is built to survive the actual shape of a phone call: silence instead of speech, a caller who changes their mind mid-sentence, a time slot that conflicts with an existing booking, and a caller who never answers a question clearly. The conversation state machine handles all of it, backed by a real calendar with real conflict detection, not a mocked one.</p>
+        <p>The system prompt to production Gemini calls follow the same discipline as the rest of this portfolio: everything that can be tested offline is tested offline, and the small number of things that must touch a live, billed service are marked, minimal, and their real cost is reported honestly.</p>
+      </section>
+      <section class="proj-section">
+        <h2>Approach and architecture</h2>
+        <p>Twilio calls a FastAPI service for TwiML instructions on every turn. A conversation manager holds per-call state (slot filling for name, time, and phone; a confirmation step; retry and turn caps) and calls a Gemini-based intent engine to interpret free-form speech into a structured action: book, reschedule, cancel, or unclear. A SQLite calendar store enforces real half-open-interval conflict detection so two appointments can touch at a boundary without falsely conflicting, and a session store logs every turn with a timestamp and the eventual outcome.</p>
+      </section>
+      <section class="proj-section">
+        <h2>Key features</h2>
+        <ul class="proj-list">
+          <li>Multi-turn slot filling for booking, rescheduling, and cancelling, with an explicit confirmation step before anything is written.</li>
+          <li>Real conflict detection: overlapping and back-to-back adjacent appointments are handled correctly, verified with an explicit boundary test.</li>
+          <li>Business-hours and past-date rejection, with a path for the caller to correct a bad time and try again.</li>
+          <li>A retry cap and an absolute turn cap that hand off to a human message instead of looping forever on unclear speech.</li>
+          <li>An outbound test-call CLI that refuses to run without a public URL and requires explicit confirmation before it places a real, billed call.</li>
+          <li>A fully implemented (not stubbed) Google Calendar adapter behind the same interface as the default SQLite store, used only if calendar credentials are supplied.</li>
+        </ul>
+      </section>
+      <section class="proj-section">
+        <h2>Results</h2>
+        <div class="proj-table-wrap"><table class="proj-table">
+          <thead><tr><th>Metric</th><th>Result</th></tr></thead>
+          <tbody>
+            <tr><td>Full test suite</td><td>54 / 54 passed</td></tr>
+            <tr><td>Scripted evaluation scenarios</td><td>25 / 25 passed</td></tr>
+            <tr><td>Real public-tunnel booking conversation</td><td>3 / 3 signed turns accepted, 1 real appointment written</td></tr>
+            <tr><td>Real Gemini calls (build + live verification)</td><td>12 total, under $0.01</td></tr>
+            <tr><td>Real Twilio cost incurred</td><td>$0.00 (read-only lookups only, no call placed)</td></tr>
+          </tbody></table></div>
+      </section>
+      <section class="proj-section">
+        <h2>Reading the numbers honestly</h2>
+        <p>The 25 scripted scenarios run against a deterministic stand-in for Gemini, documented in its own code as a test double, not a production fallback, specifically so a 100+-call evaluation harness doesn't quietly become a recurring bill. I deliberately broke the retry-cap and turn-cap logic once to confirm those two scenarios actually fail when the invariant is broken, then reverted it, since a scenario suite that cannot fail is not proof of anything.</p>
+        <p>The real public-tunnel test is the one piece of evidence in this project that isn't a unit test: a genuine HMAC-SHA1 Twilio signature, computed from the real auth token, was sent over the actual public internet to a live-booted instance of the app, and Gemini correctly resolved a relative date ("tomorrow") against the real current date across three turns before writing a real database row. The one thing that test still doesn't cover is an actual human voice call: Twilio's real speech-to-text output is noisier than the clean, hand-typed text used here, and that gap is stated plainly rather than glossed over.</p>
+      </section>
+      <section class="proj-section">
+        <h2>Tech stack</h2>
+        <ul class="tech-tags">
+          <li>Python</li>
+          <li>FastAPI</li>
+          <li>Twilio</li>
+          <li>gemini-2.5-flash</li>
+          <li>SQLite</li>
+          <li>pytest</li>
+        </ul>
+      </section>
+      <section class="proj-section">
+        <h2>Challenges</h2>
+        <ul class="proj-list">
+          <li>Twilio only calls the action URL on captured speech by default; on silence it just moves on, which would have made the unclear-speech and retry logic unreachable. Fixed by setting <code>actionOnEmptyResult="true"</code> on every Gather, so silence and speech both return through the same state machine.</li>
+          <li>Twenty-five multi-turn scripted scenarios would be well over a hundred real Gemini calls if run against the live model every time. Solved with an interface-based intent engine: a real Gemini implementation for production and a small number of marked tests, and a deterministic stand-in for the scenario harness.</li>
+          <li>Gemini's default thinking mode was measurably too slow for a phone turn (56 thinking tokens on a one-word answer). Disabling thinking and forcing a strict JSON response schema brought a real call down to 1.8 seconds.</li>
+          <li>Relative dates and business-hours checks silently broke test determinism until "now" was threaded through the conversation manager as an injectable function, letting every scenario pin to one fixed reference time instead of drifting with the real clock.</li>
+        </ul>
+      </section>
+      <section class="proj-section">
+        <h2>What I learned</h2>
+        <ul class="proj-list">
+          <li>Conflict-free interval overlap is a half-open interval check, which is what correctly allows two appointments to touch at a boundary without a false conflict.</li>
+          <li>A latency-sensitive product built on an LLM means actively turning features off: disabling thinking and forcing a response schema mattered more than any prompt wording.</li>
+          <li>A passing test is not proof of anything by itself; I had to actually break two safety-cap scenarios on purpose to confirm they would catch a real regression.</li>
+          <li>Simulating a correctly-signed request over a real public tunnel is a meaningfully stronger proof than a mocked unit test, and it is achievable without ever touching a live, already-configured production webhook.</li>
+        </ul>
+      </section>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<footer class="proj-foot">
+  <div class="wrap proj-foot__row">
+    <a class="proj-foot__link" href="../index.html">&larr; Back to all work</a>
+    <nav class="proj-foot__nav" aria-label="More projects">
+      <a class="proj-foot__link" href="balochi-poet-classifier.html">Prev: Balochi Poet Classifier</a>
+      <a class="proj-foot__link" href="agency-blog-saas.html">Next: Agency Blog SaaS</a>
+    </nav>
+  </div>
+</footer>
+
+<script src="../script.js" defer></script>
+</body>
+</html>

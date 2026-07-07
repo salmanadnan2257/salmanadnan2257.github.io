@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Police Shootings Analysis · Salman Adnan</title>
+  <meta name="description" content="Police Shootings Analysis: a Flask dashboard and 24-chart analysis script cross-referencing 2,535 Washington Post fatal shooting records against four US Census datasets on poverty, education, income, and race.">
+  <meta name="author" content="Salman Adnan">
+  <meta name="theme-color" content="#FFFDF5">
+
+  <!--
+    SITE_URL: the site's absolute base URL is https://salmanadnan2257.github.io
+    Before deploying to a custom domain, find-and-replace that exact string across
+    all HTML files, sitemap.xml, and robots.txt. It is the only absolute host used.
+  -->
+  <link rel="canonical" href="https://salmanadnan2257.github.io/projects/police-shootings-analysis.html">
+
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="Salman Adnan">
+  <meta property="og:title" content="Police Shootings Analysis · Salman Adnan">
+  <meta property="og:description" content="Police Shootings Analysis: a Flask dashboard and 24-chart analysis script cross-referencing 2,535 Washington Post fatal shooting records against four US Census datasets on poverty, education, income, and race.">
+  <meta property="og:url" content="https://salmanadnan2257.github.io/projects/police-shootings-analysis.html">
+  <meta property="og:image" content="https://salmanadnan2257.github.io/assets/og/police-shootings-analysis.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Police Shootings Analysis · Salman Adnan">
+  <meta name="twitter:description" content="Police Shootings Analysis: a Flask dashboard and 24-chart analysis script cross-referencing 2,535 Washington Post fatal shooting records against four US Census datasets on poverty, education, income, and race.">
+  <meta name="twitter:image" content="https://salmanadnan2257.github.io/assets/og/police-shootings-analysis.png">
+
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="../assets/favicon.png" sizes="any">
+  <link rel="apple-touch-icon" href="../assets/apple-touch-icon.png">
+  <link rel="stylesheet" href="../styles.css">
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareSourceCode",
+    "name": "Police Shootings Analysis",
+    "description": "Police Shootings Analysis: a Flask dashboard and 24-chart analysis script cross-referencing 2,535 Washington Post fatal shooting records against four US Census datasets on poverty, education, income, and race.",
+    "codeRepository": "https://github.com/salmanadnan2257/police-shootings-analysis",
+    "programmingLanguage": ["Python", "JavaScript"],
+    "url": "https://salmanadnan2257.github.io/projects/police-shootings-analysis.html",
+    "author": {
+      "@type": "Person",
+      "name": "Salman Adnan",
+      "url": "https://salmanadnan2257.github.io/"
+    }
+  }
+  </script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+
+<header class="nav" id="top">
+  <div class="wrap nav__inner">
+    <a class="nav__brand" href="../index.html" aria-label="Salman Adnan, home">
+      <span class="nav__mark" aria-hidden="true">SA</span>
+      <span class="nav__name">Salman Adnan</span>
+    </a>
+    <nav class="nav__links" aria-label="Primary">
+      <a href="../index.html#work">Work</a>
+      <a href="../index.html#process">Process</a>
+      <a href="../index.html#about">About</a>
+      <a href="../index.html#contact" class="nav__cta">Contact</a>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+
+  <section class="proj-hero acc-yellow" aria-labelledby="proj-title">
+    <div class="wrap">
+      <a class="proj-crumb" href="../index.html"><span aria-hidden="true">&larr;</span> Salman Adnan</a>
+      <p class="proj-kicker">police-shootings-analysis</p>
+      <h1 id="proj-title" class="proj-title">Police Shootings Analysis</h1>
+      <p class="proj-lede">A data analysis of the Washington Post's dataset of fatal police shootings in the United States, cross-referenced against four US Census datasets (poverty rate, high school completion rate, median household income, and racial demographics by city) to look for socioeconomic patterns. It ships two ways to look at the results: a static script that writes 24 chart files, and an interactive Flask dashboard filterable by state, year, and armed status.</p>
+      <div class="proj-actions">
+        <a class="btn btn--primary" href="https://github.com/salmanadnan2257/police-shootings-analysis" rel="noopener" target="_blank">View code on GitHub</a>
+        <a class="btn btn--ghost" href="../index.html#work">All projects</a>
+      </div>
+        <div class="proj-note">
+          <div>
+            <strong>Solo</strong>
+            <p>Solo work by Salman Adnan.</p>
+          </div>
+        </div>
+      <div class="proj-stats">
+          <div class="proj-stat"><b>2,535</b><span>fatality records analyzed</span></div>
+          <div class="proj-stat"><b>24</b><span>charts generated</span></div>
+          <div class="proj-stat"><b>5</b><span>datasets joined</span></div>
+      </div>
+    </div>
+  </section>
+
+  <div class="proj-body acc-yellow">
+    <div class="wrap">
+      <div class="proj-layout">
+      <section class="proj-section">
+        <h2>Overview</h2>
+        <p>This started as a guided data-analysis exercise built to practice joining multiple real-world datasets, cleaning inconsistent data, and rendering the same chart in three different plotting libraries to compare their APIs. It loads the Washington Post's fatal police shooting records alongside four Census-derived city datasets, cleans both, and produces static charts plus a filterable dashboard on the fatality data alone.</p>
+      </section>
+      <section class="proj-section">
+        <h2>Key features</h2>
+        <ul class="proj-list">
+          <li>Loads and cleans 5 CSVs (about 2,500 rows of fatality data plus city-level Census data covering roughly 29,000 to 33,000 rows each), coercing string percentages and ages to numeric with bad values turned to <code>NaN</code> instead of crashing.</li>
+          <li>Joins the poverty and high-school-completion datasets on city for a combined regression plot, and renders the same comparison chart in matplotlib, seaborn, and plotly.express as a side-by-side API reference.</li>
+          <li>Builds a US state choropleth of total killings from raw state abbreviations and runs entirely headless, writing every chart to <code>output/</code> as a file.</li>
+          <li>An interactive Flask dashboard with three dropdown filters (state, year, armed status) built from the real values in the data, plus a clickable choropleth where clicking a state sets the filter directly.</li>
+          <li>A stat row (filtered record count, percent with signs of mental illness, most-affected state, most common armed status) that recomputes from the exact same filtered rows the charts show, so it can never drift from what's on screen.</li>
+        </ul>
+      </section>
+      <section class="proj-section">
+        <h2>Verification</h2>
+        <div class="proj-callout"><p>A verified run of <code>analyse_deaths.py</code> confirms 2,535 total fatality records: 2,428 male and 107 female, 633 rows (about 25 percent) recorded signs of mental illness, and the top armed categories are gun (1,398), knife (373), vehicle (177), unarmed (171), and undetermined (117). The five states with the most recorded killings are California (424), Texas (225), Florida (154), Arizona (118), and Ohio (79). The repo ships a curated <code>output/</code> folder with 18 static PNGs from that run.</p></div>
+      </section>
+      <section class="proj-section">
+        <h2>Tech stack</h2>
+        <ul class="tech-tags">
+          <li>Python</li>
+          <li>pandas</li>
+          <li>matplotlib</li>
+          <li>seaborn</li>
+          <li>Plotly</li>
+          <li>Flask</li>
+        </ul>
+      </section>
+      <section class="proj-section">
+        <h2>A challenge worth noting</h2>
+        <p>Most rows in the fatality data's date column are <code>M/D/YYYY</code>, but some are <code>DD/MM/YY</code>, so a plain <code>pd.to_datetime</code> call raised a format error; switching to <code>format='mixed', errors='coerce'</code> lets pandas infer the format per row and turn anything unparseable into a null instead of crashing. A second gotcha showed up converting state postal codes for the world-scope choropleth: <code>pycountry</code> only understands ISO country codes, not US state abbreviations, so it returned <code>None</code> for every state and crashed the next line until a fallback check was added to keep the original code unchanged when the lookup misses.</p>
+      </section>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<footer class="proj-foot">
+  <div class="wrap proj-foot__row">
+    <a class="proj-foot__link" href="../index.html">&larr; Back to all work</a>
+    <nav class="proj-foot__nav" aria-label="More projects">
+      <a class="proj-foot__link" href="space-race-analysis.html">Prev: Space Race Analysis</a>
+      <a class="proj-foot__link" href="earnings-regression.html">Next: Earnings Regression</a>
+    </nav>
+  </div>
+</footer>
+
+<script src="../script.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dino Game Bot · Salman Adnan</title>
+  <meta name="description" content="A Selenium and screen-capture bot that plays Chrome's offline Dino game by pixel-checking a region ahead of the dino for obstacles, with a live tkinter status dashboard showing mode, jump count, and a rolling event log.">
+  <meta name="author" content="Salman Adnan">
+  <meta name="theme-color" content="#FFFDF5">
+
+  <!--
+    SITE_URL: the site's absolute base URL is https://salmanadnan2257.github.io
+    Before deploying to a custom domain, find-and-replace that exact string across
+    all HTML files, sitemap.xml, and robots.txt. It is the only absolute host used.
+  -->
+  <link rel="canonical" href="https://salmanadnan2257.github.io/projects/dino-game-bot.html">
+
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="Salman Adnan">
+  <meta property="og:title" content="Dino Game Bot · Salman Adnan">
+  <meta property="og:description" content="A Selenium and screen-capture bot that plays Chrome's offline Dino game by pixel-checking a region ahead of the dino for obstacles, with a live tkinter status dashboard showing mode, jump count, and a rolling event log.">
+  <meta property="og:url" content="https://salmanadnan2257.github.io/projects/dino-game-bot.html">
+  <meta property="og:image" content="https://salmanadnan2257.github.io/assets/og/dino-game-bot.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Dino Game Bot · Salman Adnan">
+  <meta name="twitter:description" content="A Selenium and screen-capture bot that plays Chrome's offline Dino game by pixel-checking a region ahead of the dino for obstacles, with a live tkinter status dashboard showing mode, jump count, and a rolling event log.">
+  <meta name="twitter:image" content="https://salmanadnan2257.github.io/assets/og/dino-game-bot.png">
+
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="../assets/favicon.png" sizes="any">
+  <link rel="apple-touch-icon" href="../assets/apple-touch-icon.png">
+  <link rel="stylesheet" href="../styles.css">
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareSourceCode",
+    "name": "Dino Game Bot",
+    "description": "A Selenium and screen-capture bot that plays Chrome's offline Dino game by pixel-checking a region ahead of the dino for obstacles, with a live tkinter status dashboard showing mode, jump count, and a rolling event log.",
+    "codeRepository": "https://github.com/salmanadnan2257/dino-game-bot",
+    "programmingLanguage": ["Python"],
+    "url": "https://salmanadnan2257.github.io/projects/dino-game-bot.html",
+    "author": {
+      "@type": "Person",
+      "name": "Salman Adnan",
+      "url": "https://salmanadnan2257.github.io/"
+    }
+  }
+  </script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+
+<header class="nav" id="top">
+  <div class="wrap nav__inner">
+    <a class="nav__brand" href="../index.html" aria-label="Salman Adnan, home">
+      <span class="nav__mark" aria-hidden="true">SA</span>
+      <span class="nav__name">Salman Adnan</span>
+    </a>
+    <nav class="nav__links" aria-label="Primary">
+      <a href="../index.html#work">Work</a>
+      <a href="../index.html#process">Process</a>
+      <a href="../index.html#about">About</a>
+      <a href="../index.html#contact" class="nav__cta">Contact</a>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+
+  <section class="proj-hero acc-purple" aria-labelledby="proj-title">
+    <div class="wrap">
+      <a class="proj-crumb" href="../index.html"><span aria-hidden="true">&larr;</span> Salman Adnan</a>
+      <p class="proj-kicker">dino-game-bot</p>
+      <h1 id="proj-title" class="proj-title">Dino Game Bot</h1>
+      <p class="proj-lede">A script that plays Chrome's offline Dino game by watching the screen and pressing space at the right moment, using screen capture and pixel inspection rather than reading any game state or the DOM.</p>
+      <div class="proj-actions">
+        <a class="btn btn--primary" href="https://github.com/salmanadnan2257/dino-game-bot" rel="noopener" target="_blank">View code on GitHub</a>
+        <a class="btn btn--ghost" href="../index.html#work">All projects</a>
+      </div>
+        <div class="proj-note">
+          <div>
+            <strong>Solo</strong>
+            <p>Solo work by Salman Adnan.</p>
+          </div>
+        </div>
+      <div class="proj-stats">
+          <div class="proj-stat"><b>10ms</b><span>polling loop sleep after a jump</span></div>
+          <div class="proj-stat"><b>8</b><span>rolling event log entries in the dashboard</span></div>
+      </div>
+    </div>
+  </section>
+
+  <div class="proj-body acc-purple">
+    <div class="wrap">
+      <div class="proj-layout">
+      <section class="proj-section">
+        <h2>Overview</h2>
+        <p>The Dino game has one input (jump) and a simple visual language: obstacles approach from the right, and hitting one ends the run. That makes it a small, self-contained target for practicing screen-based automation, no game API to call and no memory to read, just pixels on screen and a keyboard event, exercising Selenium (to drive Chrome) alongside raw screen capture and pixel inspection (to "see" the game).</p>
+      </section>
+      <section class="proj-section">
+        <h2>Key features</h2>
+        <ul class="proj-list">
+          <li>Launches Chrome and opens the built-in offline Dino game directly via `chrome://dino/`, starting it with a space keypress.</li>
+          <li>Watches a fixed screen region in a loop and jumps when it detects an obstacle.</li>
+          <li>Handles both day and night color schemes, since the game inverts its palette periodically.</li>
+          <li>Stops cleanly on a `q` keypress and quits the browser in a `finally` block so a stray exception can't leave Chrome running.</li>
+          <li>A live status dashboard (day/night mode, obstacle flag, jump count, run time, rolling event log) shown alongside the browser window, with a console fallback when no display is available.</li>
+        </ul>
+      </section>
+      <section class="proj-section">
+        <h2>Verification</h2>
+        <div class="proj-callout"><p>Verified in an environment with a display but no Chrome or live game: the module imports without side effects, `check_day` and `check_obstacle` were smoke-tested against synthetic day/night images built in memory, `StatusTracker` was driven through a scripted sequence of detection events with its state asserted at each step, the tkinter dashboard was confirmed to construct and update against a live X display without blocking, the headless console fallback was confirmed by unsetting `DISPLAY`, and `requirements.txt` installs cleanly into a fresh virtual environment. Not verified here, and requiring a real machine with Chrome: actually launching the game and confirming it responds to jumps, whether the hardcoded screen coordinates still match a different setup, and whether the bot clears obstacles reliably end to end over a real run.</p></div>
+      </section>
+      <section class="proj-section">
+        <h2>Tech stack</h2>
+        <ul class="tech-tags">
+          <li>Python 3</li>
+          <li>Selenium 4.6+</li>
+          <li>Pillow (ImageGrab)</li>
+          <li>keyboard</li>
+          <li>tkinter</li>
+        </ul>
+      </section>
+      <section class="proj-section">
+        <h2>A challenge worth noting</h2>
+        <p>The obstacle and game-area regions are absolute pixel boxes tuned for one specific screen resolution and window layout, with no logic to derive them from the actual browser window geometry, so the bot is only correct on the exact setup it was measured on. A related challenge is the day/night color inversion: the game periodically swaps its palette, so a single fixed color check for "obstacle present" would break every time the mode flipped. `check_day` runs first on every check to pick the right target color, at the cost of a second screen grab per loop iteration.</p>
+      </section>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<footer class="proj-foot">
+  <div class="wrap proj-foot__row">
+    <a class="proj-foot__link" href="../index.html">&larr; Back to all work</a>
+    <nav class="proj-foot__nav" aria-label="More projects">
+      <a class="proj-foot__link" href="disappearing-text-app.html">Prev: Disappearing Text</a>
+      <a class="proj-foot__link" href="trade-intelligence-copilot.html">Next: Trade Intelligence Copilot</a>
+    </nav>
+  </div>
+</footer>
+
+<script src="../script.js" defer></script>
+</body>
+</html>

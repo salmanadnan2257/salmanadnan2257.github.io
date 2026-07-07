@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Web Element Inspector · Salman Adnan</title>
+  <meta name="description" content="Web Element Inspector: a Tkinter GUI that drives a real Chrome browser via Selenium to find page elements by seven locator strategies, showing results in a sortable table with live in-browser highlighting.">
+  <meta name="author" content="Salman Adnan">
+  <meta name="theme-color" content="#FFFDF5">
+
+  <!--
+    SITE_URL: the site's absolute base URL is https://salmanadnan2257.github.io
+    Before deploying to a custom domain, find-and-replace that exact string across
+    all HTML files, sitemap.xml, and robots.txt. It is the only absolute host used.
+  -->
+  <link rel="canonical" href="https://salmanadnan2257.github.io/projects/custom-web-scraper.html">
+
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="Salman Adnan">
+  <meta property="og:title" content="Web Element Inspector · Salman Adnan">
+  <meta property="og:description" content="Web Element Inspector: a Tkinter GUI that drives a real Chrome browser via Selenium to find page elements by seven locator strategies, showing results in a sortable table with live in-browser highlighting.">
+  <meta property="og:url" content="https://salmanadnan2257.github.io/projects/custom-web-scraper.html">
+  <meta property="og:image" content="https://salmanadnan2257.github.io/assets/og/custom-web-scraper.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Web Element Inspector · Salman Adnan">
+  <meta name="twitter:description" content="Web Element Inspector: a Tkinter GUI that drives a real Chrome browser via Selenium to find page elements by seven locator strategies, showing results in a sortable table with live in-browser highlighting.">
+  <meta name="twitter:image" content="https://salmanadnan2257.github.io/assets/og/custom-web-scraper.png">
+
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="../assets/favicon.png" sizes="any">
+  <link rel="apple-touch-icon" href="../assets/apple-touch-icon.png">
+  <link rel="stylesheet" href="../styles.css">
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareSourceCode",
+    "name": "Web Element Inspector",
+    "description": "Web Element Inspector: a Tkinter GUI that drives a real Chrome browser via Selenium to find page elements by seven locator strategies, showing results in a sortable table with live in-browser highlighting.",
+    "codeRepository": "https://github.com/salmanadnan2257/custom-web-scraper",
+    "programmingLanguage": ["Python"],
+    "url": "https://salmanadnan2257.github.io/projects/custom-web-scraper.html",
+    "author": {
+      "@type": "Person",
+      "name": "Salman Adnan",
+      "url": "https://salmanadnan2257.github.io/"
+    }
+  }
+  </script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+
+<header class="nav" id="top">
+  <div class="wrap nav__inner">
+    <a class="nav__brand" href="../index.html" aria-label="Salman Adnan, home">
+      <span class="nav__mark" aria-hidden="true">SA</span>
+      <span class="nav__name">Salman Adnan</span>
+    </a>
+    <nav class="nav__links" aria-label="Primary">
+      <a href="../index.html#work">Work</a>
+      <a href="../index.html#process">Process</a>
+      <a href="../index.html#about">About</a>
+      <a href="../index.html#contact" class="nav__cta">Contact</a>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+
+  <section class="proj-hero acc-yellow" aria-labelledby="proj-title">
+    <div class="wrap">
+      <a class="proj-crumb" href="../index.html"><span aria-hidden="true">&larr;</span> Salman Adnan</a>
+      <p class="proj-kicker">custom-web-scraper</p>
+      <h1 id="proj-title" class="proj-title">Web Element Inspector</h1>
+      <p class="proj-lede">A desktop GUI for pulling elements off a live web page without writing a scraping script for each new site. Type a URL, pick one of seven Selenium locator strategies, and the tool drives a real Chrome browser to find every matching element, landing results in a sortable table with a "Highlight in Browser" button to confirm the match visually.</p>
+      <div class="proj-actions">
+        <a class="btn btn--primary" href="https://github.com/salmanadnan2257/custom-web-scraper" rel="noopener" target="_blank">View code on GitHub</a>
+        <a class="btn btn--ghost" href="../index.html#work">All projects</a>
+      </div>
+        <div class="proj-note">
+          <div>
+            <strong>Solo</strong>
+            <p>Solo work by Salman Adnan.</p>
+          </div>
+        </div>
+      <div class="proj-stats">
+          <div class="proj-stat"><b>7</b><span>Selenium locator strategies supported</span></div>
+          <div class="proj-stat"><b>7/7</b><span>formatting-layer unit tests passing</span></div>
+          <div class="proj-stat"><b>Not verified</b><span>live Chrome scrape (sandbox has no network)</span></div>
+      </div>
+    </div>
+  </section>
+
+  <div class="proj-body acc-yellow">
+    <div class="wrap">
+      <div class="proj-layout">
+      <section class="proj-section">
+        <h2>Overview</h2>
+        <p>Most small scraping jobs don't need a script, they need five minutes of poking at a page to see what's there. Writing a one-off Python script for each of these checks gets old, so this tool turns that workflow into a GUI: load a page once, then try locator after locator against it without touching code. It drives an actual Chrome instance through Selenium rather than parsing raw HTML, so it also works on pages that render content with JavaScript.</p>
+      </section>
+      <section class="proj-section">
+        <h2>Key features</h2>
+        <ul class="proj-list">
+          <li>Loads any URL into a real Chrome browser window from inside the GUI.</li>
+          <li>Looks up elements by seven Selenium locator strategies: class name, ID, name, tag name, link text, partial link text, and XPath.</li>
+          <li>Results open in a separate scrollable table (<code>ttk.Treeview</code>) showing tag name, visible text, and a summary of key attributes per matched element.</li>
+          <li>A status bar reports every step ("Loading page...", "Found N elements", or a specific error), colored by severity.</li>
+          <li>Session history: the URL and locator fields remember up to 10 recent entries each.</li>
+          <li>"Highlight in Browser" outlines every matched element in the live Chrome window and scrolls it into view.</li>
+        </ul>
+      </section>
+      <section class="proj-section">
+        <h2>Verification</h2>
+        <div class="proj-callout"><p>This is a GUI that drives a real browser, so a full end-to-end run needs a display and a live target site. What was actually checked: <code>main.py</code> compiles cleanly; the pure result-formatting functions (<code>summarize_element</code>, <code>build_result_rows</code>) pass all 7 cases in a standalone unit test suite against fake duck-typed elements, covering truncation, whitespace collapsing, missing attributes, and a simulated stale-element exception; and the full Tkinter window, including the history comboboxes and the status bar, constructs and runs against a fake driver on a live X display. A live Chrome session against a real site was not exercised here, since this sandbox has no outbound network access for Selenium Manager to fetch a chromedriver; the Selenium calls used are standard 4.x API and match documented usage.</p></div>
+      </section>
+      <section class="proj-section">
+        <h2>Tech stack</h2>
+        <ul class="tech-tags">
+          <li>Python 3.9+</li>
+          <li>tkinter</li>
+          <li>Selenium 4.x</li>
+          <li>ttk.Treeview</li>
+        </ul>
+      </section>
+      <section class="proj-section">
+        <h2>A challenge worth noting</h2>
+        <p>Switching from BeautifulSoup's CSS-selector scraping to Selenium's strict locators meant a nonexistent match no longer raises a parse error, it just times out. The fix was wrapping every lookup in <code>WebDriverWait(driver, 10).until(...)</code> and catching <code>TimeoutException</code> specifically, so a missing element surfaces a plain "please enter a valid X" message instead of the GUI hanging. A related fix: the original hardcoded a Windows-only <code>C:\Development\chromedriver.exe</code> path, which now resolves through Selenium Manager by default so the same code runs on Linux, macOS, or Windows without editing a path in source.</p>
+      </section>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<footer class="proj-foot">
+  <div class="wrap proj-foot__row">
+    <a class="proj-foot__link" href="../index.html">&larr; Back to all work</a>
+    <nav class="proj-foot__nav" aria-label="More projects">
+      <a class="proj-foot__link" href="color-palette-generator.html">Prev: Color Palette Generator</a>
+      <a class="proj-foot__link" href="morse-code-converter.html">Next: Morse Code Converter</a>
+    </nav>
+  </div>
+</footer>
+
+<script src="../script.js" defer></script>
+</body>
+</html>

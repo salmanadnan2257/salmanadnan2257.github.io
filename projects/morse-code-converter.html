@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Morse Code Converter · Salman Adnan</title>
+  <meta name="description" content="Morse Code Converter: a two-way Tkinter GUI that converts text to International Morse Code and back live as you type, with a visual dot-dash playback of the current message.">
+  <meta name="author" content="Salman Adnan">
+  <meta name="theme-color" content="#FFFDF5">
+
+  <!--
+    SITE_URL: the site's absolute base URL is https://salmanadnan2257.github.io
+    Before deploying to a custom domain, find-and-replace that exact string across
+    all HTML files, sitemap.xml, and robots.txt. It is the only absolute host used.
+  -->
+  <link rel="canonical" href="https://salmanadnan2257.github.io/projects/morse-code-converter.html">
+
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="Salman Adnan">
+  <meta property="og:title" content="Morse Code Converter · Salman Adnan">
+  <meta property="og:description" content="Morse Code Converter: a two-way Tkinter GUI that converts text to International Morse Code and back live as you type, with a visual dot-dash playback of the current message.">
+  <meta property="og:url" content="https://salmanadnan2257.github.io/projects/morse-code-converter.html">
+  <meta property="og:image" content="https://salmanadnan2257.github.io/assets/og/morse-code-converter.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Morse Code Converter · Salman Adnan">
+  <meta name="twitter:description" content="Morse Code Converter: a two-way Tkinter GUI that converts text to International Morse Code and back live as you type, with a visual dot-dash playback of the current message.">
+  <meta name="twitter:image" content="https://salmanadnan2257.github.io/assets/og/morse-code-converter.png">
+
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="../assets/favicon.png" sizes="any">
+  <link rel="apple-touch-icon" href="../assets/apple-touch-icon.png">
+  <link rel="stylesheet" href="../styles.css">
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareSourceCode",
+    "name": "Morse Code Converter",
+    "description": "Morse Code Converter: a two-way Tkinter GUI that converts text to International Morse Code and back live as you type, with a visual dot-dash playback of the current message.",
+    "codeRepository": "https://github.com/salmanadnan2257/morse-code-converter",
+    "programmingLanguage": ["Python"],
+    "url": "https://salmanadnan2257.github.io/projects/morse-code-converter.html",
+    "author": {
+      "@type": "Person",
+      "name": "Salman Adnan",
+      "url": "https://salmanadnan2257.github.io/"
+    }
+  }
+  </script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+
+<header class="nav" id="top">
+  <div class="wrap nav__inner">
+    <a class="nav__brand" href="../index.html" aria-label="Salman Adnan, home">
+      <span class="nav__mark" aria-hidden="true">SA</span>
+      <span class="nav__name">Salman Adnan</span>
+    </a>
+    <nav class="nav__links" aria-label="Primary">
+      <a href="../index.html#work">Work</a>
+      <a href="../index.html#process">Process</a>
+      <a href="../index.html#about">About</a>
+      <a href="../index.html#contact" class="nav__cta">Contact</a>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+
+  <section class="proj-hero acc-purple" aria-labelledby="proj-title">
+    <div class="wrap">
+      <a class="proj-crumb" href="../index.html"><span aria-hidden="true">&larr;</span> Salman Adnan</a>
+      <p class="proj-kicker">morse-code-converter</p>
+      <h1 id="proj-title" class="proj-title">Morse Code Converter</h1>
+      <p class="proj-lede">A desktop GUI that converts text to International Morse Code and decodes Morse code back into text, live, as you type. Started as a practice exercise in dictionary lookups and string processing, extended into a two-tab tkinter app with a visual dot-dash playback of the current message.</p>
+      <div class="proj-actions">
+        <a class="btn btn--primary" href="https://github.com/salmanadnan2257/morse-code-converter" rel="noopener" target="_blank">View code on GitHub</a>
+        <a class="btn btn--ghost" href="../index.html#work">All projects</a>
+      </div>
+        <div class="proj-note">
+          <div>
+            <strong>Solo</strong>
+            <p>Solo work by Salman Adnan.</p>
+          </div>
+        </div>
+      <div class="proj-stats">
+          <div class="proj-stat"><b>2</b><span>directions, converted live on every keystroke</span></div>
+          <div class="proj-stat"><b>0</b><span>third-party dependencies</span></div>
+          <div class="proj-stat"><b>1</b><span>missing letter (V) fixed in the source table</span></div>
+      </div>
+    </div>
+  </section>
+
+  <div class="proj-body acc-purple">
+    <div class="wrap">
+      <div class="proj-layout">
+      <section class="proj-section">
+        <h2>Overview</h2>
+        <p>This started as a practice exercise for dictionary lookups and basic string processing in Python, then got extended into a small tkinter application to practice building an actual interface around that logic instead of a bare input/print loop. It converts text to Morse and Morse back to text, both updating live as you type, with no submit button.</p>
+      </section>
+      <section class="proj-section">
+        <h2>Key features</h2>
+        <ul class="proj-list">
+          <li>Two-way conversion: a "Text to Morse" tab and a "Morse to Text" tab, both updating on every keystroke.</li>
+          <li>Converts letters (A-Z), digits (0-9), and common punctuation in either direction, case-insensitive on the text side.</li>
+          <li>Words are separated with <code>/</code>, the conventional Morse word separator, in both directions.</li>
+          <li>Raises a clear error naming the offending character or symbol instead of crashing with a raw <code>KeyError</code>; the GUI shows it as an inline message.</li>
+          <li>A "Play" button visually flashes each dot and dash of the current sequence in order, dashes held longer than dots.</li>
+          <li>"Copy result" puts the converted text on the system clipboard with tkinter's built-in <code>clipboard_append</code>.</li>
+        </ul>
+      </section>
+      <section class="proj-section">
+        <h2>Verification</h2>
+        <div class="proj-callout"><p>The conversion functions live in <code>morse_converter.py</code> with no tkinter import, so they were tested directly with no GUI dependency. The original CLI entry point still works for a one-off check: running <code>python3 morse_converter.py</code> and entering "SOS HELLO WORLD" produces <code>... --- ... / .... . .-.. .-.. --- / .-- --- .-. .-.. -..</code>, a real run of the script in the repo. There's no automated test file committed; round-trip and error cases were verified manually rather than with an assertion suite.</p></div>
+      </section>
+      <section class="proj-section">
+        <h2>Tech stack</h2>
+        <ul class="tech-tags">
+          <li>Python 3</li>
+          <li>tkinter</li>
+        </ul>
+      </section>
+      <section class="proj-section">
+        <h2>A challenge worth noting</h2>
+        <p>The source script was missing a mapping for the letter V, so any input containing it crashed with a <code>KeyError</code>. Beyond adding the missing entry, the original used a 7-dot string to represent a space between words, which isn't standard Morse notation, so it was replaced with <code>/</code>, the conventional separator. That created its own wrinkle: since <code>text_to_morse()</code> joins per-character codes with a single space and the space character itself maps to <code>/</code>, every word boundary in the output is literally the three characters <code>" / "</code>. Splitting on that exact string decodes cleanly; splitting naively on <code>/</code> alone would have left stray spaces around each word.</p>
+      </section>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<footer class="proj-foot">
+  <div class="wrap proj-foot__row">
+    <a class="proj-foot__link" href="../index.html">&larr; Back to all work</a>
+    <nav class="proj-foot__nav" aria-label="More projects">
+      <a class="proj-foot__link" href="custom-web-scraper.html">Prev: Web Element Inspector</a>
+      <a class="proj-foot__link" href="tic-tac-toe-gui.html">Next: Tic Tac Toe</a>
+    </nav>
+  </div>
+</footer>
+
+<script src="../script.js" defer></script>
+</body>
+</html>
