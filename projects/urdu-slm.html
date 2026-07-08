@@ -82,15 +82,15 @@
       </div>
         <div class="proj-note">
           <div>
-            <strong>The 124M-parameter model is trained</strong>
-            <p>All 858 steps completed on a rented A100 in about 75 minutes for roughly $1.90. Real held-out perplexity, a script-mix check, a cloze accuracy score, and real sample generations are below, reported honestly, including a repetition loop in one sample, not cherry-picked for quality.</p>
+            <strong>Trained twice: a second run closed most of the perplexity gap</strong>
+            <p>A second base run (2026-07-08) added CC-100 Urdu and upsampled Wikipedia, about 7.7x more training tokens, on a rented A100 for roughly $13. Held-out perplexity improved from 38.02 to 28.93. Cloze accuracy moved from 34.9% to 39.5%, inside the small eval set's own noise margin, reported honestly rather than oversold. Real numbers and real sample generations from both runs are below.</p>
           </div>
         </div>
       <div class="proj-stats">
           <div class="proj-stat"><b>5.23x</b><span>fewer tokens than GPT-2 on Urdu</span></div>
-          <div class="proj-stat"><b>38.02</b><span>held-out perplexity, base model</span></div>
-          <div class="proj-stat"><b>99.43%</b><span>generations in correct Urdu script</span></div>
-          <div class="proj-stat"><b>$1.90</b><span>real cost, ~75 minutes on an A100</span></div>
+          <div class="proj-stat"><b>28.93</b><span>held-out perplexity, base model v2</span></div>
+          <div class="proj-stat"><b>99.75%</b><span>generations in correct Urdu script</span></div>
+          <div class="proj-stat"><b>2.5B</b><span>tokens, v2 corpus, ~$13 total</span></div>
       </div>
 
       <figure class="proj-media">
@@ -121,18 +121,20 @@
       <section class="proj-section">
         <h2>Results</h2>
         <ul class="proj-list">
-          <li>Corpus: 3,695,487 raw units filtered and deduplicated to 2,515,082 documents (438.5M chars); dedup removed 31.9% of extracted paragraphs. Final split 2,489,976 train / 25,106 val.</li>
+          <li>v1 corpus: 3,695,487 raw units filtered and deduplicated to 2,515,082 documents (438.5M chars), 111.7M train tokens.</li>
+          <li>v2 corpus: added CC-100 Urdu plus a newer Wikipedia dump, deduplicated to 13.3M documents. Two tokenized outputs: 862.4M-token main mix (Wikipedia upsampled 3x) and a 70.8M-token Wikipedia-only anneal set, about 7.7x more unique training tokens than v1.</li>
           <li>Tokenizer: on an 806,495-character held-out Urdu sample, the 32k Urdu BPE uses 4.078 chars per token; GPT-2 spends 5.23x more tokens on the same text.</li>
           <li>Tiny proof run (13M preset, CPU, 500 steps, 4.10M tokens): train loss 9.74 to 5.42, held-out perplexity 248.8, and 98.2% of generated characters stay in Arabic script.</li>
-          <li>Base run (124M preset, A100, 858 steps, 449.8M tokens): loss 7.35 to 3.51, real sustained throughput ~99,470 tokens/second, ~75 minutes, about $1.90.</li>
-          <li>Base model evaluation: held-out perplexity 38.02, 99.43% of generations stay in Arabic script, cloze accuracy 34.9% (2-shot, chance is 33.3%).</li>
+          <li>Base run v1 (124M preset, A100, 858 steps, 449.8M tokens): loss 7.35 to 3.51, ~75 minutes, about $1.90. Held-out perplexity 38.02, script mix 99.43%, cloze 34.9%.</li>
+          <li>Base run v2 (124M preset, A100, 4,768 steps, 2.5B tokens): loss 9.63 to ~2.74, real sustained throughput ~105,000 tokens/second, 6h 39m, about $13.06. Held-out perplexity 28.93, script mix 99.75%, cloze 39.5% (2-shot, chance is 33.3%).</li>
           <li>12 tests passing (5 model, 7 pipeline), including a causal-masking property test and per-preset parameter counts.</li>
         </ul>
       </section>
       <section class="proj-section">
         <h2>Reading the base model honestly</h2>
-        <p>Script mix confirms the model reliably writes in Urdu's actual script, not garbage output. Perplexity and cloze are modest, cloze sits barely above chance, the expected result for a 124M-parameter model trained on a data-limited corpus (0.9 tokens per parameter against Chinchilla's ~20) for one short run, not a claim of strong language understanding.</p>
-        <p>Three real generations, shown as evidence rather than cherry-picked: a prompt about Pakistan drifts into cricket-trivia fragments, grammatically real Urdu but topically disconnected; a prompt about the Urdu language falls into a real failure mode, a repetition loop on the word "Iran", before recovering into a coherent sentence about an Iranian village; a prompt about today's weather produces fluent Urdu sentences about a diplomatic meeting in Islamabad, ignoring the prompt's actual topic. The honest read: the model learned script, vocabulary, and local grammar from a small corpus, not topical coherence, which would need a larger corpus or an instruction-tuning pass this project does not attempt.</p>
+        <p>Script mix confirms the model reliably writes in Urdu's actual script, near-perfect in v2 at 99.75%. The v2 corpus expansion produced a real, meaningful perplexity improvement (38.02 to 28.93), consistent with roughly 7.7x more unique tokens and a token-per-parameter ratio much closer to Chinchilla-optimal. Cloze accuracy moved from 34.9% to 39.5%, a 2-item difference on a 43-item eval set whose standard error is roughly 7 points, so this specific number is inside the noise band rather than a proven gain.</p>
+        <p>Why cloze barely moved despite a much bigger corpus: research on language model fact storage (Roberts et al., 2020) finds that how many discrete facts a model can retain scales mainly with parameter count, not training-text volume. A 124M-parameter model has a real capacity ceiling for factual recall regardless of how much prose it reads. More text raised fluency; it did not raise how many facts the model can store. The two most evidence-backed next levers are a larger model and training data built specifically as declarative fact statements, both documented in the README's "What I'd do differently".</p>
+        <p>Three real v2 generations, shown as evidence rather than cherry-picked: a prompt about Pakistan drifts into religious-history fragments, grammatically fluent Urdu but topically disconnected, a different instance of the same drift seen in v1; a prompt about the Urdu language stays on-topic this time with coherent sentences about Urdu literature, an improvement over v1's repetition-loop failure on the same prompt; a prompt about today's weather produces fluent, topically relevant sentences about winter weather. The honest read: v2 is more fluent and holds topic longer in two of three samples, but topical coherence is still not reliable prompt-following, and factual recall did not move meaningfully, exactly what the fact-capacity research predicts for a corpus-only change at this model size.</p>
       </section>
       <section class="proj-section">
         <h2>Tech stack</h2>
