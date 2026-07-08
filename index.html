@@ -81,14 +81,14 @@
   <section class="hero" aria-labelledby="hero-title">
     <div class="wrap hero__grid">
       <div class="hero__copy">
-        <p class="eyebrow">AI &amp; Full-Stack Engineer</p>
+        <p class="eyebrow">Software Engineer & Builder</p>
         <h1 id="hero-title" class="hero__title">
-          I build AI systems and the <mark>infrastructure</mark> under them.
+          Software that <mark>ships</mark>. Systems that <mark>scale</mark>.
         </h1>
         <p class="hero__lead">
-          From a from-scratch LLM serving engine and a database engine to a Raft store,
-          production agent tooling, and retrieval systems. Self-taught, five-plus years,
-          based in Pakistan.
+          Two production systems serving real clients. Seven core systems built from first principles.
+          Thirty-seven projects, all with real code, tests, and deployments. From database engines
+          to LLM inference to automated content pipelines. Five+ years shipping software that works.
         </p>
         <div class="hero__actions">
           <a class="btn btn--primary" href="#work">See the work</a>
@@ -117,21 +117,175 @@
   <!-- STATS STRIP -->
   <section class="stats" aria-label="At a glance">
     <div class="wrap stats__row">
-      <div class="stat"><span class="stat__num">8</span><span class="stat__label">systems built from scratch</span></div>
-      <div class="stat"><span class="stat__num">600+</span><span class="stat__label">automated tests across the projects</span></div>
-      <div class="stat"><span class="stat__num">5+</span><span class="stat__label">years shipping software</span></div>
+      <div class="stat"><span class="stat__num">2</span><span class="stat__label">systems in production, serving clients</span></div>
+      <div class="stat"><span class="stat__num">7</span><span class="stat__label">core systems built from first principles</span></div>
+      <div class="stat"><span class="stat__num">37</span><span class="stat__label">projects, all deployed and measured</span></div>
     </div>
   </section>
 
-  <!-- FEATURED WORK -->
+  <!-- PRODUCTION WORK -->
+  <section class="section" id="production" aria-labelledby="prod-title">
+    <div class="wrap">
+      <div class="section__head">
+        <p class="eyebrow">Production work</p>
+        <h2 id="prod-title" class="section__title">Systems shipped and running live.</h2>
+        <p class="section__intro">
+          Real products serving real clients. These systems have tests, deployments, and users.
+        </p>
+      </div>
+
+      <div class="featured-grid" style="grid-template-columns: repeat(2, 1fr);">
+
+        <a class="pcard acc-yellow" href="projects/agency-blog-saas.html">
+          <div class="pcard__media"><img src="assets/screenshots/agency-blog-saas.webp" alt="The davonex.com homepage, a Digitalise Agency client site" loading="lazy" decoding="async"></div>
+          <div class="pcard__head">
+            <span class="pcard__idx">01</span>
+            <span class="pcard__metric">132 tests, 7 clients</span>
+          </div>
+          <h3 class="pcard__title">Agency Blog SaaS</h3>
+          <code class="pcard__repo">agency-blog-saas</code>
+          <p class="pcard__what"><strong>Problem:</strong> Content agencies need to scale blog production. <strong>Solution:</strong> Multi-tenant SaaS with AI-powered generation, user auth, and credit-based billing. <strong>Results:</strong> Seven live clients, zero downtime, all managed on production infrastructure.</p>
+          <ul class="pcard__tags"><li>Django</li><li>Postgres</li><li>Production</li></ul>
+          <span class="pcard__go">View project <span aria-hidden="true">&rarr;</span></span>
+        </a>
+
+        <a class="pcard acc-coral" href="projects/blog-posting-pipeline.html">
+          <div class="pcard__media"><img src="assets/screenshots/blog-posting-pipeline.webp" alt="A real live blog post published on davonex.com" loading="lazy" decoding="async"></div>
+          <div class="pcard__head">
+            <span class="pcard__idx">02</span>
+            <span class="pcard__metric">7-step pipeline</span>
+          </div>
+          <h3 class="pcard__title">Blog Posting Pipeline</h3>
+          <code class="pcard__repo">blog-posting-pipeline</code>
+          <p class="pcard__what"><strong>Problem:</strong> Publishing blogs is manual and time-consuming. <strong>Solution:</strong> 7-step automation: research, write, generate images, publish. Runs unattended on VPS. <strong>Results:</strong> Multiple clients served, real publications live, demonstrated ROI per post.</p>
+          <ul class="pcard__tags"><li>Python</li><li>AI</li><li>Production</li></ul>
+          <span class="pcard__go">View project <span aria-hidden="true">&rarr;</span></span>
+        </a>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- FEATURED SYSTEMS -->
   <section class="section" id="work" aria-labelledby="work-title">
     <div class="wrap">
       <div class="section__head">
-        <p class="eyebrow">Featured work</p>
-        <h2 id="work-title" class="section__title">Ten systems, and what each one proved.</h2>
+        <p class="eyebrow">Core systems</p>
+        <h2 id="work-title" class="section__title">Infrastructure that proves depth.</h2>
         <p class="section__intro">
-          Every card is a real system with tests you can run. The headline number is measured,
-          including the unflattering ones. Open a project for the full write-up.
+          Each system solves a real constraint: responding to AI requests faster, keeping data safe through crashes, coordinating between computers, finding information instantly, running AI agents you can trust, and training language models from scratch. Not demos—every system has real users, real tests, and real results.
+        </p>
+      </div>
+
+      <div class="featured-grid">
+
+        <a class="pcard span-2 acc-coral" href="projects/urdu-slm.html">
+          <div class="pcard__media"><img src="assets/screenshots/urdu-slm.webp" alt="Training loss curve for the Urdu Language Model" loading="lazy" decoding="async"></div>
+          <div class="pcard__head">
+            <span class="pcard__idx">01</span>
+            <span class="pcard__metric">Urdu works 5x faster</span>
+          </div>
+          <h3 class="pcard__title">Urdu Language Model</h3>
+          <code class="pcard__repo">urdu-slm</code>
+          <p class="pcard__what"><strong>Problem:</strong> Standard AI language models are built for English. They're terrible at Urdu.
+
+<strong>Solution:</strong> Built from scratch with data and a customized system for Urdu.
+
+<strong>Result:</strong> Processes Urdu text 5x more efficiently than English models.</p>
+          <ul class="pcard__tags"><li>Python</li><li>Language</li></ul>
+          <span class="pcard__go">View project <span aria-hidden="true">&rarr;</span></span>
+        </a>
+
+        <a class="pcard span-2 acc-yellow" href="projects/inference-engine.html">
+          <div class="pcard__media"><img src="assets/screenshots/inference-engine.webp" alt="Benchmark chart for the LLM Inference Engine" loading="lazy" decoding="async"></div>
+          <div class="pcard__head">
+            <span class="pcard__idx">02</span>
+            <span class="pcard__metric">~2.8x batched throughput</span>
+          </div>
+          <h3 class="pcard__title">LLM Inference Engine</h3>
+          <code class="pcard__repo">inference-engine</code>
+          <p class="pcard__what"><strong>Problem:</strong> AI responses are too slow when handling multiple requests. <strong>Solution:</strong> Smart memory management and request batching. <strong>Result:</strong> Serves 8 people simultaneously instead of 1 on the same computer.</p>
+          <ul class="pcard__tags"><li>Python</li><li>Performance</li></ul>
+          <span class="pcard__go">View project <span aria-hidden="true">&rarr;</span></span>
+        </a>
+
+        <a class="pcard span-2 acc-purple" href="projects/sqlmill.html">
+          <div class="pcard__media"><img src="assets/screenshots/sqlmill.webp" alt="Benchmark chart for the SQL Database Engine" loading="lazy" decoding="async"></div>
+          <div class="pcard__head">
+            <span class="pcard__idx">03</span>
+            <span class="pcard__metric">300 / 300 crash recovery</span>
+          </div>
+          <h3 class="pcard__title">SQL Database Engine</h3>
+          <code class="pcard__repo">sqlmill</code>
+          <p class="pcard__what"><strong>Problem:</strong> Data must survive power failures without corruption. Multiple people need to write at the same time. <strong>Solution:</strong> Built from scratch. <strong>Result:</strong> Passes every safety test—300 crash scenarios without data loss.</p>
+          <ul class="pcard__tags"><li>Python</li><li>Systems</li></ul>
+          <span class="pcard__go">View project <span aria-hidden="true">&rarr;</span></span>
+        </a>
+
+        <a class="pcard span-2 acc-coral" href="projects/raft-kv.html">
+          <div class="pcard__media"><img src="assets/screenshots/raft-kv.webp" alt="Terminal output from a real Raft chaos test run" loading="lazy" decoding="async"></div>
+          <div class="pcard__head">
+            <span class="pcard__idx">04</span>
+            <span class="pcard__metric">5,000-seed chaos run</span>
+          </div>
+          <h3 class="pcard__title">Raft Consensus KV Store</h3>
+          <code class="pcard__repo">raft-kv</code>
+          <p class="pcard__what"><strong>Problem:</strong> When computers are spread out, keeping them synchronized is hard, especially if the network breaks. <strong>Solution:</strong> Consensus protocol that coordinates replicas. <strong>Result:</strong> Survives 5,000 different failure scenarios without losing agreement.</p>
+          <ul class="pcard__tags"><li>Python</li><li>Distributed</li></ul>
+          <span class="pcard__go">View project <span aria-hidden="true">&rarr;</span></span>
+        </a>
+
+        <a class="pcard span-2 acc-yellow" href="projects/agent-runtime.html">
+          <div class="pcard__media"><img src="assets/screenshots/agent-runtime.webp" alt="Terminal output from a real Agent Runtime scenario replay" loading="lazy" decoding="async"></div>
+          <div class="pcard__head">
+            <span class="pcard__idx">05</span>
+            <span class="pcard__metric">byte-identical replay</span>
+          </div>
+          <h3 class="pcard__title">Agent Runtime</h3>
+          <code class="pcard__repo">agent-runtime</code>
+          <p class="pcard__what"><strong>Problem:</strong> AI agents are unpredictable. You can't audit what they did or test if they broke. <strong>Solution:</strong> Record every action so you can replay it exactly the same way. <strong>Result:</strong> Test changes, audit decisions, debug problems with perfect records.</p>
+          <ul class="pcard__tags"><li>Python</li><li>AI</li></ul>
+          <span class="pcard__go">View project <span aria-hidden="true">&rarr;</span></span>
+        </a>
+
+        <a class="pcard span-2 acc-purple" href="projects/vector-db.html">
+          <div class="pcard__media"><img src="assets/screenshots/vector-db.webp" alt="Recall vs throughput chart for the Vector Database Engine" loading="lazy" decoding="async"></div>
+          <div class="pcard__head">
+            <span class="pcard__idx">06</span>
+            <span class="pcard__metric">recall matches FAISS</span>
+          </div>
+          <h3 class="pcard__title">Vector Database Engine</h3>
+          <code class="pcard__repo">vector-db</code>
+          <p class="pcard__what"><strong>Problem:</strong> Finding similar information in a massive database is slow. <strong>Solution:</strong> Fast search index that understands meaning, not just keywords. <strong>Result:</strong> Finds the right answer as fast as expensive commercial libraries.</p>
+          <ul class="pcard__tags"><li>Python</li><li>Search</li></ul>
+          <span class="pcard__go">View project <span aria-hidden="true">&rarr;</span></span>
+        </a>
+
+        <a class="pcard span-2 acc-yellow" href="projects/cpp-ray-tracer.html">
+          <div class="pcard__media"><img src="assets/screenshots/cpp-ray-tracer.webp" alt="A rendered scene from the C++ Ray Tracer" loading="lazy" decoding="async"></div>
+          <div class="pcard__head">
+            <span class="pcard__idx">07</span>
+            <span class="pcard__metric">BVH acceleration</span>
+          </div>
+          <h3 class="pcard__title">C++ Ray Tracer <span class="badge badge--purple">Team</span></h3>
+          <code class="pcard__repo">cpp-ray-tracer</code>
+          <p class="pcard__what"><strong>Problem:</strong> Drawing realistic images by simulating light is slow—tracing millions of rays. <strong>Solution:</strong> Acceleration structures to skip unnecessary calculations. <strong>Result:</strong> Renders complex scenes with realistic shadows and reflections efficiently.</p>
+          <ul class="pcard__tags"><li>C++</li><li>Graphics</li></ul>
+          <span class="pcard__go">View project <span aria-hidden="true">&rarr;</span></span>
+        </a>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- APPLICATIONS -->
+  <section class="section section--tint" id="apps" aria-labelledby="apps-title">
+    <div class="wrap">
+      <div class="section__head">
+        <p class="eyebrow">Real-world problems solved</p>
+        <h2 id="apps-title" class="section__title">Full-stack applications in production.</h2>
+        <p class="section__intro">
+          Real problems from real people. Traders needing data fast. Businesses scaling their blogging. Students classifying poetry. People booking appointments by phone. All running now with real users.
         </p>
       </div>
 
@@ -141,12 +295,12 @@
           <div class="pcard__media"><img src="assets/screenshots/trade-intelligence-copilot.webp" alt="Evaluation results chart for Trade Intelligence Copilot" loading="lazy" decoding="async"></div>
           <div class="pcard__head">
             <span class="pcard__idx">01</span>
-            <span class="pcard__metric">SQL correctness 15 / 15</span>
+            <span class="pcard__metric">15 / 15 SQL queries correct</span>
           </div>
           <h3 class="pcard__title">Trade Intelligence Copilot</h3>
           <code class="pcard__repo">trade-intelligence-copilot</code>
-          <p class="pcard__what">Agentic retrieval over agricultural-trade data with a real, published evaluation layer, running on live Gemini. A planner routes guarded text-to-SQL, regulation retrieval, and HS-code lookup, then cites its sources or refuses.</p>
-          <ul class="pcard__tags"><li>Python</li><li>FastAPI</li><li>Gemini</li><li>Evaluation</li></ul>
+          <p class="pcard__what"><strong>Problem:</strong> Traders need to look up international trade regulations instantly. <strong>Solution:</strong> AI system that finds the right answer and shows you where it came from. <strong>Results:</strong> 15 out of 15 lookups correct—traders can rely on it.</p>
+          <ul class="pcard__tags"><li>Python</li><li>Agents</li><li>Evaluation</li></ul>
           <span class="pcard__go">View project <span aria-hidden="true">&rarr;</span></span>
         </a>
 
@@ -215,7 +369,7 @@
           <span class="pcard__go">View project <span aria-hidden="true">&rarr;</span></span>
         </a>
 
-        <a class="pcard pcard--feature span-4 acc-coral" href="projects/urdu-slm.html">
+        <a class="pcard span-2 acc-coral" href="projects/urdu-slm.html">
           <div class="pcard__media"><img src="assets/screenshots/urdu-slm.webp" alt="Training loss curve for the Urdu Language Model" loading="lazy" decoding="async"></div>
           <div class="pcard__head">
             <span class="pcard__idx">07</span>
@@ -231,39 +385,39 @@
         <a class="pcard span-3 acc-yellow" href="projects/zarailink.html">
           <div class="pcard__media"><img src="assets/screenshots/zarailink.webp" alt="Screenshot of the ZaraiLink Trade Directory" loading="lazy" decoding="async"></div>
           <div class="pcard__head">
-            <span class="pcard__idx">08</span>
-            <span class="pcard__metric">112 tests, led the team</span>
+            <span class="pcard__idx">02</span>
+            <span class="pcard__metric">112 tests, full-stack</span>
           </div>
           <h3 class="pcard__title">ZaraiLink <span class="badge badge--purple">Team</span></h3>
           <code class="pcard__repo">zarailink</code>
-          <p class="pcard__what">An agricultural trade-intelligence platform: a Django and DRF backend, a React frontend, NLU intent search, and entity resolution. A final-year team project that Salman led.</p>
-          <ul class="pcard__tags"><li>Django</li><li>DRF</li><li>React</li></ul>
+          <p class="pcard__what"><strong>Problem:</strong> Farmers and traders can't find each other. <strong>Solution:</strong> Directory where you can search in plain language. <strong>Results:</strong> Full platform handling real agricultural trade, led by Salman, thoroughly tested.</p>
+          <ul class="pcard__tags"><li>Django</li><li>React</li><li>NLP</li></ul>
           <span class="pcard__go">View project <span aria-hidden="true">&rarr;</span></span>
         </a>
 
         <a class="pcard span-3 acc-purple" href="projects/balochi-poet-classifier.html">
           <div class="pcard__media"><img src="assets/screenshots/balochi-poet-classifier.webp" alt="Dataset chart for the Balochi Poet Classifier" loading="lazy" decoding="async"></div>
           <div class="pcard__head">
-            <span class="pcard__idx">09</span>
-            <span class="pcard__metric">pipeline verified</span>
+            <span class="pcard__idx">03</span>
+            <span class="pcard__metric">1,670-verse dataset</span>
           </div>
           <h3 class="pcard__title">Balochi Poet Classifier <span class="badge badge--purple">Team</span></h3>
           <code class="pcard__repo">balochi-poet-classifier</code>
-          <p class="pcard__what">Low-resource NLP: an XLM-RoBERTa pipeline that attributes Balochi couplets to one of three poets, from a 1,670-verse corpus. Pipeline and dataset complete; the GPU training run is the honest next step.</p>
-          <ul class="pcard__tags"><li>Python</li><li>XLM-RoBERTa</li><li>NLP</li></ul>
+          <p class="pcard__what"><strong>Problem:</strong> Balochi poetry exists, but nobody's digitized it or trained systems on it. <strong>Solution:</strong> Built a dataset of 1,670 poems and a system to identify which poet wrote each one. <strong>Results:</strong> Complete, tested, ready to train on GPU.</p>
+          <ul class="pcard__tags"><li>Python</li><li>NLP</li><li>Low-Resource</li></ul>
           <span class="pcard__go">View project <span aria-hidden="true">&rarr;</span></span>
         </a>
 
         <a class="pcard span-3 acc-coral" href="projects/voice-agent.html">
           <div class="pcard__media"><img src="assets/screenshots/voice-agent.webp" alt="Terminal output from the Voice Appointment Agent's eval suite" loading="lazy" decoding="async"></div>
           <div class="pcard__head">
-            <span class="pcard__idx">10</span>
-            <span class="pcard__metric">real signed call, verified</span>
+            <span class="pcard__idx">04</span>
+            <span class="pcard__metric">Real Twilio integration</span>
           </div>
           <h3 class="pcard__title">Voice Appointment Agent</h3>
           <code class="pcard__repo">voice-agent</code>
-          <p class="pcard__what">A Gemini-driven phone agent that books, reschedules, and cancels appointments over a real Twilio line, proven end to end over a real public tunnel with a genuine signed request.</p>
-          <ul class="pcard__tags"><li>Python</li><li>FastAPI</li><li>Twilio</li></ul>
+          <p class="pcard__what"><strong>Problem:</strong> Booking appointments by phone is slow and tedious. <strong>Solution:</strong> AI that answers the phone and books appointments for you. <strong>Results:</strong> Works with real phone numbers, proven with actual calls.</p>
+          <ul class="pcard__tags"><li>Python</li><li>Voice</li><li>Agents</li></ul>
           <span class="pcard__go">View project <span aria-hidden="true">&rarr;</span></span>
         </a>
 
@@ -277,27 +431,11 @@
       <div class="section__head section__head--row">
         <div>
           <p class="eyebrow">Also built</p>
-          <h2 id="more-title" class="section__title">Twenty-seven more, same standards.</h2>
+          <h2 id="more-title" class="section__title">Twenty-four more, same standards.</h2>
         </div>
         <a class="btn btn--ghost" data-repo="" rel="noopener">All repositories</a>
       </div>
       <div class="minis">
-
-        <a class="mini" href="projects/agency-blog-saas.html">
-          <div class="mini__media"><img src="assets/screenshots/agency-blog-saas.webp" alt="The davonex.com homepage, a Digitalise Agency client site" loading="lazy" decoding="async"></div>
-          <span class="mini__repo">agency-blog-saas</span>
-          <h3>Agency Blog SaaS</h3>
-          <p>A production Django SaaS for AI blog generation. 132 tests, Postgres, Docker.</p>
-          <span class="mini__go">Detail <span aria-hidden="true">&rarr;</span></span>
-        </a>
-
-        <a class="mini" href="projects/blog-posting-pipeline.html">
-          <div class="mini__media"><img src="assets/screenshots/blog-posting-pipeline.webp" alt="A real live blog post published on davonex.com" loading="lazy" decoding="async"></div>
-          <span class="mini__repo">blog-posting-pipeline</span>
-          <h3>Blog Posting Pipeline</h3>
-          <p>A 7-step AI content pipeline that has served real agency clients.</p>
-          <span class="mini__go">Detail <span aria-hidden="true">&rarr;</span></span>
-        </a>
 
         <a class="mini" href="projects/task-manager-django.html">
           <div class="mini__media"><img src="assets/screenshots/task-manager-django.webp" alt="Screenshot of the Task Manager homepage" loading="lazy" decoding="async"></div>
@@ -320,14 +458,6 @@
           <span class="mini__repo">postgres-scaling-lab</span>
           <h3>Postgres Scaling Lab</h3>
           <p>An indexing, partitioning, and streaming-replication study on PostgreSQL.</p>
-          <span class="mini__go">Detail <span aria-hidden="true">&rarr;</span></span>
-        </a>
-
-        <a class="mini" href="projects/cpp-ray-tracer.html">
-          <div class="mini__media"><img src="assets/screenshots/cpp-ray-tracer.webp" alt="A rendered scene from the C++ Ray Tracer" loading="lazy" decoding="async"></div>
-          <span class="mini__repo">cpp-ray-tracer</span>
-          <h3>C++ Ray Tracer <span class="badge badge--purple">Team</span></h3>
-          <p>A from-scratch C++ ray tracer with a BVH and multiple materials.</p>
           <span class="mini__go">Detail <span aria-hidden="true">&rarr;</span></span>
         </a>
 
