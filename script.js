@@ -35,18 +35,19 @@ const GITHUB_HANDLE = "salmanadnan2257";
     var words = (rotatorWord.getAttribute("data-words") || "").split(",").filter(Boolean);
 
     if (words.length > 1) {
-      // Locks the box to the widest word's rendered width so swapping words
-      // never reflows the headline. Re-measured on resize since the hero
-      // font size scales with viewport width (clamp with vw).
-      var measurer = rotatorWord.cloneNode(false);
-      measurer.style.cssText = "position:absolute; visibility:hidden; white-space:nowrap; left:-9999px; top:-9999px;";
-      document.body.appendChild(measurer);
+      // Clone the full container (including padding) off-screen to measure the
+      // true rendered width for each word, then pin min-width to the widest.
+      // Re-measured on resize because the hero font scales with vw.
+      var boxClone = rotatorBox.cloneNode(true);
+      var wordInClone = boxClone.querySelector(".word-rotator__word");
+      boxClone.style.cssText = "position:absolute;visibility:hidden;left:-9999px;top:-9999px;min-width:0;";
+      document.body.appendChild(boxClone);
 
       var lockWidth = function () {
         var maxWidth = 0;
         for (var w = 0; w < words.length; w++) {
-          measurer.textContent = words[w];
-          maxWidth = Math.max(maxWidth, measurer.getBoundingClientRect().width);
+          wordInClone.textContent = words[w];
+          maxWidth = Math.max(maxWidth, boxClone.getBoundingClientRect().width);
         }
         rotatorBox.style.minWidth = Math.ceil(maxWidth) + "px";
       };
