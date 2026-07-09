@@ -27,39 +27,27 @@ const GITHUB_HANDLE = "salmanadnan2257";
   if (yearEl) { yearEl.textContent = String(new Date().getFullYear()); }
 
   // Hero headline word rotator: cycles through data-words, fades between them.
-  // The box is locked to the widest word's width first, so swapping words
-  // never reflows the surrounding headline.
+  // The h1 min-height is locked to its tallest layout ("customers") so swapping
+  // to shorter words never collapses the headline and pushes the photo up/down.
   var rotatorWord = document.querySelector(".word-rotator__word");
   var rotatorBox = document.querySelector(".word-rotator");
   if (rotatorWord && rotatorBox) {
     var words = (rotatorWord.getAttribute("data-words") || "").split(",").filter(Boolean);
 
-    if (words.length > 1) {
-      // Clone the full container (including padding) off-screen to measure the
-      // true rendered width for each word, then pin min-width to the widest.
-      // Re-measured on resize because the hero font scales with vw.
-      // Clone is inserted inside the h1 so it inherits the hero's responsive
-      // font-size (clamp with vw). Appending to body gives body font-size
-      // instead, which makes the measured width too small.
-      var boxClone = rotatorBox.cloneNode(true);
-      var wordInClone = boxClone.querySelector(".word-rotator__word");
-      boxClone.style.cssText = "position:absolute;visibility:hidden;left:-9999px;top:-9999px;min-width:0;";
-      rotatorBox.parentElement.appendChild(boxClone);
-
-      var lockWidth = function () {
-        var maxWidth = 0;
-        for (var w = 0; w < words.length; w++) {
-          wordInClone.textContent = words[w];
-          maxWidth = Math.max(maxWidth, boxClone.getBoundingClientRect().width);
-        }
-        rotatorBox.style.minWidth = Math.ceil(maxWidth) + "px";
-      };
-      lockWidth();
-
+    var heroTitle = document.getElementById("hero-title");
+    if (heroTitle && words.length > 0) {
       var resizeTimer;
+      var lockHeight = function () {
+        var cur = rotatorWord.textContent;
+        rotatorWord.textContent = words[0]; // "customers" — longest word
+        heroTitle.style.minHeight = "";
+        heroTitle.style.minHeight = heroTitle.offsetHeight + "px";
+        rotatorWord.textContent = cur;
+      };
+      lockHeight();
       window.addEventListener("resize", function () {
         clearTimeout(resizeTimer);
-        resizeTimer = setTimeout(lockWidth, 150);
+        resizeTimer = setTimeout(lockHeight, 150);
       });
     }
 
