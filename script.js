@@ -27,11 +27,39 @@ const GITHUB_HANDLE = "salmanadnan2257";
   if (yearEl) { yearEl.textContent = String(new Date().getFullYear()); }
 
   // Hero headline word rotator: cycles through data-words, fades between them.
-  // Paused for prefers-reduced-motion, where the first word just stays put.
+  // The box is locked to the widest word's width first, so swapping words
+  // never reflows the surrounding headline.
   var rotatorWord = document.querySelector(".word-rotator__word");
-  if (rotatorWord && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+  var rotatorBox = document.querySelector(".word-rotator");
+  if (rotatorWord && rotatorBox) {
     var words = (rotatorWord.getAttribute("data-words") || "").split(",").filter(Boolean);
+
     if (words.length > 1) {
+      // Locks the box to the widest word's rendered width so swapping words
+      // never reflows the headline. Re-measured on resize since the hero
+      // font size scales with viewport width (clamp with vw).
+      var measurer = rotatorWord.cloneNode(false);
+      measurer.style.cssText = "position:absolute; visibility:hidden; white-space:nowrap; left:-9999px; top:-9999px;";
+      document.body.appendChild(measurer);
+
+      var lockWidth = function () {
+        var maxWidth = 0;
+        for (var w = 0; w < words.length; w++) {
+          measurer.textContent = words[w];
+          maxWidth = Math.max(maxWidth, measurer.getBoundingClientRect().width);
+        }
+        rotatorBox.style.minWidth = Math.ceil(maxWidth) + "px";
+      };
+      lockWidth();
+
+      var resizeTimer;
+      window.addEventListener("resize", function () {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(lockWidth, 150);
+      });
+    }
+
+    if (words.length > 1 && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
       var wIndex = 0;
       setInterval(function () {
         rotatorWord.classList.add("is-swapping");

@@ -1575,9 +1575,12 @@ a { color: inherit; text-decoration: none; }
   color: var(--ink);
   padding: 0 10px;
   border-radius: 6px;
+  text-align: center;
+  vertical-align: bottom;
 }
 .word-rotator__word {
   display: inline-block;
+  white-space: nowrap;
   opacity: 1;
   transition: opacity .35s ease, transform .35s ease;
 }
