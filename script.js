@@ -39,9 +39,21 @@ const GITHUB_HANDLE = "salmanadnan2257";
       var resizeTimer;
       var lockHeight = function () {
         var cur = rotatorWord.textContent;
-        rotatorWord.textContent = words[0]; // "customers" - longest word
+
+        // Lock word-rotator box width to the widest word so the h1 never reflows.
+        rotatorBox.style.minWidth = "";
+        var maxW = 0;
+        words.forEach(function (w) {
+          rotatorWord.textContent = w;
+          maxW = Math.max(maxW, rotatorWord.scrollWidth);
+        });
+        rotatorBox.style.minWidth = Math.ceil(maxW) + "px";
+
+        // Lock h1 min-height to tallest layout as a secondary guard.
+        rotatorWord.textContent = words[0];
         heroTitle.style.minHeight = "";
         heroTitle.style.minHeight = heroTitle.offsetHeight + "px";
+
         rotatorWord.textContent = cur;
       };
       lockHeight();
