@@ -221,11 +221,11 @@ a { color: inherit; text-decoration: none; }
   border-radius: var(--radius);
   overflow: hidden;
   background: var(--coral);
-  box-shadow: 8px 8px 0 #000;
+  box-shadow: 8px 8px 0 var(--coral);
   transform: rotate(1.5deg);
 }
 .photo-frame img { width: 100%; height: auto; display: block; }
-.photo-frame--yellow { box-shadow: 8px 8px 0 #000; transform: rotate(1.5deg); }
+.photo-frame--yellow { box-shadow: 8px 8px 0 var(--purple); transform: rotate(1.5deg); }
 .photo-badge {
   position: absolute;
   left: 50%;
