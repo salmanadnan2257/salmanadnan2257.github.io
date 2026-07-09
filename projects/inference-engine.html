@@ -137,7 +137,7 @@
       <section class="proj-section">
         <h2>Interpretation</h2>
         <p>At equal settings the engine matches Hugging Face one-at-a-time (44.7 vs 40.0 tok/s) and reaches about <strong>2.8x throughput once batching 8 requests</strong> (113.5 tok/s). The gain is pure scheduling and memory efficiency, not faster math.</p>
-        <p>Speculative decoding is correct (identical greedy output, 54% of drafts accepted) but about 0.7x slower on CPU, where the draft forward is not cheap relative to the target. It stays in the codebase as a correctness-verified feature. A comparison against vLLM is deliberately absent because this machine has no GPU—these are honest CPU numbers.</p>
+        <p>Speculative decoding is correct (identical greedy output, 54% of drafts accepted) but about 0.7x slower on CPU, where the draft forward is not cheap relative to the target. It stays in the codebase as a correctness-verified feature. A comparison against vLLM is deliberately absent because this machine has no GPU, these are honest CPU numbers.</p>
       </section>
       <section class="proj-section">
         <h2>Technical Details</h2>
@@ -156,7 +156,7 @@
         <ul class="proj-list">
           <li><strong>Paged attention is bookkeeping, not math:</strong> The attention kernel barely changes; the allocator, refcounting, and hashing are where the design lives.</li>
           <li><strong>Continuous batching works, even on CPU:</strong> 2.8x throughput from concurrency 1→8 comes entirely from not wasting compute on padding.</li>
-          <li><strong>Measure honestly on your hardware:</strong> Speculative decoding's speedup is conditional on draft ≪ target cost. On CPU it goes backwards—more useful to know than to assume GPU numbers transfer.</li>
+          <li><strong>Measure honestly on your hardware:</strong> Speculative decoding's speedup is conditional on draft ≪ target cost. On CPU it goes backwards, more useful to know than to assume GPU numbers transfer.</li>
           <li><strong>Correctness first, performance second:</strong> Prefix-cache correctness with in-place rewrites required deregistering content hashes before mutation. Cumulative capacity checks had to span the whole batch, not per-sequence.</li>
           <li><strong>Tokenizer boundaries matter:</strong> UTF-8 can split across tokens in byte-level BPE, so detokenization must hold back partial tails until they decode cleanly.</li>
         </ul>
