@@ -38,10 +38,13 @@ const GITHUB_HANDLE = "salmanadnan2257";
       // Clone the full container (including padding) off-screen to measure the
       // true rendered width for each word, then pin min-width to the widest.
       // Re-measured on resize because the hero font scales with vw.
+      // Clone is inserted inside the h1 so it inherits the hero's responsive
+      // font-size (clamp with vw). Appending to body gives body font-size
+      // instead, which makes the measured width too small.
       var boxClone = rotatorBox.cloneNode(true);
       var wordInClone = boxClone.querySelector(".word-rotator__word");
       boxClone.style.cssText = "position:absolute;visibility:hidden;left:-9999px;top:-9999px;min-width:0;";
-      document.body.appendChild(boxClone);
+      rotatorBox.parentElement.appendChild(boxClone);
 
       var lockWidth = function () {
         var maxWidth = 0;
