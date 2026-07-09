@@ -26,10 +26,28 @@ const GITHUB_HANDLE = "salmanadnan2257";
   var yearEl = document.getElementById("year");
   if (yearEl) { yearEl.textContent = String(new Date().getFullYear()); }
 
+  // Hero headline word rotator: cycles through data-words, fades between them.
+  // Paused for prefers-reduced-motion, where the first word just stays put.
+  var rotatorWord = document.querySelector(".word-rotator__word");
+  if (rotatorWord && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    var words = (rotatorWord.getAttribute("data-words") || "").split(",").filter(Boolean);
+    if (words.length > 1) {
+      var wIndex = 0;
+      setInterval(function () {
+        rotatorWord.classList.add("is-swapping");
+        setTimeout(function () {
+          wIndex = (wIndex + 1) % words.length;
+          rotatorWord.textContent = words[wIndex];
+          rotatorWord.classList.remove("is-swapping");
+        }, 350);
+      }, 2200);
+    }
+  }
+
   // Reveal sections on scroll, but only when motion is welcome.
   var reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   var targets = document.querySelectorAll(
-    ".pcard, .mini, .section__head, .stat, .step, .about__photo, .about__copy, .skills__group, .proj-stat, .proj-section"
+    ".pcard, .mini, .section__head, .stat, .step, .about__photo, .about__copy, .skills__group, .proj-stat, .proj-section, .pain-card"
   );
 
   if (reduce || !("IntersectionObserver" in window)) {

@@ -83,7 +83,9 @@
       <div class="hero__copy">
         <p class="eyebrow">Software Engineer & Builder</p>
         <h1 id="hero-title" class="hero__title">
-          Software that <mark>ships</mark>. Systems that <mark>scale</mark>.
+          A slow, untested system loses you
+          <span class="word-rotator" aria-live="polite"><span class="word-rotator__word" data-words="customers,deals,trust,uptime">customers</span></span>
+          every day.
         </h1>
         <p class="hero__lead">
           Two production systems serving real clients. Seven core systems built from first principles.
@@ -114,12 +116,74 @@
     </div>
   </section>
 
+  <!-- HERO STAT / CTA PANEL -->
+  <section class="hero-cta" aria-label="At a glance and next step">
+    <div class="wrap">
+      <div class="hero-panel hero-panel--row">
+        <div class="hero-banner hero-banner--yellow">37 projects shipped, every one tested and deployed</div>
+        <div class="hero-banner hero-banner--cream">2 production systems serving live clients today</div>
+      </div>
+      <div class="hero-cta__actions">
+        <a class="btn btn--primary btn--big" href="#book-a-call">Book a free call &rarr;</a>
+        <a class="btn btn--ghost btn--big" href="#work">See what I've built</a>
+      </div>
+    </div>
+  </section>
+
   <!-- STATS STRIP -->
   <section class="stats" aria-label="At a glance">
     <div class="wrap stats__row">
       <div class="stat"><span class="stat__num">2</span><span class="stat__label">systems in production, serving clients</span></div>
       <div class="stat"><span class="stat__num">7</span><span class="stat__label">core systems built from first principles</span></div>
       <div class="stat"><span class="stat__num">37</span><span class="stat__label">projects, all deployed and measured</span></div>
+    </div>
+  </section>
+
+  <!-- IS THIS YOU? -->
+  <section class="section section--tint" id="pain" aria-labelledby="pain-title">
+    <div class="wrap">
+      <div class="section__head">
+        <p class="eyebrow">Is this you?</p>
+        <h2 id="pain-title" class="section__title">If any of these sound familiar, it's costing you.</h2>
+        <p class="section__intro">
+          Every system on this page exists because a real version of one of these problems showed up first.
+        </p>
+      </div>
+      <div class="pain-grid">
+        <div class="pain-card">
+          <div class="pain-card__icon" aria-hidden="true">&#9203;</div>
+          <h3>Manual work eating your week</h3>
+          <p>Someone still copies data between spreadsheets, publishes posts by hand, or checks stock by eye, work a script could do unattended.</p>
+        </div>
+        <div class="pain-card">
+          <div class="pain-card__icon" aria-hidden="true">&#128038;</div>
+          <h3>Slow, clunky software</h3>
+          <p>The app is fine with one user and buckles the moment real traffic or concurrent writes hit it.</p>
+        </div>
+        <div class="pain-card">
+          <div class="pain-card__icon" aria-hidden="true">&#10060;</div>
+          <h3>No tests, no confidence</h3>
+          <p>Every deploy is a gamble because nothing verifies the code still works before it ships.</p>
+        </div>
+        <div class="pain-card">
+          <div class="pain-card__icon" aria-hidden="true">&#128190;</div>
+          <h3>Data you can't trust</h3>
+          <p>A crash, a power blip, or a bad write can quietly corrupt or lose the data your business runs on.</p>
+        </div>
+        <div class="pain-card">
+          <div class="pain-card__icon" aria-hidden="true">&#129521;</div>
+          <h3>A fragile MVP you outgrew</h3>
+          <p>It shipped fast to prove the idea, and now every new feature risks breaking the ones already live.</p>
+        </div>
+        <div class="pain-card">
+          <div class="pain-card__icon" aria-hidden="true">&#129302;</div>
+          <h3>AI features you can't audit</h3>
+          <p>An AI feature does something and nobody can replay the decision or explain why it happened.</p>
+        </div>
+      </div>
+      <div class="pain-cta">
+        <a class="btn btn--primary btn--big" href="#book-a-call">Sound familiar? Let's fix it &rarr; Book a free call</a>
+      </div>
     </div>
   </section>
 
@@ -824,9 +888,22 @@
         I take on AI and infrastructure work, and I am happy to talk through a hard problem before you commit.
       </p>
       <div class="contact__actions">
-        <a class="btn btn--primary btn--big" href="mailto:salmanadnan2257@gmail.com">salmanadnan2257@gmail.com</a>
+        <a class="btn btn--primary btn--big" href="#book-a-call">Book a free call &rarr;</a>
+        <a class="btn btn--ghost btn--big" href="mailto:salmanadnan2257@gmail.com">salmanadnan2257@gmail.com</a>
         <a class="btn btn--ghost btn--big" href="https://www.linkedin.com/in/salman-adnan/" rel="noopener">LinkedIn</a>
         <a class="btn btn--ghost btn--big" data-repo="" rel="noopener">GitHub</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- BOOK A CALL -->
+  <section class="book" id="book-a-call" aria-labelledby="book-title">
+    <div class="wrap book__inner">
+      <p class="eyebrow eyebrow--light">Book a call</p>
+      <h2 id="book-title" class="book__title">Let's talk about what you're building.</h2>
+      <p class="book__lead">Pick a slot below. No forms, no back-and-forth emails.</p>
+      <div class="book__embed">
+        <iframe src="https://cal.com/salman-adnan/meeting?embed=true" title="Book a call with Salman Adnan" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
       </div>
     </div>
   </section>
