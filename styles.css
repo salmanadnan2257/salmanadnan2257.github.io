@@ -1767,7 +1767,7 @@ a { color: inherit; text-decoration: none; }
 /* Also Built section - Mini cards with original lift + shadow + accent border */
 .mini {
   position: relative;
-  border-left: 4px solid #DC5C3F;
+  border-left: 4px solid #2C3E50;
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
