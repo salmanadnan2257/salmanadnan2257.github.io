@@ -1293,6 +1293,10 @@ a { color: inherit; text-decoration: none; }
    the overlay color (and the card's top color bar) still cycles per card.
    ============================================================ */
 
+#production .pcard:nth-child(3n+1), #work .pcard:nth-child(3n+1) { rotate: 1deg; }
+#production .pcard:nth-child(3n+2), #work .pcard:nth-child(3n+2) { rotate: -1deg; }
+#production .pcard:nth-child(3n),   #work .pcard:nth-child(3n)   { rotate: 0deg; }
+
 #production .pcard:hover, #production .pcard:focus-visible,
 #work .pcard:hover, #work .pcard:focus-visible,
 #apps .pcard:hover, #apps .pcard:focus-visible {
