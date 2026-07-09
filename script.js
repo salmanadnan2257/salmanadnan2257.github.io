@@ -39,7 +39,7 @@ const GITHUB_HANDLE = "salmanadnan2257";
       var resizeTimer;
       var lockHeight = function () {
         var cur = rotatorWord.textContent;
-        rotatorWord.textContent = words[0]; // "customers" — longest word
+        rotatorWord.textContent = words[0]; // "customers" - longest word
         heroTitle.style.minHeight = "";
         heroTitle.style.minHeight = heroTitle.offsetHeight + "px";
         rotatorWord.textContent = cur;
