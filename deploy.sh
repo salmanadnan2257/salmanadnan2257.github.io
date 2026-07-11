@@ -16,9 +16,9 @@ echo "🚀 Deploying portfolio to salmanadnan.com..."
 echo "📤 Pushing to GitHub..."
 git push origin main || echo "⚠️  Already up to date"
 
-# Sync to VPS
+# Sync to VPS (rsync mirrors the post-commit hook; scp -r recopied .git every time)
 echo "📤 Syncing to VPS..."
-scp -r . da:/root/salmanadnan.com/
+rsync -az --exclude='.git' -e ssh ./ da:/root/salmanadnan.com/
 
 echo "✅ Deployment complete!"
 echo "   Live at: https://salmanadnan.com"
