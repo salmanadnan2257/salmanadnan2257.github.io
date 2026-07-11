@@ -1,0 +1,685 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <meta name="theme-color" content="#0A0A22">
+  <title>Vector Database Engine in 3D · Salman Adnan</title>
+  <meta name="description" content="HNSW Descent: an interactive 3D study of greedy graph search descending hierarchical layers.">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="../assets/favicon.png" sizes="any">
+  <style>
+    :root { color-scheme: dark; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      background: #0A0A22;
+      overflow: hidden;
+      font: 12px/1.4 ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+      color: rgba(255, 255, 255, 0.85);
+    }
+    #stage { position: fixed; inset: 0; }
+    canvas { display: block; width: 100%; height: 100%; outline: none; }
+    canvas:focus-visible { box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.6); }
+    #hud {
+      position: absolute; right: 12px; bottom: 12px;
+      display: flex; align-items: center; gap: 10px;
+      padding: 7px 10px; border-radius: 999px;
+      background: rgba(8, 8, 14, 0.55);
+      backdrop-filter: blur(6px);
+      opacity: 0.55; transition: opacity 0.25s ease;
+    }
+    #hud:hover, #hud:focus-within { opacity: 1; }
+    #hud button {
+      appearance: none; border: 1px solid rgba(255, 255, 255, 0.25);
+      background: transparent; color: inherit; font: inherit;
+      padding: 3px 10px; border-radius: 999px; cursor: pointer;
+    }
+    #hud button:hover { border-color: rgba(255, 255, 255, 0.6); }
+    #hud button:focus-visible, #hud input:focus-visible {
+      outline: 2px solid #fff; outline-offset: 2px;
+    }
+    #hud label { display: flex; align-items: center; gap: 6px; }
+    #hud input[type="range"] { width: 72px; accent-color: #FFD166; }
+    #note {
+      position: absolute; left: 12px; bottom: 12px; max-width: 46ch;
+      padding: 8px 12px; border-radius: 10px;
+      background: rgba(8, 8, 14, 0.65);
+    }
+    #err {
+      position: absolute; inset: 0; display: none;
+      place-items: center; text-align: center; padding: 24px;
+    }
+    @media (max-width: 560px) {
+      #hud label { display: none; }
+    }
+  </style>
+</head>
+<body>
+<div id="stage">
+  <canvas id="c" tabindex="0" aria-label="Animated stack of three point-cloud graph layers with a glowing search path hopping down toward its target vector."></canvas>
+  <div id="hud" role="group" aria-label="Visualization controls">
+    <button id="btnPlay" type="button" aria-pressed="false">Pause</button>
+    <label for="speed">speed
+      <input id="speed" type="range" min="0.25" max="2" step="0.25" value="1"
+             aria-label="Animation speed">
+    </label>
+    <button id="btnPng" type="button">Save PNG</button>
+  </div>
+  <p id="note" hidden>Motion is paused because your system prefers reduced motion.
+     Press Play to animate.</p>
+  <div id="err"><p>This visualization needs WebGL, which is unavailable here.<br>
+     A screenshot of it lives on the project page.</p></div>
+</div>
+
+<script type="importmap">
+{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js" } }
+</script>
+<script type="module">
+import * as THREE from 'three';
+
+/* ================= scene: vector-db ================= */
+// Piece: HNSW Descent. A greedy nearest-neighbor search hops the sparse top layer of a
+// vector index, plunges down through denser layers, and closes in on its target.
+// Palette: bg deep indigo #0A0A22, upper blue #3D4C8C, mid blue #4A5FAF, lower blue
+// #5E74C4, hop gold #FFD166, target magenta #E863A8. Indigo depth reads as embedding
+// space; a single gold path over dim blues keeps the algorithm itself the hero.
+// Signature: the layer-drop moment where the gold path plunges vertically to the next layer.
+
+function createScene(THREE, ctx) {
+  const q = ctx.quality;
+
+  // ---------- tunables ----------
+  const BG = 0x0A0A22;                        // deep indigo background
+  const GOLD = new THREE.Color(0xFFD166);     // search flare, heated nodes
+  const MAGENTA = new THREE.Color(0xE863A8);  // target vector marker
+  // per-layer: node count, height, disc radius, kNN degree, point size, edge alpha, hue
+  const LAYERS = [
+    { count: Math.max(10, Math.floor(40 * q)),    y: 3.0,  r: 4.2, k: 3, size: 0.42, edgeAlpha: 0.22, color: 0x3D4C8C },
+    { count: Math.max(40, Math.floor(200 * q)),   y: 0.5,  r: 4.7, k: 3, size: 0.30, edgeAlpha: 0.13, color: 0x4A5FAF },
+    { count: Math.max(160, Math.floor(1200 * q)), y: -2.2, r: 5.2, k: 3, size: 0.21, edgeAlpha: 0.08, color: 0x5E74C4 }
+  ];
+  const HOP_DUR = 0.34;         // seconds per greedy hop on upper layers
+  const HOP_DUR_BOTTOM = 0.26;  // hops are quicker in the dense layer
+  const DROP_DUR = 0.55;        // vertical layer plunge duration
+  const BLOOM_DUR = 1.3;        // arrival bloom duration
+  const IDLE_DUR = 1.8;         // rest between searches, target handoff happens here
+  const HEAT_DECAY = 0.9;       // per-second decay of visited-node heat
+  const TRAIL_LEN = 56;         // flare trail history samples
+  const MAX_HOPS = 26;          // safety cap on greedy hops per layer
+
+  ctx.scene.background = new THREE.Color(BG);
+  ctx.scene.fog = new THREE.FogExp2(BG, 0.013);
+
+  const root = new THREE.Group();
+  ctx.scene.add(root);
+
+  const uTime = { value: 0 };
+
+  function ease(u) { return u * u * (3.0 - 2.0 * u); }
+
+  // ---------- layer point shader ----------
+  const pointVert = `
+    uniform float uTime;
+    uniform float uSize;
+    attribute float aSeed;
+    attribute float aHeat;
+    varying float vHeat;
+    void main() {
+      vec3 p = position;
+      p.y += sin(uTime * 0.7 + aSeed * 6.2831) * 0.05;
+      vHeat = aHeat;
+      vec4 mv = modelViewMatrix * vec4(p, 1.0);
+      gl_PointSize = uSize * (1.0 + min(aHeat, 1.2) * 1.8) * (300.0 / -mv.z);
+      gl_Position = projectionMatrix * mv;
+    }
+  `;
+  const pointFrag = `
+    uniform vec3 uColor;
+    uniform vec3 uHot;
+    varying float vHeat;
+    void main() {
+      float d = length(gl_PointCoord - 0.5);
+      float a = smoothstep(0.5, 0.05, d);
+      float h = clamp(vHeat, 0.0, 1.0);
+      vec3 c = mix(uColor, uHot, h);
+      gl_FragColor = vec4(c, a * (0.5 + 0.5 * h));
+    }
+  `;
+
+  // ---------- build layers ----------
+  const layers = [];
+  for (let li = 0; li < 3; li++) {
+    const L = LAYERS[li];
+    const n = L.count;
+    const px = new Float32Array(n);
+    const pz = new Float32Array(n);
+    const pos = new Float32Array(n * 3);
+    const seed = new Float32Array(n);
+    const heat = new Float32Array(n);
+    for (let i = 0; i < n; i++) {
+      const a = Math.random() * Math.PI * 2;
+      const r = Math.sqrt(Math.random()) * L.r;
+      px[i] = Math.cos(a) * r;
+      pz[i] = Math.sin(a) * r;
+      pos[i * 3] = px[i];
+      pos[i * 3 + 1] = L.y;
+      pos[i * 3 + 2] = pz[i];
+      seed[i] = Math.random();
+    }
+
+    // kNN adjacency, symmetric, deduped
+    const adj = [];
+    for (let i = 0; i < n; i++) adj.push([]);
+    const edgePairs = [];
+    const seen = new Set();
+    for (let i = 0; i < n; i++) {
+      const bd = [];
+      const bj = [];
+      for (let j = 0; j < n; j++) {
+        if (j === i) continue;
+        const dx = px[i] - px[j];
+        const dz = pz[i] - pz[j];
+        const d2 = dx * dx + dz * dz;
+        if (bd.length < L.k) {
+          bd.push(d2); bj.push(j);
+        } else {
+          let worst = 0;
+          for (let w = 1; w < bd.length; w++) if (bd[w] > bd[worst]) worst = w;
+          if (d2 < bd[worst]) { bd[worst] = d2; bj[worst] = j; }
+        }
+      }
+      for (let w = 0; w < bj.length; w++) {
+        const j = bj[w];
+        const key = i < j ? i * 100000 + j : j * 100000 + i;
+        if (!seen.has(key)) {
+          seen.add(key);
+          edgePairs.push(i, j);
+          adj[i].push(j);
+          adj[j].push(i);
+        }
+      }
+    }
+
+    // edge lines
+    const epos = new Float32Array(edgePairs.length * 3);
+    for (let e = 0; e < edgePairs.length; e++) {
+      const idx = edgePairs[e];
+      epos[e * 3] = px[idx];
+      epos[e * 3 + 1] = L.y;
+      epos[e * 3 + 2] = pz[idx];
+    }
+    const egeo = new THREE.BufferGeometry();
+    egeo.setAttribute('position', new THREE.Float32BufferAttribute(epos, 3));
+    const emat = new THREE.LineBasicMaterial({
+      color: new THREE.Color(L.color), transparent: true, opacity: L.edgeAlpha,
+      blending: THREE.AdditiveBlending, depthWrite: false
+    });
+    root.add(new THREE.LineSegments(egeo, emat));
+
+    // glow points
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    geo.setAttribute('aSeed', new THREE.Float32BufferAttribute(seed, 1));
+    const heatAttr = new THREE.Float32BufferAttribute(heat, 1);
+    geo.setAttribute('aHeat', heatAttr);
+    const mat = new THREE.ShaderMaterial({
+      uniforms: {
+        uTime: uTime,
+        uSize: { value: L.size },
+        uColor: { value: new THREE.Color(L.color) },
+        uHot: { value: GOLD.clone() }
+      },
+      vertexShader: pointVert,
+      fragmentShader: pointFrag,
+      transparent: true,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending
+    });
+    root.add(new THREE.Points(geo, mat));
+
+    // faint translucent layer disc
+    const disc = new THREE.Mesh(
+      new THREE.CircleGeometry(L.r * 1.06, 48),
+      new THREE.MeshBasicMaterial({
+        color: new THREE.Color(L.color), transparent: true, opacity: 0.045,
+        side: THREE.DoubleSide, depthWrite: false
+      })
+    );
+    disc.rotation.x = -Math.PI / 2;
+    disc.position.y = L.y;
+    root.add(disc);
+
+    layers.push({ n: n, px: px, pz: pz, adj: adj, heat: heat, heatAttr: heatAttr, y: L.y });
+  }
+
+  function nodePos(li, idx, out) {
+    out.set(layers[li].px[idx], layers[li].y, layers[li].pz[idx]);
+    return out;
+  }
+
+  // ---------- flare and target markers ----------
+  const markerVert = `
+    uniform float uTime;
+    uniform float uSize;
+    void main() {
+      vec4 mv = modelViewMatrix * vec4(position, 1.0);
+      gl_PointSize = uSize * (1.0 + 0.15 * sin(uTime * 6.0)) * (300.0 / -mv.z);
+      gl_Position = projectionMatrix * mv;
+    }
+  `;
+  const markerFrag = `
+    uniform vec3 uColor;
+    uniform float uAlpha;
+    void main() {
+      float d = length(gl_PointCoord - 0.5);
+      float a = smoothstep(0.5, 0.02, d);
+      float core = smoothstep(0.16, 0.0, d);
+      gl_FragColor = vec4(uColor * (1.0 + core * 1.5), a * uAlpha);
+    }
+  `;
+  function makeMarker(colorHex, size) {
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute([0, 0, 0], 3));
+    const m = new THREE.ShaderMaterial({
+      uniforms: {
+        uTime: uTime,
+        uSize: { value: size },
+        uColor: { value: new THREE.Color(colorHex) },
+        uAlpha: { value: 0 }
+      },
+      vertexShader: markerVert,
+      fragmentShader: markerFrag,
+      transparent: true,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending
+    });
+    const p = new THREE.Points(g, m);
+    root.add(p);
+    return p;
+  }
+  const flare = makeMarker(0xFFD166, 1.05);
+  const target = makeMarker(0xE863A8, 0.72);
+
+  // ---------- flare trail ----------
+  const trailSegs = TRAIL_LEN - 1;
+  const trailPos = new Float32Array(trailSegs * 2 * 3);
+  const trailCol = new Float32Array(trailSegs * 2 * 3);
+  for (let s = 0; s < trailSegs; s++) {
+    for (let v = 0; v < 2; v++) {
+      const b = Math.pow(1 - (s + v) / TRAIL_LEN, 1.7) * 0.85;
+      const o = (s * 2 + v) * 3;
+      trailCol[o] = GOLD.r * b;
+      trailCol[o + 1] = GOLD.g * b;
+      trailCol[o + 2] = GOLD.b * b;
+    }
+  }
+  const trailGeo = new THREE.BufferGeometry();
+  const trailAttr = new THREE.Float32BufferAttribute(trailPos, 3);
+  trailGeo.setAttribute('position', trailAttr);
+  trailGeo.setAttribute('color', new THREE.Float32BufferAttribute(trailCol, 3));
+  const trail = new THREE.LineSegments(trailGeo, new THREE.LineBasicMaterial({
+    vertexColors: true, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false
+  }));
+  root.add(trail);
+  const hist = new Float32Array(TRAIL_LEN * 3);
+
+  // ---------- bloom ring and drop flash ----------
+  const bloom = new THREE.Mesh(
+    new THREE.RingGeometry(0.86, 1.0, 48),
+    new THREE.MeshBasicMaterial({
+      color: 0xE863A8, transparent: true, opacity: 0,
+      side: THREE.DoubleSide, blending: THREE.AdditiveBlending, depthWrite: false
+    })
+  );
+  bloom.rotation.x = -Math.PI / 2;
+  root.add(bloom);
+
+  const dropGeo = new THREE.BufferGeometry();
+  const dropAttr = new THREE.Float32BufferAttribute(new Float32Array(6), 3);
+  dropGeo.setAttribute('position', dropAttr);
+  const dropMat = new THREE.LineBasicMaterial({
+    color: 0xFFD166, transparent: true, opacity: 0,
+    blending: THREE.AdditiveBlending, depthWrite: false
+  });
+  root.add(new THREE.LineSegments(dropGeo, dropMat));
+  let dropFade = 0;
+
+  // ---------- search state machine ----------
+  const fromV = new THREE.Vector3();
+  const toV = new THREE.Vector3();
+  const tmpV = new THREE.Vector3();
+  let state = 'idle';
+  let sT = 0;
+  let curLayer = 0;
+  let curNode = 0;
+  let hopDur = HOP_DUR;
+  let hopsThisLayer = 0;
+  let targetIdx = Math.floor(Math.random() * layers[2].n);
+  let idleNewTarget = targetIdx;
+  let idleMoved = true;
+  let flareGoal = 0;
+
+  target.position.set(layers[2].px[targetIdx], layers[2].y, layers[2].pz[targetIdx]);
+
+  function distToTarget2(li, idx) {
+    const dx = layers[li].px[idx] - layers[2].px[targetIdx];
+    const dz = layers[li].pz[idx] - layers[2].pz[targetIdx];
+    return dx * dx + dz * dz;
+  }
+
+  function greedyNext() {
+    const L = layers[curLayer];
+    const here = distToTarget2(curLayer, curNode);
+    let best = -1;
+    let bestD = here - 1e-6;
+    const nb = L.adj[curNode];
+    for (let i = 0; i < nb.length; i++) {
+      const d = distToTarget2(curLayer, nb[i]);
+      if (d < bestD) { bestD = d; best = nb[i]; }
+    }
+    return best;
+  }
+
+  function nearestBelow() {
+    const L = layers[curLayer + 1];
+    const x = layers[curLayer].px[curNode];
+    const z = layers[curLayer].pz[curNode];
+    let best = 0;
+    let bestD = Infinity;
+    for (let i = 0; i < L.n; i++) {
+      const dx = L.px[i] - x;
+      const dz = L.pz[i] - z;
+      const d = dx * dx + dz * dz;
+      if (d < bestD) { bestD = d; best = i; }
+    }
+    return best;
+  }
+
+  let hopDest = 0;
+  function planStep() {
+    hopsThisLayer++;
+    if (curLayer < 2) {
+      const g = hopsThisLayer <= MAX_HOPS ? greedyNext() : -1;
+      if (g >= 0) {
+        beginHop(g, HOP_DUR);
+      } else {
+        // plunge: vertical link to the nearest node one layer down
+        hopDest = nearestBelow();
+        nodePos(curLayer, curNode, fromV);
+        nodePos(curLayer + 1, hopDest, toV);
+        dropAttr.setXYZ(0, fromV.x, fromV.y, fromV.z);
+        dropAttr.setXYZ(1, toV.x, toV.y, toV.z);
+        dropAttr.needsUpdate = true;
+        state = 'drop';
+        sT = 0;
+      }
+    } else {
+      if (curNode === targetIdx) {
+        state = 'bloom';
+        sT = 0;
+        bloom.position.copy(target.position);
+        layers[2].heat[targetIdx] = 1.2;
+        flareGoal = 0;
+        return;
+      }
+      const g = hopsThisLayer <= MAX_HOPS ? greedyNext() : -1;
+      beginHop(g >= 0 ? g : targetIdx, HOP_DUR_BOTTOM);
+    }
+  }
+
+  function beginHop(dest, dur) {
+    hopDest = dest;
+    nodePos(curLayer, curNode, fromV);
+    nodePos(curLayer, dest, toV);
+    hopDur = dur;
+    state = 'hop';
+    sT = 0;
+  }
+
+  // ---------- update ----------
+  const camT = new THREE.Vector3();
+  return {
+    update: function (t, dt) {
+      const d = Math.min(dt, 0.05);
+      uTime.value = t;
+      sT += d;
+
+      // state machine
+      if (state === 'idle') {
+        const u = sT / IDLE_DUR;
+        if (u < 0.35) {
+          target.material.uniforms.uAlpha.value = ease(1 - u / 0.35);
+        } else {
+          if (!idleMoved) {
+            idleMoved = true;
+            targetIdx = idleNewTarget;
+            target.position.set(layers[2].px[targetIdx], layers[2].y, layers[2].pz[targetIdx]);
+          }
+          target.material.uniforms.uAlpha.value = ease((u - 0.35) / 0.65);
+        }
+        if (sT >= IDLE_DUR) {
+          // begin a new search from a random top-layer entry point
+          curLayer = 0;
+          curNode = Math.floor(Math.random() * layers[0].n);
+          hopsThisLayer = 0;
+          nodePos(0, curNode, tmpV);
+          flare.position.copy(tmpV);
+          for (let i = 0; i < TRAIL_LEN; i++) {
+            hist[i * 3] = tmpV.x; hist[i * 3 + 1] = tmpV.y; hist[i * 3 + 2] = tmpV.z;
+          }
+          layers[0].heat[curNode] = 1;
+          flareGoal = 1;
+          planStep();
+        }
+      } else if (state === 'hop') {
+        const u = Math.min(sT / hopDur, 1);
+        flare.position.lerpVectors(fromV, toV, ease(u));
+        if (u >= 1) {
+          curNode = hopDest;
+          layers[curLayer].heat[curNode] = 1;
+          planStep();
+        }
+      } else if (state === 'drop') {
+        const u = Math.min(sT / DROP_DUR, 1);
+        flare.position.lerpVectors(fromV, toV, ease(u));
+        if (u >= 1) {
+          curLayer++;
+          curNode = hopDest;
+          hopsThisLayer = 0;
+          layers[curLayer].heat[curNode] = 1;
+          dropFade = 1;
+          planStep();
+        }
+      } else if (state === 'bloom') {
+        const u = Math.min(sT / BLOOM_DUR, 1);
+        const s = 0.2 + ease(u) * 3.4;
+        bloom.scale.set(s, s, s);
+        bloom.material.opacity = (1 - u) * 0.8;
+        if (u >= 1) {
+          state = 'idle';
+          sT = 0;
+          idleMoved = false;
+          let next = Math.floor(Math.random() * layers[2].n);
+          if (next === targetIdx) next = (next + 1) % layers[2].n;
+          idleNewTarget = next;
+        }
+      }
+
+      // flare alpha ease, no pops
+      const fm = flare.material.uniforms.uAlpha;
+      fm.value += (flareGoal - fm.value) * Math.min(1, d * 6);
+
+      // drop flash fade
+      if (dropFade > 0) {
+        dropFade = Math.max(0, dropFade - d * 1.4);
+        dropMat.opacity = dropFade * 0.7;
+      }
+
+      // trail history shift
+      for (let i = TRAIL_LEN - 1; i > 0; i--) {
+        hist[i * 3] = hist[(i - 1) * 3];
+        hist[i * 3 + 1] = hist[(i - 1) * 3 + 1];
+        hist[i * 3 + 2] = hist[(i - 1) * 3 + 2];
+      }
+      hist[0] = flare.position.x; hist[1] = flare.position.y; hist[2] = flare.position.z;
+      for (let s = 0; s < trailSegs; s++) {
+        const o = s * 6;
+        trailPos[o] = hist[s * 3]; trailPos[o + 1] = hist[s * 3 + 1]; trailPos[o + 2] = hist[s * 3 + 2];
+        trailPos[o + 3] = hist[(s + 1) * 3]; trailPos[o + 4] = hist[(s + 1) * 3 + 1]; trailPos[o + 5] = hist[(s + 1) * 3 + 2];
+      }
+      trailAttr.needsUpdate = true;
+      trail.material.opacity = fm.value;
+
+      // heat decay across all layers
+      const decay = Math.exp(-HEAT_DECAY * d);
+      for (let li = 0; li < 3; li++) {
+        const L = layers[li];
+        for (let i = 0; i < L.n; i++) L.heat[i] *= decay;
+        if (li === 2) L.heat[targetIdx] = Math.max(L.heat[targetIdx], 0.25);
+        L.heatAttr.array.set(L.heat);
+        L.heatAttr.needsUpdate = true;
+      }
+
+      // slow structure rotation and camera orbit
+      root.rotation.y = t * 0.02;
+      const a = t * 0.05 + ctx.pointer.x * 0.45;
+      ctx.camera.position.set(Math.sin(a) * 13.5, 2.0 + ctx.pointer.y * 1.5 + Math.sin(t * 0.09) * 0.5, Math.cos(a) * 13.5);
+      camT.set(0, 0.3, 0);
+      ctx.camera.lookAt(camT);
+    }
+  };
+}
+
+/* ================= shared runtime ================= */
+
+const canvas = document.getElementById('c');
+const btnPlay = document.getElementById('btnPlay');
+const speedEl = document.getElementById('speed');
+const btnPng = document.getElementById('btnPng');
+const note = document.getElementById('note');
+
+let renderer;
+try {
+  renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
+} catch (e) {
+  document.getElementById('err').style.display = 'grid';
+  document.getElementById('hud').hidden = true;
+  throw e;
+}
+
+/* Quality tier: 1 on desktop, lower on small screens or few cores.
+   Scenes scale particle counts by ctx.quality. */
+const small = Math.min(window.innerWidth, window.innerHeight) < 700;
+const weak = (navigator.hardwareConcurrency || 8) <= 4;
+const quality = small ? 0.5 : (weak ? 0.7 : 1);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, quality < 1 ? 1.5 : 2));
+
+const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 500);
+camera.position.set(0, 0, 12);
+
+const ctx = {
+  scene: new THREE.Scene(),
+  camera,
+  renderer,
+  quality,
+  pointer: { x: 0, y: 0 },  /* smoothed, -1..1, y up */
+};
+
+let piece;
+try {
+  piece = createScene(THREE, ctx);
+} catch (e) {
+  document.getElementById('err').style.display = 'grid';
+  document.getElementById('hud').hidden = true;
+  console.error(e);
+  throw e;
+}
+
+function resize() {
+  const w = window.innerWidth, h = window.innerHeight;
+  renderer.setSize(w, h, false);
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+  if (piece.resize) piece.resize(w, h);
+}
+window.addEventListener('resize', resize);
+resize();
+
+/* Pointer parallax target, lerped each frame for weight. */
+const target = { x: 0, y: 0 };
+window.addEventListener('pointermove', (e) => {
+  target.x = (e.clientX / window.innerWidth) * 2 - 1;
+  target.y = -((e.clientY / window.innerHeight) * 2 - 1);
+}, { passive: true });
+
+let userPaused = false;
+let hidden = false;
+let speed = 1;
+let t = 0;
+let last = performance.now();
+
+const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+function setPlayUi() {
+  btnPlay.textContent = userPaused ? 'Play' : 'Pause';
+  btnPlay.setAttribute('aria-pressed', String(userPaused));
+}
+btnPlay.addEventListener('click', () => {
+  userPaused = !userPaused;
+  note.hidden = true;
+  setPlayUi();
+  if (!userPaused) { last = performance.now(); loop(last); }
+});
+canvas.addEventListener('keydown', (e) => {
+  if (e.code === 'Space') { e.preventDefault(); btnPlay.click(); }
+});
+speedEl.addEventListener('input', () => { speed = parseFloat(speedEl.value) || 1; });
+
+btnPng.addEventListener('click', () => {
+  renderer.render(ctx.scene, camera);
+  canvas.toBlob((blob) => {
+    if (!blob) return;
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'vector-db-3d.png';
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+  });
+});
+
+document.addEventListener('visibilitychange', () => {
+  hidden = document.hidden;
+  if (!hidden && !userPaused) { last = performance.now(); loop(last); }
+});
+
+let raf = 0;
+function frame(now) {
+  const dt = Math.min((now - last) / 1000, 0.1);
+  last = now;
+  t += dt * speed;
+  ctx.pointer.x += (target.x - ctx.pointer.x) * 0.06;
+  ctx.pointer.y += (target.y - ctx.pointer.y) * 0.06;
+  piece.update(t, dt * speed);
+  renderer.render(ctx.scene, camera);
+}
+function loop(now) {
+  if (userPaused || hidden) return;
+  frame(now);
+  raf = requestAnimationFrame(loop);
+}
+
+if (reduceMotion) {
+  /* Advance to a composed moment, render one still frame, and wait. */
+  for (let i = 0; i < 240; i++) { t += 1 / 60; piece.update(t, 1 / 60); }
+  renderer.render(ctx.scene, camera);
+  userPaused = true;
+  note.hidden = false;
+  setPlayUi();
+} else {
+  loop(performance.now());
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,607 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <meta name="theme-color" content="#0B0D10">
+  <title>Dino Game Bot in 3D · Salman Adnan</title>
+  <meta name="description" content="Vision Runner: an interactive 3D study of a bot that sees the obstacle before it jumps.">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="../assets/favicon.png" sizes="any">
+  <style>
+    :root { color-scheme: dark; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      background: #0B0D10;
+      overflow: hidden;
+      font: 12px/1.4 ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+      color: rgba(255, 255, 255, 0.85);
+    }
+    #stage { position: fixed; inset: 0; }
+    canvas { display: block; width: 100%; height: 100%; outline: none; }
+    canvas:focus-visible { box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.6); }
+    #hud {
+      position: absolute; right: 12px; bottom: 12px;
+      display: flex; align-items: center; gap: 10px;
+      padding: 7px 10px; border-radius: 999px;
+      background: rgba(8, 8, 14, 0.55);
+      backdrop-filter: blur(6px);
+      opacity: 0.55; transition: opacity 0.25s ease;
+    }
+    #hud:hover, #hud:focus-within { opacity: 1; }
+    #hud button {
+      appearance: none; border: 1px solid rgba(255, 255, 255, 0.25);
+      background: transparent; color: inherit; font: inherit;
+      padding: 3px 10px; border-radius: 999px; cursor: pointer;
+    }
+    #hud button:hover { border-color: rgba(255, 255, 255, 0.6); }
+    #hud button:focus-visible, #hud input:focus-visible {
+      outline: 2px solid #fff; outline-offset: 2px;
+    }
+    #hud label { display: flex; align-items: center; gap: 6px; }
+    #hud input[type="range"] { width: 72px; accent-color: #58C8E0; }
+    #note {
+      position: absolute; left: 12px; bottom: 12px; max-width: 46ch;
+      padding: 8px 12px; border-radius: 10px;
+      background: rgba(8, 8, 14, 0.65);
+    }
+    #err {
+      position: absolute; inset: 0; display: none;
+      place-items: center; text-align: center; padding: 24px;
+    }
+    @media (max-width: 560px) {
+      #hud label { display: none; }
+    }
+  </style>
+</head>
+<body>
+<div id="stage">
+  <canvas id="c" tabindex="0" aria-label="Animated voxel dinosaur running over scrolling ground while a scan beam sweeps ahead, boxing obstacles with confidence ticks before each hop."></canvas>
+  <div id="hud" role="group" aria-label="Visualization controls">
+    <button id="btnPlay" type="button" aria-pressed="false">Pause</button>
+    <label for="speed">speed
+      <input id="speed" type="range" min="0.25" max="2" step="0.25" value="1"
+             aria-label="Animation speed">
+    </label>
+    <button id="btnPng" type="button">Save PNG</button>
+  </div>
+  <p id="note" hidden>Motion is paused because your system prefers reduced motion.
+     Press Play to animate.</p>
+  <div id="err"><p>This visualization needs WebGL, which is unavailable here.<br>
+     A screenshot of it lives on the project page.</p></div>
+</div>
+
+<script type="importmap">
+{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js" } }
+</script>
+<script type="module">
+import * as THREE from 'three';
+
+/* ================= scene: dino-game-bot ================= */
+// VISION RUNNER, a bot that sees the obstacle before it jumps: a voxel dino
+// runs in place while cacti scroll in, a cyan scan frustum sweeps ahead,
+// bounding boxes lock on with a confidence tick, and only then does the
+// dino execute its clean eased hop. See, decide, hop, in that order, always.
+// Palette: bg near-black #0B0D10, dino ash #9AA0A6 (the actual Chrome dino
+//   gray), cactus green #57A868, scan cyan #58C8E0, hud amber #E8B84E.
+//   The source game's grayscale plus a machine-vision cyan layered over it.
+// Signature: see-decide-hop, the box always locks before the jump.
+
+function createScene(THREE, ctx) {
+  const q = ctx.quality;
+
+  // ---- tunables -----------------------------------------------------------
+  const BG_NIGHT = 0x0B0D10;   // near-black night phase
+  const BG_DAY = 0x161E2C;     // dark gray-blue phase
+  const DINO_COL = 0x9AA0A6;   // Chrome dino ash gray
+  const CACTUS_COL = 0x57A868; // voxel cactus green
+  const BIRD_COL = 0x8B93A0;   // pterodactyl gray-blue
+  const SCAN_COL = 0x58C8E0;   // machine-vision cyan
+  const HUD_COL = 0xE8B84E;    // confidence-tick amber
+  const OK_COL = 0x6FD08C;     // handled green flash
+  const V = 0.22;              // voxel edge length
+  const DINO_X = -3.4;         // where the dino runs in place
+  const SPEED = 4.6;           // world scroll speed, units/s
+  const DETECT_D = 6.3;        // frustum reach: distance at which boxes lock
+  const CONF_T = 0.35;         // seconds for the confidence tick to fill
+  const HOP_T = 0.64;          // normal hop airtime
+  const HOP_T_URGENT = 0.5;    // shorter urgent hop
+  const HOP_APEX = 1.6;        // normal hop apex height
+  const HOP_APEX_URGENT = 1.2; // urgent hop apex
+  const DAYNIGHT_PERIOD = 80;  // full day-night breathing cycle, seconds
+  const GROUND_DASHES = Math.max(50, Math.floor(150 * q)); // scrolling marks
+  const SLOTS = 6;             // obstacle pool
+  const STEP_T = 0.24;         // run-cycle leg flip period
+
+  const clamp = (v, a, b) => v < a ? a : (v > b ? b : v);
+  const easeOut = (x) => 1 - Math.pow(1 - clamp(x, 0, 1), 3);
+  let seed = 90210;
+  const rnd = () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let z = Math.imul(seed ^ seed >>> 15, 1 | seed); z = z + Math.imul(z ^ z >>> 7, 61 | z) ^ z; return ((z ^ z >>> 14) >>> 0) / 4294967296; };
+
+  const bgNight = new THREE.Color(BG_NIGHT), bgDay = new THREE.Color(BG_DAY);
+  ctx.scene.background = new THREE.Color(BG_NIGHT);
+  ctx.scene.fog = new THREE.FogExp2(BG_NIGHT, 0.03);
+
+  const amb = new THREE.AmbientLight(0xaab2c0, 0.9);
+  const key = new THREE.DirectionalLight(0xdfe8f2, 1.1);
+  key.position.set(-3, 6, 7);
+  ctx.scene.add(amb, key);
+
+  // ---- voxel dino (facing right), rows top to bottom, 13 wide -------------
+  // '#': body, 'a': back leg, 'b': front leg
+  const DINO_MAP = [
+    '........#####',
+    '........#.###',
+    '........#####',
+    '........####.',
+    '........###..',
+    '#......#####.',
+    '#.....######.',
+    '##...#######.',
+    '.##########..',
+    '..#########..',
+    '...aa...bb...',
+    '...aa...bb...'
+  ];
+  const bodyVox = [], legA = [], legB = [];
+  const ROWS_D = DINO_MAP.length;
+  for (let r = 0; r < ROWS_D; r++) {
+    for (let c = 0; c < DINO_MAP[r].length; c++) {
+      const ch = DINO_MAP[r][c];
+      if (ch === '.') continue;
+      const vx = (c - 6) * V, vy = (ROWS_D - 1 - r) * V + V / 2;
+      if (ch === 'a') legA.push([vx, vy]);
+      else if (ch === 'b') legB.push([vx, vy]);
+      else bodyVox.push([vx, vy]);
+    }
+  }
+  const N_DINO = bodyVox.length + legA.length + legB.length;
+  const voxGeo = new THREE.BoxGeometry(V * 0.96, V * 0.96, V * 1.6);
+  const dinoMesh = new THREE.InstancedMesh(voxGeo, new THREE.MeshLambertMaterial({ color: 0xffffff }), N_DINO);
+  const dinoCol = new THREE.Color(DINO_COL);
+  for (let i = 0; i < N_DINO; i++) dinoMesh.setColorAt(i, dinoCol);
+  dinoMesh.instanceColor.needsUpdate = true;
+  ctx.scene.add(dinoMesh);
+  const m4 = new THREE.Matrix4();
+
+  // ---- ground: a dark strip plus scrolling dash marks ----------------------
+  const groundPlane = new THREE.Mesh(
+    new THREE.PlaneGeometry(44, 10),
+    new THREE.MeshBasicMaterial({ color: 0x11151b })
+  );
+  groundPlane.rotation.x = -Math.PI / 2;
+  groundPlane.position.set(2, -0.02, 0);
+  ctx.scene.add(groundPlane);
+
+  const dashPos = new Float32Array(GROUND_DASHES * 3);
+  for (let i = 0; i < GROUND_DASHES; i++) {
+    dashPos[i * 3] = -12 + rnd() * 30;
+    dashPos[i * 3 + 1] = 0.01 + rnd() * 0.03;
+    dashPos[i * 3 + 2] = (rnd() - 0.5) * 5;
+  }
+  const dashGeo = new THREE.BufferGeometry();
+  dashGeo.setAttribute('position', new THREE.Float32BufferAttribute(dashPos, 3));
+  const dashMat = new THREE.ShaderMaterial({
+    uniforms: { uColor: { value: new THREE.Color(0x3a4250) } },
+    vertexShader: [
+      'void main(){',
+      '  vec4 mv = modelViewMatrix * vec4(position, 1.0);',
+      '  gl_PointSize = 40.0 / -mv.z;',
+      '  gl_Position = projectionMatrix * mv;',
+      '}'
+    ].join('\n'),
+    fragmentShader: [
+      'uniform vec3 uColor;',
+      'void main(){',
+      '  float d = length(gl_PointCoord - 0.5);',
+      '  gl_FragColor = vec4(uColor, smoothstep(0.5, 0.2, d) * 0.7);',
+      '}'
+    ].join('\n'),
+    transparent: true, depthWrite: false
+  });
+  const dashes = new THREE.Points(dashGeo, dashMat);
+  ctx.scene.add(dashes);
+
+  // ---- scan frustum: translucent cyan wedge ahead of the dino --------------
+  const scanGroup = new THREE.Group();
+  const scanBox = new THREE.Mesh(
+    new THREE.BoxGeometry(DETECT_D, 2.7, 1.4),
+    new THREE.MeshBasicMaterial({ color: SCAN_COL, transparent: true, opacity: 0.045, depthWrite: false, blending: THREE.AdditiveBlending })
+  );
+  scanBox.position.x = DETECT_D / 2;
+  scanGroup.add(scanBox);
+  const scanEdges = new THREE.LineSegments(
+    new THREE.EdgesGeometry(scanBox.geometry),
+    new THREE.LineBasicMaterial({ color: SCAN_COL, transparent: true, opacity: 0.16 })
+  );
+  scanEdges.position.copy(scanBox.position);
+  scanGroup.add(scanEdges);
+  // the sweeping scanline inside the frustum
+  const scanLine = new THREE.Mesh(
+    new THREE.PlaneGeometry(0.06, 2.7),
+    new THREE.MeshBasicMaterial({ color: SCAN_COL, transparent: true, opacity: 0.35, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide })
+  );
+  scanGroup.add(scanLine);
+  scanGroup.position.set(DINO_X + 1.0, 1.5, 0);
+  ctx.scene.add(scanGroup);
+
+  // ---- obstacle voxel shapes ------------------------------------------------
+  const CACTI = [
+    // tall cactus with two arms
+    [[0, 0], [0, 1], [0, 2], [0, 3], [0, 4], [-1, 2], [-1, 3], [1, 1], [1, 2]],
+    // small cactus with one arm
+    [[0, 0], [0, 1], [0, 2], [0, 3], [1, 1], [1, 2]],
+    // twin cactus
+    [[0, 0], [0, 1], [0, 2], [2, 0], [2, 1], [2, 2], [2, 3]]
+  ];
+  const BIRD_BODY = [[0, 0], [1, 0], [2, 0]];
+  const MAX_VOX = 12;
+
+  const obsMesh = new THREE.InstancedMesh(voxGeo, new THREE.MeshLambertMaterial({ color: 0xffffff }), SLOTS * MAX_VOX);
+  const zeroM = new THREE.Matrix4().makeScale(0, 0, 0);
+  for (let i = 0; i < SLOTS * MAX_VOX; i++) { obsMesh.setMatrixAt(i, zeroM); obsMesh.setColorAt(i, dinoCol); }
+  obsMesh.instanceMatrix.needsUpdate = true;
+  obsMesh.instanceColor.needsUpdate = true;
+  ctx.scene.add(obsMesh);
+
+  // unit cube edge segments for bounding boxes
+  const cubeEdges = [];
+  const C = [[-0.5, -0.5, -0.5], [0.5, -0.5, -0.5], [0.5, 0.5, -0.5], [-0.5, 0.5, -0.5], [-0.5, -0.5, 0.5], [0.5, -0.5, 0.5], [0.5, 0.5, 0.5], [-0.5, 0.5, 0.5]];
+  const E = [[0, 1], [1, 2], [2, 3], [3, 0], [4, 5], [5, 6], [6, 7], [7, 4], [0, 4], [1, 5], [2, 6], [3, 7]];
+  for (const e of E) { cubeEdges.push(...C[e[0]], ...C[e[1]]); }
+  const boxGeoShared = new THREE.BufferGeometry();
+  boxGeoShared.setAttribute('position', new THREE.Float32BufferAttribute(cubeEdges, 3));
+
+  const slots = [];
+  for (let s = 0; s < SLOTS; s++) {
+    const boxMat = new THREE.LineBasicMaterial({ color: SCAN_COL, transparent: true, opacity: 0 });
+    const box = new THREE.LineSegments(boxGeoShared, boxMat);
+    box.visible = false;
+    const confBg = new THREE.Mesh(new THREE.PlaneGeometry(0.7, 0.09), new THREE.MeshBasicMaterial({ color: 0x222a33, transparent: true, opacity: 0 }));
+    const confFg = new THREE.Mesh(new THREE.PlaneGeometry(0.7, 0.09), new THREE.MeshBasicMaterial({ color: HUD_COL, transparent: true, opacity: 0 }));
+    confFg.position.z = 0.01;
+    ctx.scene.add(box, confBg, confFg);
+    slots.push({
+      active: false, kind: 0, x: 0, y0: 0, vox: null, w: 0, h: 0,
+      state: 'far', conf: 0, lockAge: 0, handledAt: 0, flashT: -1, flashes: 1, speedMul: 1,
+      box: box, boxMat: boxMat, confBg: confBg, confFg: confFg, flap: rnd() * 6
+    });
+  }
+
+  // ---- runtime state --------------------------------------------------------
+  let tt = 0;
+  let spawnDist = 6;          // world-units until the next spawn
+  let pendingPair = false;    // spawn a close second obstacle next
+  let hopAge = -1;            // -1 grounded, else time since takeoff
+  let hopDur = HOP_T, hopV0 = 0, hopG = 0;
+  let dinoY = 0;
+  let legEase = 0;            // 0 pose A, 1 pose B, eased
+  let legFrame = 0, legTimer = 0;
+
+  function startHop(urgent) {
+    hopDur = urgent ? HOP_T_URGENT : HOP_T;
+    const apex = urgent ? HOP_APEX_URGENT : HOP_APEX;
+    hopG = 8 * apex / (hopDur * hopDur);
+    hopV0 = hopG * hopDur / 2;
+    hopAge = 0;
+  }
+
+  function spawnObstacle() {
+    const slot = slots.find((s) => !s.active);
+    if (!slot) return;
+    const roll = rnd();
+    let vox, col, y0 = 0, speedMul = 1, kind = 0;
+    if (roll < 0.82 || pendingPair) {
+      vox = CACTI[Math.floor(rnd() * CACTI.length)];
+      col = new THREE.Color(CACTUS_COL); kind = 0;
+    } else {
+      vox = BIRD_BODY; col = new THREE.Color(BIRD_COL);
+      y0 = 0.6; speedMul = 1.18; kind = 1; // low glider, hoppable
+    }
+    let minX = 99, maxX = -99, maxY = 0;
+    for (const p of vox) { minX = Math.min(minX, p[0]); maxX = Math.max(maxX, p[0]); maxY = Math.max(maxY, p[1]); }
+    slot.active = true; slot.kind = kind; slot.vox = vox;
+    slot.x = 15; slot.y0 = y0; slot.speedMul = speedMul;
+    slot.w = (maxX - minX + 1) * V; slot.h = (maxY + 1) * V + (kind === 1 ? V : 0);
+    slot.state = 'far'; slot.conf = 0; slot.lockAge = 0; slot.flashT = -1; slot.flashes = 1;
+    slot.boxMat.color.setHex(SCAN_COL);
+    const base = slots.indexOf(slot) * MAX_VOX;
+    for (let i = 0; i < MAX_VOX; i++) obsMesh.setColorAt(base + i, col);
+    obsMesh.instanceColor.needsUpdate = true;
+    // decide the next gap; occasionally a tight pair forces the urgent hop
+    if (pendingPair) { pendingPair = false; spawnDist = 6.5 + rnd() * 2.5; }
+    else if (rnd() < 0.22 && kind === 0) { pendingPair = true; spawnDist = 3.0; }
+    else { spawnDist = 5.8 + rnd() * 3.2; }
+  }
+
+  ctx.camera.position.set(2.0, 1.7, 9.6);
+  ctx.camera.lookAt(0.6, 1.2, 0);
+
+  function update(t, dt) {
+    dt = clamp(dt, 0, 0.05);
+    tt += dt;
+
+    // day-night breathing, like the real game's palette inversion
+    const dn = 0.5 - 0.5 * Math.cos(tt * Math.PI * 2 / DAYNIGHT_PERIOD);
+    ctx.scene.background.lerpColors(bgNight, bgDay, dn);
+    ctx.scene.fog.color.copy(ctx.scene.background);
+
+    // spawn logic driven by scrolled distance
+    spawnDist -= SPEED * dt;
+    if (spawnDist <= 0) spawnObstacle();
+
+    // hop integration
+    if (hopAge >= 0) {
+      hopAge += dt;
+      dinoY = Math.max(0, hopV0 * hopAge - 0.5 * hopG * hopAge * hopAge);
+      if (hopAge >= hopDur) { hopAge = -1; dinoY = 0; }
+    }
+    const grounded = hopAge < 0;
+
+    // run cycle: two-frame leg alternation with a quick eased flip
+    if (grounded) {
+      legTimer += dt;
+      if (legTimer >= STEP_T) { legTimer -= STEP_T; legFrame = 1 - legFrame; }
+    }
+    const legTarget = grounded ? legFrame : 0.5; // both tucked mid-air
+    legEase += (legTarget - legEase) * (1 - Math.exp(-dt * 26));
+    const bob = grounded ? Math.abs(Math.sin(tt * Math.PI / STEP_T)) * 0.045 : 0;
+
+    // rebuild dino matrices: body, then each leg with its lift
+    const baseY = dinoY + bob;
+    const liftA = legEase * V;             // pose B lifts the back leg
+    const liftB = (1 - legEase) * V;       // pose A lifts the front leg
+    const tuck = grounded ? 0 : V * 0.7;
+    let di = 0;
+    const lean = grounded ? 0 : -0.06;
+    for (const p of bodyVox) {
+      m4.makeRotationZ(lean);
+      m4.setPosition(DINO_X + p[0], baseY + p[1], 0);
+      dinoMesh.setMatrixAt(di++, m4);
+    }
+    for (const p of legA) {
+      m4.makeRotationZ(lean);
+      m4.setPosition(DINO_X + p[0], baseY + p[1] + liftA + tuck, 0);
+      dinoMesh.setMatrixAt(di++, m4);
+    }
+    for (const p of legB) {
+      m4.makeRotationZ(lean);
+      m4.setPosition(DINO_X + p[0], baseY + p[1] + liftB + tuck, 0);
+      dinoMesh.setMatrixAt(di++, m4);
+    }
+    dinoMesh.instanceMatrix.needsUpdate = true;
+
+    // scan frustum sweep
+    scanGroup.rotation.z = Math.sin(tt * 1.4) * 0.045;
+    scanLine.position.x = (0.5 + 0.5 * Math.sin(tt * 2.6)) * DETECT_D;
+    scanLine.material.opacity = 0.22 + 0.12 * Math.sin(tt * 5.0);
+
+    // obstacles: scroll, detect, lock, hop, recycle
+    for (let s = 0; s < SLOTS; s++) {
+      const o = slots[s];
+      const base = s * MAX_VOX;
+      if (!o.active) continue;
+      o.x -= SPEED * o.speedMul * dt;
+      if (o.x < -11) {
+        o.active = false; o.box.visible = false;
+        o.confBg.material.opacity = 0; o.confFg.material.opacity = 0;
+        for (let i = 0; i < MAX_VOX; i++) obsMesh.setMatrixAt(base + i, zeroM);
+        continue;
+      }
+      // voxel matrices (birds flap: body bobs, plus a wing voxel alternating)
+      o.flap += dt * 9;
+      const flapUp = Math.sin(o.flap) > 0;
+      const yy = o.y0 + (o.kind === 1 ? Math.sin(o.flap * 0.5) * 0.08 : 0);
+      let vi = 0;
+      for (const p of o.vox) {
+        m4.identity();
+        m4.setPosition(o.x + p[0] * V, yy + p[1] * V + V / 2, 0);
+        obsMesh.setMatrixAt(base + vi++, m4);
+      }
+      if (o.kind === 1) {
+        m4.identity();
+        m4.setPosition(o.x + V, yy + (flapUp ? 1 : -1) * V + V / 2, 0);
+        obsMesh.setMatrixAt(base + vi++, m4);
+      }
+      for (; vi < MAX_VOX; vi++) obsMesh.setMatrixAt(base + vi, zeroM);
+
+      // bot vision: box locks BEFORE any jump is allowed
+      const dist = o.x - DINO_X;
+      if (o.state === 'far' && dist < DETECT_D) {
+        o.state = 'locking'; o.lockAge = 0;
+        o.box.visible = true;
+      }
+      if (o.state === 'locking' || o.state === 'locked' || o.state === 'handled') {
+        o.lockAge += dt;
+        const snap = easeOut(o.lockAge / 0.22);
+        const pad = 1 + (1 - snap) * 0.5;
+        o.box.position.set(o.x + V * 0.5, yy + o.h / 2, 0);
+        o.box.scale.set((o.w + 0.3) * pad, (o.h + 0.3) * pad, 1.7 * pad);
+        o.boxMat.opacity = Math.min(0.85, snap) * (o.state === 'handled' ? Math.max(0, 1 - (o.lockAge - o.handledAt) * 1.2) : 1);
+        // confidence tick above the box
+        o.conf = clamp(o.lockAge / CONF_T, 0, 1);
+        if (o.state === 'locking' && o.conf >= 1) o.state = 'locked';
+        o.confBg.position.set(o.x + V * 0.5, yy + o.h + 0.45, 0.2);
+        o.confFg.position.set(o.x + V * 0.5 - 0.35 * (1 - o.conf), yy + o.h + 0.45, 0.21);
+        o.confFg.scale.set(Math.max(0.001, o.conf), 1, 1);
+        const hudOp = o.state === 'handled' ? Math.max(0, 0.8 - (o.lockAge - o.handledAt)) : 0.8;
+        o.confBg.material.opacity = hudOp * 0.6;
+        o.confFg.material.opacity = hudOp;
+      }
+      // handled flash: green, once or twice for the urgent double
+      if (o.state === 'handled' && o.flashT >= 0) {
+        o.flashT += dt;
+        const cyc = Math.min(o.flashes * 2, Math.floor(o.flashT / 0.09));
+        o.boxMat.color.setHex(cyc % 2 === 0 ? OK_COL : SCAN_COL);
+        if (o.flashT > o.flashes * 0.18) { o.boxMat.color.setHex(OK_COL); o.flashT = -1; }
+      }
+      // jump decision: only for locked obstacles at ground level threat
+      if (o.state === 'locked' && grounded) {
+        // is a second obstacle following closely? then hop short and urgent
+        let urgent = false;
+        for (const p2 of slots) {
+          if (p2 !== o && p2.active && p2.x > o.x && p2.x - o.x < 3.6) urgent = true;
+        }
+        const T = urgent ? HOP_T_URGENT : HOP_T;
+        const tta = dist / (SPEED * o.speedMul);
+        if (tta <= T * 0.46) {
+          startHop(urgent);
+          o.state = 'handled'; o.handledAt = o.lockAge;
+          o.flashT = 0; o.flashes = urgent ? 2 : 1;
+        }
+      }
+    }
+    obsMesh.instanceMatrix.needsUpdate = true;
+
+    // ground dashes scroll with the world
+    const dp = dashGeo.attributes.position.array;
+    for (let i = 0; i < GROUND_DASHES; i++) {
+      dp[i * 3] -= SPEED * dt;
+      if (dp[i * 3] < -12) { dp[i * 3] += 30; dp[i * 3 + 2] = (rnd() - 0.5) * 5; }
+    }
+    dashGeo.attributes.position.needsUpdate = true;
+
+    // camera: fixed vantage, pointer parallax only
+    const px = 2.0 + ctx.pointer.x * 0.9;
+    const py = 1.7 + ctx.pointer.y * 0.6;
+    ctx.camera.position.x += (px - ctx.camera.position.x) * (1 - Math.exp(-dt * 3));
+    ctx.camera.position.y += (py - ctx.camera.position.y) * (1 - Math.exp(-dt * 3));
+    ctx.camera.lookAt(0.6, 1.2, 0);
+  }
+
+  return { update };
+}
+
+/* ================= shared runtime ================= */
+
+const canvas = document.getElementById('c');
+const btnPlay = document.getElementById('btnPlay');
+const speedEl = document.getElementById('speed');
+const btnPng = document.getElementById('btnPng');
+const note = document.getElementById('note');
+
+let renderer;
+try {
+  renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
+} catch (e) {
+  document.getElementById('err').style.display = 'grid';
+  document.getElementById('hud').hidden = true;
+  throw e;
+}
+
+/* Quality tier: 1 on desktop, lower on small screens or few cores.
+   Scenes scale particle counts by ctx.quality. */
+const small = Math.min(window.innerWidth, window.innerHeight) < 700;
+const weak = (navigator.hardwareConcurrency || 8) <= 4;
+const quality = small ? 0.5 : (weak ? 0.7 : 1);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, quality < 1 ? 1.5 : 2));
+
+const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 500);
+camera.position.set(0, 0, 12);
+
+const ctx = {
+  scene: new THREE.Scene(),
+  camera,
+  renderer,
+  quality,
+  pointer: { x: 0, y: 0 },  /* smoothed, -1..1, y up */
+};
+
+let piece;
+try {
+  piece = createScene(THREE, ctx);
+} catch (e) {
+  document.getElementById('err').style.display = 'grid';
+  document.getElementById('hud').hidden = true;
+  console.error(e);
+  throw e;
+}
+
+function resize() {
+  const w = window.innerWidth, h = window.innerHeight;
+  renderer.setSize(w, h, false);
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+  if (piece.resize) piece.resize(w, h);
+}
+window.addEventListener('resize', resize);
+resize();
+
+/* Pointer parallax target, lerped each frame for weight. */
+const target = { x: 0, y: 0 };
+window.addEventListener('pointermove', (e) => {
+  target.x = (e.clientX / window.innerWidth) * 2 - 1;
+  target.y = -((e.clientY / window.innerHeight) * 2 - 1);
+}, { passive: true });
+
+let userPaused = false;
+let hidden = false;
+let speed = 1;
+let t = 0;
+let last = performance.now();
+
+const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+function setPlayUi() {
+  btnPlay.textContent = userPaused ? 'Play' : 'Pause';
+  btnPlay.setAttribute('aria-pressed', String(userPaused));
+}
+btnPlay.addEventListener('click', () => {
+  userPaused = !userPaused;
+  note.hidden = true;
+  setPlayUi();
+  if (!userPaused) { last = performance.now(); loop(last); }
+});
+canvas.addEventListener('keydown', (e) => {
+  if (e.code === 'Space') { e.preventDefault(); btnPlay.click(); }
+});
+speedEl.addEventListener('input', () => { speed = parseFloat(speedEl.value) || 1; });
+
+btnPng.addEventListener('click', () => {
+  renderer.render(ctx.scene, camera);
+  canvas.toBlob((blob) => {
+    if (!blob) return;
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'dino-game-bot-3d.png';
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+  });
+});
+
+document.addEventListener('visibilitychange', () => {
+  hidden = document.hidden;
+  if (!hidden && !userPaused) { last = performance.now(); loop(last); }
+});
+
+let raf = 0;
+function frame(now) {
+  const dt = Math.min((now - last) / 1000, 0.1);
+  last = now;
+  t += dt * speed;
+  ctx.pointer.x += (target.x - ctx.pointer.x) * 0.06;
+  ctx.pointer.y += (target.y - ctx.pointer.y) * 0.06;
+  piece.update(t, dt * speed);
+  renderer.render(ctx.scene, camera);
+}
+function loop(now) {
+  if (userPaused || hidden) return;
+  frame(now);
+  raf = requestAnimationFrame(loop);
+}
+
+if (reduceMotion) {
+  /* Advance to a composed moment, render one still frame, and wait. */
+  for (let i = 0; i < 240; i++) { t += 1 / 60; piece.update(t, 1 / 60); }
+  renderer.render(ctx.scene, camera);
+  userPaused = true;
+  note.hidden = false;
+  setPlayUi();
+} else {
+  loop(performance.now());
+}
+</script>
+</body>
+</html>

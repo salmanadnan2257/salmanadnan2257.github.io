@@ -1,0 +1,591 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <meta name="theme-color" content="#0A1526">
+  <title>Postgres Scaling Lab in 3D · Salman Adnan</title>
+  <meta name="description" content="Shard and Stream: an interactive 3D study of partitioning and streaming replication.">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="../assets/favicon.png" sizes="any">
+  <style>
+    :root { color-scheme: dark; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      background: #0A1526;
+      overflow: hidden;
+      font: 12px/1.4 ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+      color: rgba(255, 255, 255, 0.85);
+    }
+    #stage { position: fixed; inset: 0; }
+    canvas { display: block; width: 100%; height: 100%; outline: none; }
+    canvas:focus-visible { box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.6); }
+    #hud {
+      position: absolute; right: 12px; bottom: 12px;
+      display: flex; align-items: center; gap: 10px;
+      padding: 7px 10px; border-radius: 999px;
+      background: rgba(8, 8, 14, 0.55);
+      backdrop-filter: blur(6px);
+      opacity: 0.55; transition: opacity 0.25s ease;
+    }
+    #hud:hover, #hud:focus-within { opacity: 1; }
+    #hud button {
+      appearance: none; border: 1px solid rgba(255, 255, 255, 0.25);
+      background: transparent; color: inherit; font: inherit;
+      padding: 3px 10px; border-radius: 999px; cursor: pointer;
+    }
+    #hud button:hover { border-color: rgba(255, 255, 255, 0.6); }
+    #hud button:focus-visible, #hud input:focus-visible {
+      outline: 2px solid #fff; outline-offset: 2px;
+    }
+    #hud label { display: flex; align-items: center; gap: 6px; }
+    #hud input[type="range"] { width: 72px; accent-color: #52B8E8; }
+    #note {
+      position: absolute; left: 12px; bottom: 12px; max-width: 46ch;
+      padding: 8px 12px; border-radius: 10px;
+      background: rgba(8, 8, 14, 0.65);
+    }
+    #err {
+      position: absolute; inset: 0; display: none;
+      place-items: center; text-align: center; padding: 24px;
+    }
+    @media (max-width: 560px) {
+      #hud label { display: none; }
+    }
+  </style>
+</head>
+<body>
+<div id="stage">
+  <canvas id="c" tabindex="0" aria-label="Animated data cylinder splitting into partition rings while a write-ahead-log stream feeds two replicas that catch up and glow."></canvas>
+  <div id="hud" role="group" aria-label="Visualization controls">
+    <button id="btnPlay" type="button" aria-pressed="false">Pause</button>
+    <label for="speed">speed
+      <input id="speed" type="range" min="0.25" max="2" step="0.25" value="1"
+             aria-label="Animation speed">
+    </label>
+    <button id="btnPng" type="button">Save PNG</button>
+  </div>
+  <p id="note" hidden>Motion is paused because your system prefers reduced motion.
+     Press Play to animate.</p>
+  <div id="err"><p>This visualization needs WebGL, which is unavailable here.<br>
+     A screenshot of it lives on the project page.</p></div>
+</div>
+
+<script type="importmap">
+{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js" } }
+</script>
+<script type="module">
+import * as THREE from 'three';
+
+/* ================= scene: postgres-scaling-lab ================= */
+// SHARD AND STREAM
+// Concept: a primary database cylinder of stacked disk rings that periodically
+// eases apart into four range partitions with glowing sand seams, while a cyan
+// WAL particle stream feeds two replicas whose catch-up meters fill and pulse
+// green; gold query darts dive into exactly one partition (pruning).
+// Palette: bg deep blue #0A1526, cylinder steel #46608C, WAL cyan #52B8E8,
+//          replica green #5FC98E, partition seam sand #D8C48A.
+//   Postgres blues with steel discipline; green appears strictly when a replica
+//   is in sync, sand only at the partition seams.
+// Signature: query darts that touch only the pruned partition group.
+
+function createScene(THREE, ctx) {
+  var q = ctx.quality;
+
+  // ---- tunables ----
+  var BG = 0x0a1526;                 // background, deep blue
+  var N_DISKS = 8;                   // primary stack disks
+  var N_GROUPS = 4;                  // range partition groups (2 disks each)
+  var DISK_GAP = 0.38;               // vertical spacing between disks
+  var SPLIT_SEP = 0.62;              // extra per-group separation when split
+  var CYCLE = 20.0;                  // seconds per partition cycle
+  var N_WAL = Math.max(300, Math.floor(900 * q)); // WAL stream particles (both sides)
+  var WAL_SPEED = 0.16;              // stream cycles per second
+  var N_REPL_DISKS = 4;              // disks per replica
+  var METER_PERIOD = 9.0;            // replica catch-up fill period (s)
+  var METER_H = 2.3;                 // meter column height when full
+  var N_DARTS = 5;                   // concurrent query darts
+  var DART_EVERY = 1.3;              // seconds between dart launches
+  var N_GRID = Math.floor(500 * q);  // faint floor grid points
+
+  var COL_STEEL = new THREE.Color(0x46608c);
+  var COL_CYAN = new THREE.Color(0x52b8e8);
+  var COL_GREEN = new THREE.Color(0x5fc98e);
+  var COL_SAND = new THREE.Color(0xd8c48a);
+  var COL_GOLD = new THREE.Color(0xe8c468);
+
+  ctx.scene.background = new THREE.Color(BG);
+  ctx.scene.fog = new THREE.FogExp2(BG, 0.03);
+  ctx.scene.add(new THREE.AmbientLight(0x24344e, 1.3));
+  var dir = new THREE.DirectionalLight(0xc8d8f0, 1.1);
+  dir.position.set(6, 9, 7);
+  ctx.scene.add(dir);
+  var fill = new THREE.DirectionalLight(0x2a4a6a, 0.5);
+  fill.position.set(-6, -3, -6);
+  ctx.scene.add(fill);
+
+  function ease(u) { return u * u * (3 - 2 * u); }
+  function ssj(a, b, x) {
+    x = Math.min(1, Math.max(0, (x - a) / (b - a)));
+    return x * x * (3 - 2 * x);
+  }
+
+  var m4 = new THREE.Matrix4();
+  var qI = new THREE.Quaternion();
+  var vP = new THREE.Vector3();
+  var vS = new THREE.Vector3(1, 1, 1);
+  var tmpCol = new THREE.Color();
+
+  // ---- primary stack
+  var diskGeo = new THREE.CylinderGeometry(1.7, 1.7, 0.26, 36);
+  var diskMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.4, metalness: 0.45, emissive: 0x1c2c48, emissiveIntensity: 0.95 });
+  var primary = new THREE.InstancedMesh(diskGeo, diskMat, N_DISKS);
+  var baseY = new Float32Array(N_DISKS);
+  for (var i = 0; i < N_DISKS; i++) {
+    baseY[i] = (i - (N_DISKS - 1) / 2) * DISK_GAP + 0.6;
+    m4.compose(vP.set(0, baseY[i], 0), qI, vS);
+    primary.setMatrixAt(i, m4);
+    primary.setColorAt(i, COL_STEEL);
+  }
+  primary.instanceMatrix.needsUpdate = true;
+  primary.instanceColor.needsUpdate = true;
+  ctx.scene.add(primary);
+
+  // ---- partition seam glows (between groups, visible only while split)
+  var seamGeo = new THREE.BufferGeometry();
+  var seamPos = new Float32Array((N_GROUPS - 1) * 3);
+  seamGeo.setAttribute('position', new THREE.Float32BufferAttribute(seamPos, 3));
+  var seamGlow = new Float32Array(N_GROUPS - 1);
+  seamGeo.setAttribute('aGlow', new THREE.Float32BufferAttribute(seamGlow, 1));
+  var seamMat = new THREE.ShaderMaterial({
+    uniforms: { uColor: { value: COL_SAND } },
+    vertexShader: [
+      'attribute float aGlow;',
+      'varying float vG;',
+      'void main(){',
+      '  vG = aGlow;',
+      '  vec4 mv = modelViewMatrix * vec4(position, 1.0);',
+      '  gl_PointSize = min((42.0 * aGlow + 1.0) * (150.0 / -mv.z), 340.0);',
+      '  gl_Position = projectionMatrix * mv;',
+      '}'
+    ].join('\n'),
+    fragmentShader: [
+      'uniform vec3 uColor;',
+      'varying float vG;',
+      'void main(){',
+      '  float d = length(gl_PointCoord - 0.5);',
+      '  float a = smoothstep(0.5, 0.02, d) * vG * 0.35;',
+      '  gl_FragColor = vec4(uColor, a);',
+      '}'
+    ].join('\n'),
+    transparent: true, depthWrite: false, blending: THREE.AdditiveBlending
+  });
+  var seamPoints = new THREE.Points(seamGeo, seamMat);
+  seamPoints.frustumCulled = false; // repositioned every frame in JS
+  ctx.scene.add(seamPoints);
+
+  // ---- replicas: two smaller stacks
+  var replGeo = new THREE.CylinderGeometry(1.0, 1.0, 0.22, 28);
+  var replicas = new THREE.InstancedMesh(replGeo, diskMat, N_REPL_DISKS * 2);
+  var replBase = [];
+  for (var r = 0; r < 2; r++) {
+    var rx = r === 0 ? -6.5 : 6.5;
+    for (var j = 0; j < N_REPL_DISKS; j++) {
+      var ry = -0.7 + (j - (N_REPL_DISKS - 1) / 2) * 0.3;
+      replBase.push(new THREE.Vector3(rx, ry, 0));
+      var ri = r * N_REPL_DISKS + j;
+      m4.compose(replBase[ri], qI, vS);
+      replicas.setMatrixAt(ri, m4);
+      replicas.setColorAt(ri, COL_STEEL);
+    }
+  }
+  replicas.instanceMatrix.needsUpdate = true;
+  replicas.instanceColor.needsUpdate = true;
+  ctx.scene.add(replicas);
+
+  // ---- catch-up meters: vertical light columns beside each replica
+  var meterGeo = new THREE.BoxGeometry(0.2, 1, 0.2);
+  meterGeo.translate(0, 0.5, 0); // origin at the bottom so scale.y fills upward
+  var meters = [];
+  for (var mi = 0; mi < 2; mi++) {
+    var mMat = new THREE.MeshBasicMaterial({ color: COL_CYAN.clone(), transparent: true, opacity: 0.85 });
+    var mMesh = new THREE.Mesh(meterGeo, mMat);
+    mMesh.position.set(mi === 0 ? -8.0 : 8.0, -1.35, 0);
+    mMesh.scale.y = 0.001;
+    ctx.scene.add(mMesh);
+    meters.push(mMesh);
+  }
+
+  // ---- WAL streams: cubic bezier from primary out to each replica
+  var walGeo = new THREE.BufferGeometry();
+  var walPos = new Float32Array(N_WAL * 3);
+  var walT = new Float32Array(N_WAL);
+  var walSeed = new Float32Array(N_WAL);
+  var walSide = new Float32Array(N_WAL);
+  for (var w = 0; w < N_WAL; w++) {
+    walT[w] = Math.random();
+    walSeed[w] = Math.random();
+    walSide[w] = w % 2 === 0 ? 1 : -1;
+  }
+  walGeo.setAttribute('position', new THREE.Float32BufferAttribute(walPos, 3));
+  walGeo.setAttribute('aT', new THREE.Float32BufferAttribute(walT, 1));
+  walGeo.setAttribute('aSeed', new THREE.Float32BufferAttribute(walSeed, 1));
+  walGeo.setAttribute('aSide', new THREE.Float32BufferAttribute(walSide, 1));
+  var walUniforms = {
+    uTime: { value: 0 },
+    uSpeed: { value: WAL_SPEED },
+    uColor: { value: COL_CYAN },
+    uB0: { value: new THREE.Vector3(0.0, 1.9, 0.0) },
+    uB1: { value: new THREE.Vector3(2.6, 3.1, 0.8) },
+    uB2: { value: new THREE.Vector3(5.4, 2.2, 0.4) },
+    uB3: { value: new THREE.Vector3(6.5, 0.2, 0.0) }
+  };
+  var walMat = new THREE.ShaderMaterial({
+    uniforms: walUniforms,
+    vertexShader: [
+      'attribute float aT;',
+      'attribute float aSeed;',
+      'attribute float aSide;',
+      'uniform float uTime;',
+      'uniform float uSpeed;',
+      'uniform vec3 uB0;',
+      'uniform vec3 uB1;',
+      'uniform vec3 uB2;',
+      'uniform vec3 uB3;',
+      'varying float vA;',
+      'vec3 bez(vec3 a, vec3 b, vec3 c, vec3 d, float u){',
+      '  float v = 1.0 - u;',
+      '  return a*v*v*v + b*3.0*v*v*u + c*3.0*v*u*u + d*u*u*u;',
+      '}',
+      'void main(){',
+      '  float p = fract(aT + uTime * uSpeed * (0.85 + 0.3 * aSeed));',
+      '  vec3 pos = bez(uB0, uB1, uB2, uB3, p);',
+      '  pos.x *= aSide;',
+      '  pos.y += (fract(aSeed * 7.31) - 0.5) * 0.36 + 0.06 * sin(uTime * 2.2 + aSeed * 37.0);',
+      '  pos.z += (fract(aSeed * 3.97) - 0.5) * 0.36 + 0.06 * cos(uTime * 1.8 + aSeed * 23.0);',
+      '  float edge = smoothstep(0.0, 0.07, p) * smoothstep(1.0, 0.93, p);',
+      '  vA = edge * (0.3 + 0.5 * fract(aSeed * 13.7));',
+      '  vec4 mv = modelViewMatrix * vec4(pos, 1.0);',
+      '  gl_PointSize = min((0.7 + 1.1 * aSeed) * (150.0 / -mv.z), 16.0);',
+      '  gl_Position = projectionMatrix * mv;',
+      '}'
+    ].join('\n'),
+    fragmentShader: [
+      'uniform vec3 uColor;',
+      'varying float vA;',
+      'void main(){',
+      '  float d = length(gl_PointCoord - 0.5);',
+      '  float a = smoothstep(0.5, 0.08, d) * vA;',
+      '  gl_FragColor = vec4(uColor, a);',
+      '}'
+    ].join('\n'),
+    transparent: true, depthWrite: false, blending: THREE.AdditiveBlending
+  });
+  var walPoints = new THREE.Points(walGeo, walMat);
+  walPoints.frustumCulled = false; // positions are analytic in the vertex shader
+  ctx.scene.add(walPoints);
+
+  // ---- floor grid points for spatial grounding
+  var gridGeo = new THREE.BufferGeometry();
+  var gridPos = new Float32Array(N_GRID * 3);
+  for (var gg = 0; gg < N_GRID; gg++) {
+    gridPos[gg * 3] = (Math.random() - 0.5) * 26;
+    gridPos[gg * 3 + 1] = -2.6;
+    gridPos[gg * 3 + 2] = (Math.random() - 0.5) * 18;
+  }
+  gridGeo.setAttribute('position', new THREE.Float32BufferAttribute(gridPos, 3));
+  var gridMat = new THREE.PointsMaterial({ color: 0x2a4260, size: 0.05, transparent: true, opacity: 0.6, depthWrite: false });
+  ctx.scene.add(new THREE.Points(gridGeo, gridMat));
+
+  // ---- query darts (gold, JS-managed, dive into ONE partition group)
+  var dartGeo = new THREE.BufferGeometry();
+  var dartPos = new Float32Array(N_DARTS * 3);
+  var dartGlow = new Float32Array(N_DARTS);
+  for (var dd = 0; dd < N_DARTS; dd++) dartPos[dd * 3 + 1] = -999;
+  dartGeo.setAttribute('position', new THREE.Float32BufferAttribute(dartPos, 3));
+  dartGeo.setAttribute('aGlow', new THREE.Float32BufferAttribute(dartGlow, 1));
+  var dartMat = new THREE.ShaderMaterial({
+    uniforms: { uColor: { value: COL_GOLD } },
+    vertexShader: [
+      'attribute float aGlow;',
+      'varying float vG;',
+      'void main(){',
+      '  vG = aGlow;',
+      '  vec4 mv = modelViewMatrix * vec4(position, 1.0);',
+      '  gl_PointSize = min((1.6 + 4.5 * aGlow) * (150.0 / -mv.z), 60.0);',
+      '  gl_Position = projectionMatrix * mv;',
+      '}'
+    ].join('\n'),
+    fragmentShader: [
+      'uniform vec3 uColor;',
+      'varying float vG;',
+      'void main(){',
+      '  float d = length(gl_PointCoord - 0.5);',
+      '  float a = smoothstep(0.5, 0.05, d) * vG;',
+      '  gl_FragColor = vec4(uColor * (1.0 + 0.6 * vG), a);',
+      '}'
+    ].join('\n'),
+    transparent: true, depthWrite: false, blending: THREE.AdditiveBlending
+  });
+  var dartPoints = new THREE.Points(dartGeo, dartMat);
+  dartPoints.frustumCulled = false; // positions move every frame in JS
+  ctx.scene.add(dartPoints);
+
+  var darts = [];
+  for (var dj = 0; dj < N_DARTS; dj++) darts.push({ active: false, t0: 0, from: new THREE.Vector3(), mid: new THREE.Vector3(), to: new THREE.Vector3(), group: 0 });
+  var nextDart = 1.0;
+  var groupGlow = new Float32Array(N_GROUPS);
+  var replPulse = [0, 0];
+  var vOut = new THREE.Vector3();
+
+  function qBez(a, m, b, u, out) {
+    var v = 1 - u;
+    out.set(
+      a.x * v * v + m.x * 2 * v * u + b.x * u * u,
+      a.y * v * v + m.y * 2 * v * u + b.y * u * u,
+      a.z * v * v + m.z * 2 * v * u + b.z * u * u
+    );
+    return out;
+  }
+
+  function groupCenterY(g, e) {
+    var lo = g * 2, hi = g * 2 + 1;
+    var cy = (baseY[lo] + baseY[hi]) * 0.5;
+    return cy + (g - (N_GROUPS - 1) / 2) * SPLIT_SEP * e;
+  }
+
+  return {
+    update: function (t, dt) {
+      walUniforms.uTime.value = t;
+
+      // partition cycle: merged, split apart, hold, merge back
+      var tc = t % CYCLE;
+      var e = ease(ssj(5, 7, tc)) * (1 - ease(ssj(14, 16, tc)));
+
+      // primary disk placement + seams
+      for (var i = 0; i < N_DISKS; i++) {
+        var g = Math.floor(i / 2);
+        var y = baseY[i] + (g - (N_GROUPS - 1) / 2) * SPLIT_SEP * e;
+        m4.compose(vP.set(0, y, 0), qI, vS);
+        primary.setMatrixAt(i, m4);
+      }
+      primary.instanceMatrix.needsUpdate = true;
+      for (var sm = 0; sm < N_GROUPS - 1; sm++) {
+        var yGap = (groupCenterY(sm, e) + groupCenterY(sm + 1, e)) * 0.5;
+        seamPos[sm * 3] = 0; seamPos[sm * 3 + 1] = yGap; seamPos[sm * 3 + 2] = 0;
+        seamGlow[sm] = e * (0.7 + 0.3 * Math.sin(t * 2.0 + sm * 2.1));
+      }
+      seamGeo.attributes.position.needsUpdate = true;
+      seamGeo.attributes.aGlow.needsUpdate = true;
+
+      // replica catch-up meters + green sync pulses
+      for (var r = 0; r < 2; r++) {
+        var fc = ((t + r * METER_PERIOD * 0.5) % METER_PERIOD) / METER_PERIOD;
+        var fillLvl;
+        if (fc < 0.72) fillLvl = ssj(0, 0.72, fc);
+        else if (fc < 0.8) fillLvl = 1;
+        else fillLvl = 1 - ssj(0.8, 0.98, fc);
+        meters[r].scale.y = Math.max(0.001, fillLvl * METER_H);
+        var pulse = ssj(0.72, 0.75, fc) * (1 - ssj(0.78, 0.84, fc));
+        replPulse[r] = pulse;
+        meters[r].material.color.copy(COL_CYAN).lerp(COL_GREEN, pulse);
+      }
+
+      // query darts: launch, dive into one pruned group, flash it
+      if (t > nextDart) {
+        for (var dk = 0; dk < N_DARTS; dk++) {
+          if (!darts[dk].active) {
+            var dObj = darts[dk];
+            dObj.active = true;
+            dObj.t0 = t;
+            dObj.group = Math.floor(Math.random() * N_GROUPS);
+            var ang = Math.random() * Math.PI * 2;
+            dObj.from.set(Math.cos(ang) * 5.5, 5.6, Math.sin(ang) * 4.0);
+            var ty = groupCenterY(dObj.group, e);
+            dObj.to.set(Math.cos(ang + 0.6) * 1.55, ty, Math.sin(ang + 0.6) * 1.55);
+            dObj.mid.copy(dObj.from).add(dObj.to).multiplyScalar(0.5);
+            dObj.mid.y += 1.2;
+            break;
+          }
+        }
+        nextDart = t + DART_EVERY * (0.7 + Math.random() * 0.7);
+      }
+      for (var dn = 0; dn < N_DARTS; dn++) {
+        var da = darts[dn];
+        if (!da.active) { dartPos[dn * 3 + 1] = -999; dartGlow[dn] = 0; continue; }
+        var du = (t - da.t0) / 1.1;
+        if (du >= 1) {
+          da.active = false;
+          groupGlow[da.group] = 1;
+          dartPos[dn * 3 + 1] = -999; dartGlow[dn] = 0;
+          continue;
+        }
+        // keep tracking the group's live y so the dart lands on the pruned partition
+        da.to.y = groupCenterY(da.group, e);
+        qBez(da.from, da.mid, da.to, ease(du), vOut);
+        dartPos[dn * 3] = vOut.x; dartPos[dn * 3 + 1] = vOut.y; dartPos[dn * 3 + 2] = vOut.z;
+        dartGlow[dn] = 0.5 + 0.5 * du;
+      }
+      dartGeo.attributes.position.needsUpdate = true;
+      dartGeo.attributes.aGlow.needsUpdate = true;
+
+      // disk colors: steel, sand near live seams, gold flash on the queried group
+      var dec = Math.exp(-dt * 3.2);
+      for (var gd = 0; gd < N_GROUPS; gd++) groupGlow[gd] *= dec;
+      for (var di = 0; di < N_DISKS; di++) {
+        var dg = Math.floor(di / 2);
+        tmpCol.copy(COL_STEEL);
+        tmpCol.lerp(COL_SAND, e * 0.22);
+        tmpCol.lerp(COL_GOLD, Math.min(1, groupGlow[dg]));
+        primary.setColorAt(di, tmpCol);
+      }
+      primary.instanceColor.needsUpdate = true;
+      for (var ri = 0; ri < N_REPL_DISKS * 2; ri++) {
+        var side = ri < N_REPL_DISKS ? 0 : 1;
+        tmpCol.copy(COL_STEEL).lerp(COL_GREEN, replPulse[side]);
+        replicas.setColorAt(ri, tmpCol);
+      }
+      replicas.instanceColor.needsUpdate = true;
+
+      // camera: slow orbit with pointer offset
+      var a = t * 0.05 + ctx.pointer.x * 0.4;
+      var R = 14.0;
+      ctx.camera.position.set(R * Math.sin(a), 1.9 + ctx.pointer.y * 1.3 + 0.4 * Math.sin(t * 0.11), R * Math.cos(a));
+      ctx.camera.lookAt(0, 0.3, 0);
+    }
+  };
+}
+
+/* ================= shared runtime ================= */
+
+const canvas = document.getElementById('c');
+const btnPlay = document.getElementById('btnPlay');
+const speedEl = document.getElementById('speed');
+const btnPng = document.getElementById('btnPng');
+const note = document.getElementById('note');
+
+let renderer;
+try {
+  renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
+} catch (e) {
+  document.getElementById('err').style.display = 'grid';
+  document.getElementById('hud').hidden = true;
+  throw e;
+}
+
+/* Quality tier: 1 on desktop, lower on small screens or few cores.
+   Scenes scale particle counts by ctx.quality. */
+const small = Math.min(window.innerWidth, window.innerHeight) < 700;
+const weak = (navigator.hardwareConcurrency || 8) <= 4;
+const quality = small ? 0.5 : (weak ? 0.7 : 1);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, quality < 1 ? 1.5 : 2));
+
+const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 500);
+camera.position.set(0, 0, 12);
+
+const ctx = {
+  scene: new THREE.Scene(),
+  camera,
+  renderer,
+  quality,
+  pointer: { x: 0, y: 0 },  /* smoothed, -1..1, y up */
+};
+
+let piece;
+try {
+  piece = createScene(THREE, ctx);
+} catch (e) {
+  document.getElementById('err').style.display = 'grid';
+  document.getElementById('hud').hidden = true;
+  console.error(e);
+  throw e;
+}
+
+function resize() {
+  const w = window.innerWidth, h = window.innerHeight;
+  renderer.setSize(w, h, false);
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+  if (piece.resize) piece.resize(w, h);
+}
+window.addEventListener('resize', resize);
+resize();
+
+/* Pointer parallax target, lerped each frame for weight. */
+const target = { x: 0, y: 0 };
+window.addEventListener('pointermove', (e) => {
+  target.x = (e.clientX / window.innerWidth) * 2 - 1;
+  target.y = -((e.clientY / window.innerHeight) * 2 - 1);
+}, { passive: true });
+
+let userPaused = false;
+let hidden = false;
+let speed = 1;
+let t = 0;
+let last = performance.now();
+
+const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+function setPlayUi() {
+  btnPlay.textContent = userPaused ? 'Play' : 'Pause';
+  btnPlay.setAttribute('aria-pressed', String(userPaused));
+}
+btnPlay.addEventListener('click', () => {
+  userPaused = !userPaused;
+  note.hidden = true;
+  setPlayUi();
+  if (!userPaused) { last = performance.now(); loop(last); }
+});
+canvas.addEventListener('keydown', (e) => {
+  if (e.code === 'Space') { e.preventDefault(); btnPlay.click(); }
+});
+speedEl.addEventListener('input', () => { speed = parseFloat(speedEl.value) || 1; });
+
+btnPng.addEventListener('click', () => {
+  renderer.render(ctx.scene, camera);
+  canvas.toBlob((blob) => {
+    if (!blob) return;
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'postgres-scaling-lab-3d.png';
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+  });
+});
+
+document.addEventListener('visibilitychange', () => {
+  hidden = document.hidden;
+  if (!hidden && !userPaused) { last = performance.now(); loop(last); }
+});
+
+let raf = 0;
+function frame(now) {
+  const dt = Math.min((now - last) / 1000, 0.1);
+  last = now;
+  t += dt * speed;
+  ctx.pointer.x += (target.x - ctx.pointer.x) * 0.06;
+  ctx.pointer.y += (target.y - ctx.pointer.y) * 0.06;
+  piece.update(t, dt * speed);
+  renderer.render(ctx.scene, camera);
+}
+function loop(now) {
+  if (userPaused || hidden) return;
+  frame(now);
+  raf = requestAnimationFrame(loop);
+}
+
+if (reduceMotion) {
+  /* Advance to a composed moment, render one still frame, and wait. */
+  for (let i = 0; i < 240; i++) { t += 1 / 60; piece.update(t, 1 / 60); }
+  renderer.render(ctx.scene, camera);
+  userPaused = true;
+  note.hidden = false;
+  setPlayUi();
+} else {
+  loop(performance.now());
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,699 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <meta name="theme-color" content="#0A0E1C">
+  <title>Codeforces Mashup Generator in 3D · Salman Adnan</title>
+  <meta name="description" content="Rating Ladder: an interactive 3D study of problems assembling into a balanced practice contest.">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="../assets/favicon.png" sizes="any">
+  <style>
+    :root { color-scheme: dark; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      background: #0A0E1C;
+      overflow: hidden;
+      font: 12px/1.4 ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+      color: rgba(255, 255, 255, 0.85);
+    }
+    #stage { position: fixed; inset: 0; }
+    canvas { display: block; width: 100%; height: 100%; outline: none; }
+    canvas:focus-visible { box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.6); }
+    #hud {
+      position: absolute; right: 12px; bottom: 12px;
+      display: flex; align-items: center; gap: 10px;
+      padding: 7px 10px; border-radius: 999px;
+      background: rgba(8, 8, 14, 0.55);
+      backdrop-filter: blur(6px);
+      opacity: 0.55; transition: opacity 0.25s ease;
+    }
+    #hud:hover, #hud:focus-within { opacity: 1; }
+    #hud button {
+      appearance: none; border: 1px solid rgba(255, 255, 255, 0.25);
+      background: transparent; color: inherit; font: inherit;
+      padding: 3px 10px; border-radius: 999px; cursor: pointer;
+    }
+    #hud button:hover { border-color: rgba(255, 255, 255, 0.6); }
+    #hud button:focus-visible, #hud input:focus-visible {
+      outline: 2px solid #fff; outline-offset: 2px;
+    }
+    #hud label { display: flex; align-items: center; gap: 6px; }
+    #hud input[type="range"] { width: 72px; accent-color: #FFB454; }
+    #note {
+      position: absolute; left: 12px; bottom: 12px; max-width: 46ch;
+      padding: 8px 12px; border-radius: 10px;
+      background: rgba(8, 8, 14, 0.65);
+    }
+    #err {
+      position: absolute; inset: 0; display: none;
+      place-items: center; text-align: center; padding: 24px;
+    }
+    @media (max-width: 560px) {
+      #hud label { display: none; }
+    }
+  </style>
+</head>
+<body>
+<div id="stage">
+  <canvas id="c" tabindex="0" aria-label="Animated fall of problem orbs colored by Codeforces rating tiers, from which a selection beam racks a fair difficulty ladder onto a contest shelf."></canvas>
+  <div id="hud" role="group" aria-label="Visualization controls">
+    <button id="btnPlay" type="button" aria-pressed="false">Pause</button>
+    <label for="speed">speed
+      <input id="speed" type="range" min="0.25" max="2" step="0.25" value="1"
+             aria-label="Animation speed">
+    </label>
+    <button id="btnPng" type="button">Save PNG</button>
+  </div>
+  <p id="note" hidden>Motion is paused because your system prefers reduced motion.
+     Press Play to animate.</p>
+  <div id="err"><p>This visualization needs WebGL, which is unavailable here.<br>
+     A screenshot of it lives on the project page.</p></div>
+</div>
+
+<script type="importmap">
+{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js" } }
+</script>
+<script type="module">
+import * as THREE from 'three';
+
+/* ================= scene: codeforces-mashup-generator ================= */
+// RATING LADDER: problem orbs colored by authentic Codeforces rating tiers
+// drift down like snow; a selection beam sweeps the field, brightening its
+// picks, which glide onto a six-slot contest shelf and always rack into a
+// monotone ascending difficulty ramp before the finished contest launches away.
+//
+// Palette: bg deep navy #0A0E1C plus the seven canonical Codeforces tier
+//          colors: gray #808080, green #77BB77, cyan #77DDBB, blue #6699FF,
+//          violet #AA66FF, orange #FFA75C, red #FF6B6B, dimmed until selected.
+//   Those exact hues ARE how every competitive programmer reads difficulty;
+//   the domain palette is the palette. Accent gold #FFB454 for the curve.
+//
+// Signature: picked orbs always racking into a smooth ascending ramp.
+
+function createScene(THREE, ctx) {
+  const Q = ctx.quality;
+  const PR = ctx.renderer.getPixelRatio();
+
+  // ---- tunables ----
+  const SNOW_COUNT   = Math.floor(850 * Q); // ambient falling problem orbs
+  const SLOTS        = 6;      // contest problems per mashup
+  const SWEEP_TIME   = 6.0;    // beam sweep duration
+  const FADEIN_TIME  = 0.9;    // shelf slots fading in
+  const GLIDE_TIME   = 1.15;   // orb flight to its shelf slot
+  const DRAW_TIME    = 1.1;    // difficulty curve draw duration
+  const GLOW_TIME    = 2.2;    // ramp glow and hold
+  const LAUNCH_TIME  = 1.5;    // contest published, shelf flies up
+  const GAP_TIME     = 0.7;    // dark beat before the next contest
+  const SNOW_DIM     = 0.7;    // unselected orbs keep 70 percent of tier color
+  const SHELF_Z      = 2.3;    // shelf depth toward camera
+  const CURVE_SEGS   = 60;     // difficulty curve resolution
+
+  const TIER_HEX = [0x808080, 0x77BB77, 0x77DDBB, 0x6699FF, 0xAA66FF, 0xFFA75C, 0xFF6B6B];
+  const TIERS = TIER_HEX.map(h => new THREE.Color(h));
+  const COL_BG = 0x0A0E1C;
+  const COL_GOLD = new THREE.Color(0xFFB454);
+
+  ctx.scene.background = new THREE.Color(COL_BG);
+  ctx.scene.fog = new THREE.FogExp2(COL_BG, 0.016);
+
+  function smooth01(x) {
+    x = Math.min(1, Math.max(0, x));
+    return x * x * (3 - 2 * x);
+  }
+  function smoother01(x) {
+    x = Math.min(1, Math.max(0, x));
+    return x * x * x * (x * (x * 6 - 15) + 10);
+  }
+  function easeInCubic(x) {
+    x = Math.min(1, Math.max(0, x));
+    return x * x * x;
+  }
+
+  const uTime = { value: 0 };
+  const uPr = { value: PR };
+
+  const FRAG_SOFT = `
+    varying vec3 vColor;
+    varying float vAlpha;
+    void main(){
+      float d = length(gl_PointCoord - 0.5);
+      float a = smoothstep(0.5, 0.08, d);
+      gl_FragColor = vec4(vColor, a * vAlpha);
+    }
+  `;
+
+  // ---- falling problem snow, tier-colored and dim ----
+  const snowPos = new Float32Array(SNOW_COUNT * 3);
+  const snowSeed = new Float32Array(SNOW_COUNT);
+  const snowCol = new Float32Array(SNOW_COUNT * 3);
+  for (let i = 0; i < SNOW_COUNT; i++) {
+    snowPos[i * 3 + 0] = (Math.random() - 0.5) * 19;
+    snowPos[i * 3 + 1] = Math.random() * 12; // offset within fall range
+    snowPos[i * 3 + 2] = -4 + Math.random() * 5.5;
+    snowSeed[i] = Math.random();
+    const c = TIERS[Math.floor(Math.random() * TIERS.length)];
+    snowCol[i * 3 + 0] = c.r * SNOW_DIM;
+    snowCol[i * 3 + 1] = c.g * SNOW_DIM;
+    snowCol[i * 3 + 2] = c.b * SNOW_DIM;
+  }
+  const snowGeo = new THREE.BufferGeometry();
+  snowGeo.setAttribute('position', new THREE.Float32BufferAttribute(snowPos, 3));
+  snowGeo.setAttribute('aSeed', new THREE.Float32BufferAttribute(snowSeed, 1));
+  snowGeo.setAttribute('aColor', new THREE.Float32BufferAttribute(snowCol, 3));
+  const snowMat = new THREE.ShaderMaterial({
+    uniforms: { uTime: uTime, uPr: uPr },
+    vertexShader: `
+      attribute float aSeed;
+      attribute vec3 aColor;
+      uniform float uTime;
+      uniform float uPr;
+      varying vec3 vColor;
+      varying float vAlpha;
+      void main(){
+        vec3 p = position;
+        float range = 12.0;
+        float f = mod(p.y + uTime * (0.35 + aSeed * 0.5), range) / range;
+        p.y = 6.5 - f * range;
+        p.x += sin(uTime * 0.4 + aSeed * 6.2831) * 0.55;
+        p.z += cos(uTime * 0.33 + aSeed * 9.4) * 0.4;
+        vColor = aColor;
+        float tw = 0.75 + 0.25 * sin(uTime * 1.4 + aSeed * 31.0);
+        vAlpha = 0.85 * tw * smoothstep(0.0, 0.06, f) * (1.0 - smoothstep(0.85, 1.0, f));
+        vec4 mv = modelViewMatrix * vec4(p, 1.0);
+        gl_PointSize = (0.55 + aSeed * 0.55) * uPr * (150.0 / -mv.z);
+        gl_Position = projectionMatrix * mv;
+      }
+    `,
+    fragmentShader: FRAG_SOFT,
+    transparent: true,
+    depthWrite: false,
+    blending: THREE.AdditiveBlending
+  });
+  ctx.scene.add(new THREE.Points(snowGeo, snowMat));
+
+  // ---- selection beam: soft vertical stripe with a bright core ----
+  const beamMat = new THREE.ShaderMaterial({
+    uniforms: { uAlpha: { value: 0 } },
+    vertexShader: `
+      varying vec2 vUv;
+      void main(){
+        vUv = uv;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }
+    `,
+    fragmentShader: `
+      uniform float uAlpha;
+      varying vec2 vUv;
+      void main(){
+        float dx = abs(vUv.x - 0.5) * 2.0;
+        float body = pow(smoothstep(1.0, 0.0, dx), 2.2) * 0.34;
+        float core = smoothstep(0.10, 0.0, dx) * 0.85;
+        float ends = smoothstep(0.0, 0.06, vUv.y) * (1.0 - smoothstep(0.94, 1.0, vUv.y));
+        gl_FragColor = vec4(vec3(0.86, 0.91, 1.0), (body + core) * ends * uAlpha);
+      }
+    `,
+    transparent: true,
+    depthWrite: false,
+    blending: THREE.AdditiveBlending,
+    side: THREE.DoubleSide
+  });
+  const beam = new THREE.Mesh(new THREE.PlaneGeometry(1.5, 11.5), beamMat);
+  beam.position.z = 0.5;
+  ctx.scene.add(beam);
+
+  // ---- shelf group: slot markers, curve, and the six selected orbs ----
+  const shelfGroup = new THREE.Group();
+  ctx.scene.add(shelfGroup);
+
+  const uFade = { value: 1 };
+
+  const markGeo = new THREE.BoxGeometry(0.62, 0.045, 0.34);
+  const markMat = new THREE.MeshBasicMaterial({
+    color: 0xffffff,
+    transparent: true,
+    depthWrite: false,
+    blending: THREE.AdditiveBlending
+  });
+  const markMesh = new THREE.InstancedMesh(markGeo, markMat, SLOTS);
+  shelfGroup.add(markMesh);
+
+  // selected orbs: six shader points updated from JS
+  const selGeo = new THREE.BufferGeometry();
+  const selPos = new Float32Array(SLOTS * 3);
+  const selCol = new Float32Array(SLOTS * 3);
+  const selSize = new Float32Array(SLOTS);
+  const selAlpha = new Float32Array(SLOTS);
+  selGeo.setAttribute('position', new THREE.Float32BufferAttribute(selPos, 3));
+  selGeo.setAttribute('aColor', new THREE.Float32BufferAttribute(selCol, 3));
+  selGeo.setAttribute('aSize', new THREE.Float32BufferAttribute(selSize, 1));
+  selGeo.setAttribute('aAlpha', new THREE.Float32BufferAttribute(selAlpha, 1));
+  const selMat = new THREE.ShaderMaterial({
+    uniforms: { uPr: uPr, uFade: uFade },
+    vertexShader: `
+      attribute vec3 aColor;
+      attribute float aSize;
+      attribute float aAlpha;
+      uniform float uPr;
+      uniform float uFade;
+      varying vec3 vColor;
+      varying float vAlpha;
+      void main(){
+        vColor = aColor;
+        vAlpha = aAlpha * uFade;
+        vec4 mv = modelViewMatrix * vec4(position, 1.0);
+        gl_PointSize = aSize * uPr * (150.0 / -mv.z);
+        gl_Position = projectionMatrix * mv;
+      }
+    `,
+    fragmentShader: FRAG_SOFT,
+    transparent: true,
+    depthWrite: false,
+    blending: THREE.AdditiveBlending
+  });
+  shelfGroup.add(new THREE.Points(selGeo, selMat));
+
+  // difficulty curve through the racked orbs
+  const curveGeo = new THREE.BufferGeometry();
+  const curvePos = new Float32Array(CURVE_SEGS * 2 * 3);
+  const curveT = new Float32Array(CURVE_SEGS * 2);
+  for (let i = 0; i < CURVE_SEGS; i++) {
+    curveT[i * 2] = i / CURVE_SEGS;
+    curveT[i * 2 + 1] = (i + 1) / CURVE_SEGS;
+  }
+  curveGeo.setAttribute('position', new THREE.Float32BufferAttribute(curvePos, 3));
+  curveGeo.setAttribute('aT', new THREE.Float32BufferAttribute(curveT, 1));
+  const uDraw = { value: 0 };
+  const uGlow = { value: 0 };
+  const curveMat = new THREE.ShaderMaterial({
+    uniforms: { uDraw: uDraw, uGlow: uGlow, uFade: uFade },
+    vertexShader: `
+      attribute float aT;
+      uniform float uDraw;
+      uniform float uFade;
+      varying float vA;
+      varying float vHead;
+      void main(){
+        vA = smoothstep(0.0, 0.02, uDraw - aT) * uFade;
+        vHead = smoothstep(0.05, 0.0, abs(uDraw - aT)) * (1.0 - step(1.05, uDraw));
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }
+    `,
+    fragmentShader: `
+      uniform float uGlow;
+      varying float vA;
+      varying float vHead;
+      void main(){
+        vec3 col = vec3(1.0, 0.706, 0.329) * (0.95 + uGlow * 0.8 + vHead * 1.2);
+        gl_FragColor = vec4(col, vA * (0.75 + uGlow * 0.25));
+      }
+    `,
+    transparent: true,
+    depthWrite: false,
+    blending: THREE.AdditiveBlending
+  });
+  shelfGroup.add(new THREE.LineSegments(curveGeo, curveMat));
+
+  // ---- contest generation ----
+  const slotWorld = []; // Vector3 per slot
+  for (let i = 0; i < SLOTS; i++) slotWorld.push(new THREE.Vector3());
+  const slotPulse = new Float32Array(SLOTS);
+  const picks = []; // per-slot pick state
+  for (let i = 0; i < SLOTS; i++) {
+    picks.push({
+      phase: 'off', // off | spawn | glide | racked
+      t0: 0,
+      from: new THREE.Vector3(),
+      ctrl: new THREE.Vector3(),
+      color: new THREE.Color(),
+      tier: 0,
+      pickAt: 0
+    });
+  }
+  let smoothness = 1;
+
+  function catmull(p0, p1, p2, p3, s, out) {
+    const s2 = s * s, s3 = s2 * s;
+    out.set(
+      0.5 * ((2 * p1.x) + (-p0.x + p2.x) * s + (2 * p0.x - 5 * p1.x + 4 * p2.x - p3.x) * s2 + (-p0.x + 3 * p1.x - 3 * p2.x + p3.x) * s3),
+      0.5 * ((2 * p1.y) + (-p0.y + p2.y) * s + (2 * p0.y - 5 * p1.y + 4 * p2.y - p3.y) * s2 + (-p0.y + 3 * p1.y - 3 * p2.y + p3.y) * s3),
+      0.5 * ((2 * p1.z) + (-p0.z + p2.z) * s + (2 * p0.z - 5 * p1.z + 4 * p2.z - p3.z) * s2 + (-p0.z + 3 * p1.z - 3 * p2.z + p3.z) * s3)
+    );
+    return out;
+  }
+
+  const m4 = new THREE.Matrix4();
+  const q4 = new THREE.Quaternion();
+  const sclV = new THREE.Vector3(1, 1, 1);
+  const tmpA = new THREE.Vector3();
+  const tmpB = new THREE.Vector3();
+  const colTmp = new THREE.Color();
+
+  function genContest(t) {
+    // nondecreasing tier ladder: the fairness constraint made visible
+    let idx = Math.floor(Math.random() * 2.6);
+    const tiers = [];
+    for (let i = 0; i < SLOTS; i++) {
+      tiers.push(Math.min(6, idx));
+      idx += (Math.random() < 0.75 ? 1 : 0) + (Math.random() < 0.25 ? 1 : 0);
+    }
+    // slot world positions: x ladder, y from tier so the ramp is the data
+    for (let i = 0; i < SLOTS; i++) {
+      slotWorld[i].set(-3.0 + i * 1.2, -2.6 + tiers[i] * 0.42 + i * 0.06, SHELF_Z);
+      slotPulse[i] = 0;
+    }
+    // smoothness of the ramp: low variance of successive rises glows the curve
+    let mean = 0;
+    const diffs = [];
+    for (let i = 0; i < SLOTS - 1; i++) {
+      diffs.push(slotWorld[i + 1].y - slotWorld[i].y);
+      mean += diffs[i];
+    }
+    mean /= diffs.length;
+    let variance = 0;
+    for (let i = 0; i < diffs.length; i++) variance += (diffs[i] - mean) * (diffs[i] - mean);
+    variance /= diffs.length;
+    smoothness = Math.min(1, Math.max(0.35, 1 - variance * 7));
+
+    // slot markers
+    for (let i = 0; i < SLOTS; i++) {
+      tmpA.copy(slotWorld[i]);
+      tmpA.y -= 0.28;
+      m4.compose(tmpA, q4, sclV);
+      markMesh.setMatrixAt(i, m4);
+      markMesh.setColorAt(i, colTmp.setRGB(0, 0, 0));
+    }
+    markMesh.instanceMatrix.needsUpdate = true;
+    markMesh.instanceColor.needsUpdate = true;
+
+    // curve geometry through slot points
+    const pts = [slotWorld[0]].concat(slotWorld).concat([slotWorld[SLOTS - 1]]);
+    const per = CURVE_SEGS / (SLOTS - 1);
+    for (let i = 0; i <= CURVE_SEGS; i++) {
+      const span = Math.min(SLOTS - 2, Math.floor(i / per));
+      const s = i / per - span;
+      catmull(pts[span], pts[span + 1], pts[span + 2], pts[span + 3], s, tmpA);
+      tmpA.y += 0.02;
+      if (i > 0) curvePos.set([tmpA.x, tmpA.y, tmpA.z], (i - 1) * 6 + 3);
+      if (i < CURVE_SEGS) curvePos.set([tmpA.x, tmpA.y, tmpA.z], i * 6);
+    }
+    curveGeo.attributes.position.needsUpdate = true;
+
+    // pick schedule: sorted beam times, shuffled slot order so picks look random
+    const order = [];
+    for (let i = 0; i < SLOTS; i++) order.push(i);
+    for (let i = order.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      const tmp = order[i]; order[i] = order[j]; order[j] = tmp;
+    }
+    const times = [];
+    for (let i = 0; i < SLOTS; i++) times.push(0.5 + Math.random() * (SWEEP_TIME - 1.0));
+    times.sort((a, b) => a - b);
+    for (let k = 0; k < SLOTS; k++) {
+      const p = picks[order[k]];
+      p.phase = 'off';
+      p.pickAt = times[k];
+      p.tier = tiers[order[k]];
+      p.color.copy(TIERS[p.tier]);
+    }
+  }
+
+  function beamXAt(k) {
+    return -8.5 + 17.0 * smoother01(k);
+  }
+
+  // ---- state machine ----
+  const ST_FADEIN = 0, ST_SWEEP = 1, ST_SETTLE = 2, ST_DRAW = 3, ST_GLOW = 4, ST_LAUNCH = 5, ST_GAP = 6;
+  let state = ST_FADEIN;
+  let stateT = 0;
+  let markFade = 0;
+  genContest(0);
+
+  return {
+    update(t, dt) {
+      dt = Math.min(Math.max(dt || 0.016, 0.0001), 0.05);
+      uTime.value = t;
+      stateT += dt;
+
+      let beamAlpha = 0;
+
+      switch (state) {
+        case ST_FADEIN:
+          markFade = smooth01(stateT / FADEIN_TIME);
+          if (stateT >= FADEIN_TIME) { state = ST_SWEEP; stateT = 0; }
+          break;
+        case ST_SWEEP: {
+          const k = Math.min(1, stateT / SWEEP_TIME);
+          beam.position.x = beamXAt(k);
+          beamAlpha = smooth01(stateT / 0.5) * smooth01((SWEEP_TIME - stateT) / 0.5);
+          // fire picks whose time has come
+          for (let i = 0; i < SLOTS; i++) {
+            const p = picks[i];
+            if (p.phase === 'off' && stateT >= p.pickAt) {
+              p.phase = 'spawn';
+              p.t0 = t;
+              p.from.set(
+                beam.position.x + (Math.random() - 0.5) * 0.7,
+                -3.2 + Math.random() * 6.5,
+                -0.5 + Math.random() * 1.6
+              );
+              p.ctrl.copy(p.from).lerp(slotWorld[i], 0.5);
+              p.ctrl.y += 1.3;
+              p.ctrl.z += 1.0;
+            }
+          }
+          if (k >= 1) { state = ST_SETTLE; stateT = 0; }
+          break;
+        }
+        case ST_SETTLE: {
+          let done = true;
+          for (let i = 0; i < SLOTS; i++) if (picks[i].phase !== 'racked') done = false;
+          if (done && stateT >= 0.4) { state = ST_DRAW; stateT = 0; }
+          break;
+        }
+        case ST_DRAW:
+          uDraw.value = smoother01(stateT / DRAW_TIME) * 1.02;
+          if (stateT >= DRAW_TIME) { state = ST_GLOW; stateT = 0; }
+          break;
+        case ST_GLOW:
+          uGlow.value = smoothness * (0.7 + 0.3 * Math.sin(t * 3.0)) * smooth01(stateT / 0.4);
+          if (stateT >= GLOW_TIME) { state = ST_LAUNCH; stateT = 0; }
+          break;
+        case ST_LAUNCH: {
+          const k = Math.min(1, stateT / LAUNCH_TIME);
+          shelfGroup.position.y = easeInCubic(k) * 10.5;
+          uFade.value = 1 - smooth01((k - 0.25) / 0.6);
+          markFade = uFade.value;
+          uGlow.value = smoothness * uFade.value;
+          if (k >= 1) { state = ST_GAP; stateT = 0; }
+          break;
+        }
+        case ST_GAP:
+          if (stateT >= GAP_TIME) {
+            shelfGroup.position.y = 0;
+            uDraw.value = 0;
+            uGlow.value = 0;
+            uFade.value = 1;
+            markFade = 0;
+            genContest(t);
+            state = ST_FADEIN;
+            stateT = 0;
+          }
+          break;
+      }
+
+      beamMat.uniforms.uAlpha.value = beamAlpha;
+
+      // advance pick animations and write the six orb vertices
+      for (let i = 0; i < SLOTS; i++) {
+        const p = picks[i];
+        let px = 0, py = -50, pz = 0, size = 0, alpha = 0;
+        if (p.phase === 'spawn') {
+          const lt = t - p.t0;
+          const k = Math.min(1, lt / 0.55);
+          px = p.from.x; py = p.from.y; pz = p.from.z;
+          size = 0.55 + 0.6 * smooth01(k);
+          alpha = smooth01(k);
+          if (lt >= 0.55) { p.phase = 'glide'; p.t0 = t; }
+        } else if (p.phase === 'glide') {
+          const lt = t - p.t0;
+          const k = smoother01(Math.min(1, lt / GLIDE_TIME));
+          const inv = 1 - k;
+          px = inv * inv * p.from.x + 2 * inv * k * p.ctrl.x + k * k * slotWorld[i].x;
+          py = inv * inv * p.from.y + 2 * inv * k * p.ctrl.y + k * k * slotWorld[i].y;
+          pz = inv * inv * p.from.z + 2 * inv * k * p.ctrl.z + k * k * slotWorld[i].z;
+          size = 1.15;
+          alpha = 1;
+          if (lt >= GLIDE_TIME) { p.phase = 'racked'; slotPulse[i] = 1; }
+        } else if (p.phase === 'racked') {
+          px = slotWorld[i].x;
+          py = slotWorld[i].y + Math.sin(t * 1.6 + i * 1.1) * 0.03;
+          pz = slotWorld[i].z;
+          size = 1.15 * (1 + 0.35 * slotPulse[i]) + 0.08 * Math.sin(t * 2.2 + i);
+          alpha = 1;
+        }
+        selPos[i * 3] = px; selPos[i * 3 + 1] = py; selPos[i * 3 + 2] = pz;
+        const bright = p.phase === 'racked' ? 1.15 + uGlow.value * 0.4 : 1.25;
+        selCol[i * 3] = p.color.r * bright;
+        selCol[i * 3 + 1] = p.color.g * bright;
+        selCol[i * 3 + 2] = p.color.b * bright;
+        selSize[i] = size;
+        selAlpha[i] = alpha;
+        slotPulse[i] *= Math.exp(-3.5 * dt);
+      }
+      selGeo.attributes.position.needsUpdate = true;
+      selGeo.attributes.aColor.needsUpdate = true;
+      selGeo.attributes.aSize.needsUpdate = true;
+      selGeo.attributes.aAlpha.needsUpdate = true;
+
+      // slot marker glow: base slate, pulse on landing, all scaled by fades
+      for (let i = 0; i < SLOTS; i++) {
+        const k = markFade * (0.55 + 0.9 * slotPulse[i] + uGlow.value * 0.2);
+        markMesh.setColorAt(i, colTmp.setRGB(0.5 * k, 0.6 * k, 0.82 * k).lerp(COL_GOLD, Math.min(1, slotPulse[i]) * 0.5 * markFade));
+      }
+      markMesh.instanceColor.needsUpdate = true;
+
+      // camera: gentle drift plus pointer pan
+      ctx.camera.position.set(
+        Math.sin(t * 0.05) * 1.2 + ctx.pointer.x * 1.6,
+        0.5 + ctx.pointer.y * 1.1,
+        13.2 + Math.cos(t * 0.05) * 0.4
+      );
+      ctx.camera.lookAt(0, -0.2, 0.6);
+    }
+  };
+}
+
+/* ================= shared runtime ================= */
+
+const canvas = document.getElementById('c');
+const btnPlay = document.getElementById('btnPlay');
+const speedEl = document.getElementById('speed');
+const btnPng = document.getElementById('btnPng');
+const note = document.getElementById('note');
+
+let renderer;
+try {
+  renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
+} catch (e) {
+  document.getElementById('err').style.display = 'grid';
+  document.getElementById('hud').hidden = true;
+  throw e;
+}
+
+/* Quality tier: 1 on desktop, lower on small screens or few cores.
+   Scenes scale particle counts by ctx.quality. */
+const small = Math.min(window.innerWidth, window.innerHeight) < 700;
+const weak = (navigator.hardwareConcurrency || 8) <= 4;
+const quality = small ? 0.5 : (weak ? 0.7 : 1);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, quality < 1 ? 1.5 : 2));
+
+const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 500);
+camera.position.set(0, 0, 12);
+
+const ctx = {
+  scene: new THREE.Scene(),
+  camera,
+  renderer,
+  quality,
+  pointer: { x: 0, y: 0 },  /* smoothed, -1..1, y up */
+};
+
+let piece;
+try {
+  piece = createScene(THREE, ctx);
+} catch (e) {
+  document.getElementById('err').style.display = 'grid';
+  document.getElementById('hud').hidden = true;
+  console.error(e);
+  throw e;
+}
+
+function resize() {
+  const w = window.innerWidth, h = window.innerHeight;
+  renderer.setSize(w, h, false);
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+  if (piece.resize) piece.resize(w, h);
+}
+window.addEventListener('resize', resize);
+resize();
+
+/* Pointer parallax target, lerped each frame for weight. */
+const target = { x: 0, y: 0 };
+window.addEventListener('pointermove', (e) => {
+  target.x = (e.clientX / window.innerWidth) * 2 - 1;
+  target.y = -((e.clientY / window.innerHeight) * 2 - 1);
+}, { passive: true });
+
+let userPaused = false;
+let hidden = false;
+let speed = 1;
+let t = 0;
+let last = performance.now();
+
+const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+function setPlayUi() {
+  btnPlay.textContent = userPaused ? 'Play' : 'Pause';
+  btnPlay.setAttribute('aria-pressed', String(userPaused));
+}
+btnPlay.addEventListener('click', () => {
+  userPaused = !userPaused;
+  note.hidden = true;
+  setPlayUi();
+  if (!userPaused) { last = performance.now(); loop(last); }
+});
+canvas.addEventListener('keydown', (e) => {
+  if (e.code === 'Space') { e.preventDefault(); btnPlay.click(); }
+});
+speedEl.addEventListener('input', () => { speed = parseFloat(speedEl.value) || 1; });
+
+btnPng.addEventListener('click', () => {
+  renderer.render(ctx.scene, camera);
+  canvas.toBlob((blob) => {
+    if (!blob) return;
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'codeforces-mashup-generator-3d.png';
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+  });
+});
+
+document.addEventListener('visibilitychange', () => {
+  hidden = document.hidden;
+  if (!hidden && !userPaused) { last = performance.now(); loop(last); }
+});
+
+let raf = 0;
+function frame(now) {
+  const dt = Math.min((now - last) / 1000, 0.1);
+  last = now;
+  t += dt * speed;
+  ctx.pointer.x += (target.x - ctx.pointer.x) * 0.06;
+  ctx.pointer.y += (target.y - ctx.pointer.y) * 0.06;
+  piece.update(t, dt * speed);
+  renderer.render(ctx.scene, camera);
+}
+function loop(now) {
+  if (userPaused || hidden) return;
+  frame(now);
+  raf = requestAnimationFrame(loop);
+}
+
+if (reduceMotion) {
+  /* Advance to a composed moment, render one still frame, and wait. */
+  for (let i = 0; i < 240; i++) { t += 1 / 60; piece.update(t, 1 / 60); }
+  renderer.render(ctx.scene, camera);
+  userPaused = true;
+  note.hidden = false;
+  setPlayUi();
+} else {
+  loop(performance.now());
+}
+</script>
+</body>
+</html>

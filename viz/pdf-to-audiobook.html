@@ -1,0 +1,663 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <meta name="theme-color" content="#100E0A">
+  <title>PDF to Audiobook in 3D · Salman Adnan</title>
+  <meta name="description" content="Pages to Waves: an interactive 3D study of book pages dissolving into a speaking waveform.">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="../assets/favicon.png" sizes="any">
+  <style>
+    :root { color-scheme: dark; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      background: #100E0A;
+      overflow: hidden;
+      font: 12px/1.4 ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+      color: rgba(255, 255, 255, 0.85);
+    }
+    #stage { position: fixed; inset: 0; }
+    canvas { display: block; width: 100%; height: 100%; outline: none; }
+    canvas:focus-visible { box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.6); }
+    #hud {
+      position: absolute; right: 12px; bottom: 12px;
+      display: flex; align-items: center; gap: 10px;
+      padding: 7px 10px; border-radius: 999px;
+      background: rgba(8, 8, 14, 0.55);
+      backdrop-filter: blur(6px);
+      opacity: 0.55; transition: opacity 0.25s ease;
+    }
+    #hud:hover, #hud:focus-within { opacity: 1; }
+    #hud button {
+      appearance: none; border: 1px solid rgba(255, 255, 255, 0.25);
+      background: transparent; color: inherit; font: inherit;
+      padding: 3px 10px; border-radius: 999px; cursor: pointer;
+    }
+    #hud button:hover { border-color: rgba(255, 255, 255, 0.6); }
+    #hud button:focus-visible, #hud input:focus-visible {
+      outline: 2px solid #fff; outline-offset: 2px;
+    }
+    #hud label { display: flex; align-items: center; gap: 6px; }
+    #hud input[type="range"] { width: 72px; accent-color: #58AEDF; }
+    #note {
+      position: absolute; left: 12px; bottom: 12px; max-width: 46ch;
+      padding: 8px 12px; border-radius: 10px;
+      background: rgba(8, 8, 14, 0.65);
+    }
+    #err {
+      position: absolute; inset: 0; display: none;
+      place-items: center; text-align: center; padding: 24px;
+    }
+    @media (max-width: 560px) {
+      #hud label { display: none; }
+    }
+  </style>
+</head>
+<body>
+<div id="stage">
+  <canvas id="c" tabindex="0" aria-label="Animated pages peeling from a floating book and dissolving into letter particles that stream into an undulating 3D waveform ribbon."></canvas>
+  <div id="hud" role="group" aria-label="Visualization controls">
+    <button id="btnPlay" type="button" aria-pressed="false">Pause</button>
+    <label for="speed">speed
+      <input id="speed" type="range" min="0.25" max="2" step="0.25" value="1"
+             aria-label="Animation speed">
+    </label>
+    <button id="btnPng" type="button">Save PNG</button>
+  </div>
+  <p id="note" hidden>Motion is paused because your system prefers reduced motion.
+     Press Play to animate.</p>
+  <div id="err"><p>This visualization needs WebGL, which is unavailable here.<br>
+     A screenshot of it lives on the project page.</p></div>
+</div>
+
+<script type="importmap">
+{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js" } }
+</script>
+<script type="module">
+import * as THREE from 'three';
+
+/* ================= scene: pdf-to-audiobook ================= */
+// PAGES TO WAVES
+// An open book gives up its pages; each dissolves into letter particles that stream across
+// the scene and take formation as a wide waveform ribbon that speaks in syllable bursts.
+// Palette: bg library warm dark #100E0A, page parchment #EDE2C8, letters umber #A87848,
+// wave blue #58AEDF, ember accent #D98E4E.
+// Justification: parchment warmth becoming cool audio blue is the product's exact journey.
+// Signature: the ribbon's speech rhythm, bursts and pauses like real narration.
+
+function createScene(THREE, ctx) {
+  const Q = ctx.quality || 1;
+
+  // ---- tunables
+  const CYCLE = 9;                 // seconds per page life cycle
+  const REST_END = 1.5;            // page rests on the book until here
+  const PEEL_END = 3.5;            // peel and lift complete here
+  const DIS_END = 6.0;             // dissolve complete here
+  const TRANSIT = Math.floor(1100 * Q); // letter particles in flight
+  const TRAVEL = 3.2;              // seconds a letter takes book to ribbon
+  const COLS = Math.max(40, Math.floor(88 * Q)); // waveform columns
+  const ROWS = Math.max(10, Math.floor(24 * Q)); // particles across the ribbon
+  const SCROLL = 1 / 12;           // ribbon traversals per second
+  const ENTRY_X = 1.1;             // where the ribbon begins
+  const SPAN_X = 7.6;              // ribbon length, ends inside the right frame edge
+  const RIB_W = 4.2;               // ribbon width
+  const RIB_Y = 0.35;              // ribbon rest height
+  const RIB_AMP = 2.6;             // speech amplitude
+  const BG = 0x100E0A;
+
+  ctx.scene.background = new THREE.Color(BG);
+
+  let seed = 90217;
+  function rnd() { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; }
+
+  const uTime = { value: 0 };
+  const uPx = { value: ctx.renderer.domElement.height };
+
+  const NOISE = `
+    vec3 mod289(vec3 x){return x - floor(x * (1.0/289.0)) * 289.0;}
+    vec4 mod289(vec4 x){return x - floor(x * (1.0/289.0)) * 289.0;}
+    vec4 permute(vec4 x){return mod289(((x*34.0)+1.0)*x);}
+    vec4 taylorInvSqrt(vec4 r){return 1.79284291400159 - 0.85373472095314 * r;}
+    float snoise(vec3 v){
+      const vec2 C = vec2(1.0/6.0, 1.0/3.0);
+      const vec4 D = vec4(0.0, 0.5, 1.0, 2.0);
+      vec3 i  = floor(v + dot(v, C.yyy));
+      vec3 x0 = v - i + dot(i, C.xxx);
+      vec3 g = step(x0.yzx, x0.xyz);
+      vec3 l = 1.0 - g;
+      vec3 i1 = min(g.xyz, l.zxy);
+      vec3 i2 = max(g.xyz, l.zxy);
+      vec3 x1 = x0 - i1 + C.xxx;
+      vec3 x2 = x0 - i2 + C.yyy;
+      vec3 x3 = x0 - D.yyy;
+      i = mod289(i);
+      vec4 p = permute(permute(permute(
+                i.z + vec4(0.0, i1.z, i2.z, 1.0))
+              + i.y + vec4(0.0, i1.y, i2.y, 1.0))
+              + i.x + vec4(0.0, i1.x, i2.x, 1.0));
+      float n_ = 0.142857142857;
+      vec3 ns = n_ * D.wyz - D.xzx;
+      vec4 j = p - 49.0 * floor(p * ns.z * ns.z);
+      vec4 x_ = floor(j * ns.z);
+      vec4 y_ = floor(j - 7.0 * x_);
+      vec4 x = x_ * ns.x + ns.yyyy;
+      vec4 y = y_ * ns.x + ns.yyyy;
+      vec4 h = 1.0 - abs(x) - abs(y);
+      vec4 b0 = vec4(x.xy, y.xy);
+      vec4 b1 = vec4(x.zw, y.zw);
+      vec4 s0 = floor(b0) * 2.0 + 1.0;
+      vec4 s1 = floor(b1) * 2.0 + 1.0;
+      vec4 sh = -step(h, vec4(0.0));
+      vec4 a0 = b0.xzyw + s0.xzyw * sh.xxyy;
+      vec4 a1 = b1.xzyw + s1.xzyw * sh.zzww;
+      vec3 p0 = vec3(a0.xy, h.x);
+      vec3 p1 = vec3(a0.zw, h.y);
+      vec3 p2 = vec3(a1.xy, h.z);
+      vec3 p3 = vec3(a1.zw, h.w);
+      vec4 norm = taylorInvSqrt(vec4(dot(p0,p0), dot(p1,p1), dot(p2,p2), dot(p3,p3)));
+      p0 *= norm.x; p1 *= norm.y; p2 *= norm.z; p3 *= norm.w;
+      vec4 m = max(0.6 - vec4(dot(x0,x0), dot(x1,x1), dot(x2,x2), dot(x3,x3)), 0.0);
+      m = m * m;
+      return 42.0 * dot(m*m, vec4(dot(p0,x0), dot(p1,x1), dot(p2,x2), dot(p3,x3)));
+    }
+  `;
+
+  const softFrag = `
+    varying vec3 vCol;
+    varying float vA;
+    void main() {
+      float d = length(gl_PointCoord - 0.5);
+      float a = smoothstep(0.5, 0.08, d);
+      gl_FragColor = vec4(vCol, a * vA);
+    }
+  `;
+
+  // ---- glyph atlas: 16 abstract letter-like marks on a 4x4 grid
+  const glyphTex = (function () {
+    const cv = document.createElement('canvas');
+    cv.width = 256; cv.height = 256;
+    const g2 = cv.getContext('2d');
+    g2.clearRect(0, 0, 256, 256);
+    g2.strokeStyle = '#ffffff';
+    g2.lineCap = 'round';
+    g2.lineJoin = 'round';
+    for (let cy = 0; cy < 4; cy++) {
+      for (let cx = 0; cx < 4; cx++) {
+        const ox = cx * 64, oy = cy * 64;
+        const strokes = 1 + Math.floor(rnd() * 2.6);
+        for (let s = 0; s < strokes; s++) {
+          g2.lineWidth = 5 + rnd() * 4;
+          g2.beginPath();
+          const x0 = ox + 14 + rnd() * 12, y0 = oy + 14 + rnd() * 16;
+          const x1 = ox + 26 + rnd() * 24, y1 = oy + 20 + rnd() * 30;
+          const x2 = ox + 16 + rnd() * 32, y2 = oy + 40 + rnd() * 12;
+          g2.moveTo(x0, y0);
+          g2.quadraticCurveTo(x1, y1, x2, y2);
+          g2.stroke();
+        }
+        if (rnd() < 0.5) {
+          g2.lineWidth = 5;
+          g2.beginPath();
+          const bx = ox + 16 + rnd() * 12, by = oy + 16 + rnd() * 28;
+          g2.moveTo(bx, by);
+          g2.lineTo(bx + 14 + rnd() * 14, by);
+          g2.stroke();
+        }
+      }
+    }
+    const tex = new THREE.CanvasTexture(cv);
+    return tex;
+  })();
+
+  // ---- the open book, two gently bent parchment planes
+  const book = new THREE.Group();
+  book.position.set(-5.2, 0.2, 0);
+  book.rotation.y = 0.35;
+  book.rotation.x = -0.05;
+  ctx.scene.add(book);
+
+  function makePage(side) {
+    const g = new THREE.PlaneGeometry(2.4, 3.2, 14, 6);
+    const p = g.getAttribute('position');
+    const colAttr = new Float32Array(p.count * 3);
+    for (let i = 0; i < p.count; i++) {
+      const xn = (p.getX(i) + 1.2) / 2.4;
+      const yn = (p.getY(i) + 1.6) / 3.2;
+      p.setZ(i, 0.18 * Math.sin(xn * Math.PI));
+      // parchment shading: dark gutter at the spine, warm light toward the outer
+      // edge, gentle top-light falloff, so the pages never read flat white
+      const spineDist = side > 0 ? xn : 1 - xn;
+      let shade = 0.22 + 0.30 * spineDist;
+      shade *= 0.6 + 0.4 * Math.min(1, spineDist / 0.3);
+      shade *= 0.76 + 0.24 * yn;
+      colAttr[i * 3] = 0.95 * shade;
+      colAttr[i * 3 + 1] = 0.78 * shade;
+      colAttr[i * 3 + 2] = 0.48 * shade;
+    }
+    g.setAttribute('color', new THREE.Float32BufferAttribute(colAttr, 3));
+    g.translate(side * 1.2, 0, 0);
+    const m = new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.DoubleSide });
+    const mesh = new THREE.Mesh(g, m);
+    mesh.rotation.y = -side * 0.55;
+    return mesh;
+  }
+  book.add(makePage(1));
+  book.add(makePage(-1));
+
+  // ---- the peeling page, hinged at the spine, curled and dissolved by shader
+  const peelUniforms = {
+    uCurl: { value: 0 },
+    uDissolve: { value: -0.2 }
+  };
+  const peel = (function () {
+    const g = new THREE.PlaneGeometry(2.4, 3.2, 14, 1);
+    g.translate(1.2, 0, 0);
+    const m = new THREE.ShaderMaterial({
+      uniforms: peelUniforms,
+      vertexShader: `
+        uniform float uCurl;
+        varying vec2 vUv;
+        void main() {
+          vUv = uv;
+          vec3 p = position;
+          float xn = uv.x;
+          p.z += uCurl * pow(xn, 1.7) * 1.6;
+          p.y += uCurl * xn * 0.9;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(p, 1.0);
+        }
+      `,
+      fragmentShader: `
+        uniform float uDissolve;
+        varying vec2 vUv;
+        void main() {
+          float a = smoothstep(uDissolve, uDissolve + 0.12, vUv.x);
+          float shade = 0.45 + 0.13 * sin(vUv.x * 3.14159) + 0.08 * vUv.y;
+          vec3 col = vec3(0.95, 0.78, 0.48) * shade;
+          gl_FragColor = vec4(col, a * 0.92);
+        }
+      `,
+      transparent: true,
+      side: THREE.DoubleSide,
+      depthWrite: false
+    });
+    const mesh = new THREE.Mesh(g, m);
+    mesh.frustumCulled = false;
+    book.add(mesh);
+    return mesh;
+  })();
+
+  // ---- letter particles in transit, book to ribbon along a cubic bezier
+  {
+    const aOff = new Float32Array(TRANSIT * 2);
+    const aDelay = new Float32Array(TRANSIT);
+    const aSeed = new Float32Array(TRANSIT);
+    const aGlyph = new Float32Array(TRANSIT);
+    const pos = new Float32Array(TRANSIT * 3);
+    for (let i = 0; i < TRANSIT; i++) {
+      const ox = rnd(), oy = rnd();
+      aOff[i * 2] = ox;
+      aOff[i * 2 + 1] = oy;
+      // leave in the order the dissolve front eats the page, spine side first
+      aDelay[i] = PEEL_END + ox * 2.2 + rnd() * 0.4;
+      aSeed[i] = rnd();
+      aGlyph[i] = Math.floor(rnd() * 16);
+    }
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    g.setAttribute('aOff', new THREE.Float32BufferAttribute(aOff, 2));
+    g.setAttribute('aDelay', new THREE.Float32BufferAttribute(aDelay, 1));
+    g.setAttribute('aSeed', new THREE.Float32BufferAttribute(aSeed, 1));
+    g.setAttribute('aGlyph', new THREE.Float32BufferAttribute(aGlyph, 1));
+    const m = new THREE.ShaderMaterial({
+      uniforms: {
+        uTime: uTime, uPx: uPx, uMap: { value: glyphTex },
+        uCycle: { value: CYCLE }, uTravel: { value: TRAVEL },
+        uRibW: { value: RIB_W }
+      },
+      vertexShader: `
+        attribute vec2 aOff;
+        attribute float aDelay;
+        attribute float aSeed;
+        attribute float aGlyph;
+        uniform float uTime;
+        uniform float uPx;
+        uniform float uCycle;
+        uniform float uTravel;
+        uniform float uRibW;
+        varying vec3 vCol;
+        varying float vA;
+        varying vec2 vCell;
+        void main() {
+          float lt = mod(uTime - aDelay, uCycle);
+          float u = clamp(lt / uTravel, 0.0, 1.0);
+          float on = 1.0 - step(uTravel, lt);
+          vec3 p0 = vec3(-2.3 + aOff.x * 2.2, -0.2 + aOff.y * 3.2, 0.5);
+          vec3 p1 = vec3(-0.8, 2.9, 0.3);
+          vec3 p2 = vec3(0.6, 2.4, 0.0);
+          vec3 p3 = vec3(1.1, 0.7, (aOff.y - 0.5) * uRibW * 0.9);
+          float it = 1.0 - u;
+          vec3 p = it*it*it*p0 + 3.0*it*it*u*p1 + 3.0*it*u*u*p2 + u*u*u*p3;
+          p.y += 0.06 * sin(u * 9.0 + aSeed * 20.0);
+          vCol = mix(vec3(0.659, 0.471, 0.282) * 1.5,
+                     vec3(0.345, 0.682, 0.874), smoothstep(0.55, 1.0, u));
+          vA = on * smoothstep(0.0, 0.08, u) * (1.0 - smoothstep(0.82, 1.0, u));
+          vCell = vec2(mod(aGlyph, 4.0), floor(aGlyph / 4.0));
+          vec4 mv = modelViewMatrix * vec4(p, 1.0);
+          gl_PointSize = mix(11.0, 5.0, u) * uPx / (-mv.z * 55.0);
+          gl_Position = projectionMatrix * mv;
+        }
+      `,
+      fragmentShader: `
+        uniform sampler2D uMap;
+        varying vec3 vCol;
+        varying float vA;
+        varying vec2 vCell;
+        void main() {
+          vec2 uv = (vCell + gl_PointCoord) / 4.0;
+          vec4 tx = texture2D(uMap, uv);
+          gl_FragColor = vec4(vCol, tx.a * vA);
+        }
+      `,
+      transparent: true,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending
+    });
+    const pts = new THREE.Points(g, m);
+    pts.frustumCulled = false;
+    ctx.scene.add(pts);
+  }
+
+  // ---- the speaking waveform ribbon
+  {
+    const count = COLS * ROWS;
+    const pos = new Float32Array(count * 3);
+    const aCol = new Float32Array(count);
+    const aRow = new Float32Array(count);
+    const aSeed = new Float32Array(count);
+    let w = 0;
+    for (let i = 0; i < COLS; i++) {
+      for (let j = 0; j < ROWS; j++) {
+        aCol[w] = i / COLS;
+        aRow[w] = ROWS === 1 ? 0.5 : j / (ROWS - 1);
+        aSeed[w] = rnd();
+        w++;
+      }
+    }
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    g.setAttribute('aCol', new THREE.Float32BufferAttribute(aCol, 1));
+    g.setAttribute('aRow', new THREE.Float32BufferAttribute(aRow, 1));
+    g.setAttribute('aSeed', new THREE.Float32BufferAttribute(aSeed, 1));
+    const m = new THREE.ShaderMaterial({
+      uniforms: {
+        uTime: uTime, uPx: uPx,
+        uScroll: { value: SCROLL }, uEntryX: { value: ENTRY_X },
+        uSpanX: { value: SPAN_X }, uWidth: { value: RIB_W },
+        uBaseY: { value: RIB_Y }, uAmp: { value: RIB_AMP }
+      },
+      vertexShader: NOISE + `
+        attribute float aCol;
+        attribute float aRow;
+        attribute float aSeed;
+        uniform float uTime;
+        uniform float uPx;
+        uniform float uScroll;
+        uniform float uEntryX;
+        uniform float uSpanX;
+        uniform float uWidth;
+        uniform float uBaseY;
+        uniform float uAmp;
+        varying vec3 vCol;
+        varying float vA;
+        void main() {
+          float sc = uTime * uScroll;
+          float prog = fract(sc - aCol);
+          float k = floor(sc - aCol);
+          // content coordinate: frozen while the column scrolls, renewed on wrap,
+          // so the recorded speech pattern rides along with the ribbon
+          float cc = aCol + k;
+          float x = uEntryX + prog * uSpanX;
+          float syll = snoise(vec3(cc * 20.0, 0.0, 4.7));
+          syll = pow(smoothstep(-0.35, 0.8, syll), 1.4);
+          float gate = smoothstep(0.0, 0.45, snoise(vec3(cc * 3.5, 0.0, 11.3)));
+          float amp = syll * gate;
+          float zr = (aRow - 0.5) * uWidth;
+          float crossA = cos((aRow - 0.5) * 3.14159);
+          float y = uBaseY + amp * uAmp * crossA * (0.92 + 0.08 * sin(uTime * 1.6 + aRow * 5.0));
+          y += 0.05 * sin(x * 2.2 - uTime * 2.5) * amp;
+          vec3 p = vec3(x, y, zr - 0.4);
+          float endFade = smoothstep(0.0, 0.06, prog) * (1.0 - smoothstep(0.85, 1.0, prog));
+          vCol = mix(vec3(0.659, 0.471, 0.282) * 0.9,
+                     vec3(0.345, 0.682, 0.874) * 1.3, smoothstep(0.15, 0.75, amp));
+          vA = endFade * (0.4 + 0.6 * amp);
+          vec4 mv = modelViewMatrix * vec4(p, 1.0);
+          gl_PointSize = (3.8 + 3.4 * amp) * uPx / (-mv.z * 55.0);
+          gl_Position = projectionMatrix * mv;
+        }
+      `,
+      fragmentShader: softFrag,
+      transparent: true,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending
+    });
+    const pts = new THREE.Points(g, m);
+    pts.frustumCulled = false;
+    ctx.scene.add(pts);
+  }
+
+  // ---- mood glows: warm library light over the book, cool light over the wave
+  {
+    const pos = new Float32Array([-5.0, 1.2, -2.5, 5.4, 1.0, -3.0]);
+    const tint = new Float32Array([0.85, 0.56, 0.31, 0.35, 0.62, 0.85]);
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    g.setAttribute('aTint', new THREE.Float32BufferAttribute(tint, 3));
+    const m = new THREE.ShaderMaterial({
+      uniforms: { uTime: uTime, uPx: uPx },
+      vertexShader: `
+        attribute vec3 aTint;
+        uniform float uTime;
+        uniform float uPx;
+        varying vec3 vCol;
+        varying float vA;
+        void main() {
+          vec4 mv = modelViewMatrix * vec4(position, 1.0);
+          vCol = aTint;
+          vA = 0.1 + 0.02 * sin(uTime * 0.4 + position.x);
+          gl_PointSize = 300.0 * uPx / (-mv.z * 55.0);
+          gl_Position = projectionMatrix * mv;
+        }
+      `,
+      fragmentShader: softFrag,
+      transparent: true,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending
+    });
+    ctx.scene.add(new THREE.Points(g, m));
+  }
+
+  ctx.camera.position.set(0, 0.7, 11.5);
+  ctx.camera.lookAt(0.3, 0.7, 0);
+
+  function ease(x) { return x * x * (3 - 2 * x); }
+
+  return {
+    update(t, dt) {
+      uTime.value = t;
+
+      // page choreography: rest, peel and lift, dissolve, gone
+      const lt = t % CYCLE;
+      if (lt < REST_END) {
+        peel.visible = true;
+        peel.position.set(0, 0, 0.20);
+        peel.rotation.y = -0.55;
+        peelUniforms.uCurl.value = 0;
+        // the fresh page wipes back in spine-first instead of popping on
+        const f = ease(Math.min(1, lt / 0.8));
+        peelUniforms.uDissolve.value = 1.1 - 1.3 * f;
+      } else if (lt < PEEL_END) {
+        peel.visible = true;
+        const e = ease((lt - REST_END) / (PEEL_END - REST_END));
+        peel.position.set(2.6 * e, 1.3 * e, 0.20 + 1.5 * e);
+        peel.rotation.y = -0.55 + 0.55 * e;
+        peelUniforms.uCurl.value = 0.9 * Math.sin(Math.PI * e) + 0.25 * e;
+        peelUniforms.uDissolve.value = -0.2;
+      } else if (lt < DIS_END) {
+        peel.visible = true;
+        const d = (lt - PEEL_END) / (DIS_END - PEEL_END);
+        peel.position.set(2.6 + 0.5 * d, 1.3 + 0.2 * d, 1.70 + 0.1 * d);
+        peel.rotation.y = 0;
+        peelUniforms.uCurl.value = 0.25 * (1 - d);
+        peelUniforms.uDissolve.value = -0.05 + d * 1.1;
+      } else {
+        peel.visible = false;
+      }
+
+      // gentle breathing of the whole book
+      book.rotation.z = 0.02 * Math.sin(t * 0.4);
+      book.position.y = 0.2 + 0.06 * Math.sin(t * 0.5);
+
+      // pointer parallax
+      ctx.camera.position.set(ctx.pointer.x * 0.8, 0.7 + ctx.pointer.y * 0.6, 11.5);
+      ctx.camera.lookAt(0.3, 0.7, 0);
+    },
+    resize() {
+      uPx.value = ctx.renderer.domElement.height;
+    }
+  };
+}
+
+/* ================= shared runtime ================= */
+
+const canvas = document.getElementById('c');
+const btnPlay = document.getElementById('btnPlay');
+const speedEl = document.getElementById('speed');
+const btnPng = document.getElementById('btnPng');
+const note = document.getElementById('note');
+
+let renderer;
+try {
+  renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
+} catch (e) {
+  document.getElementById('err').style.display = 'grid';
+  document.getElementById('hud').hidden = true;
+  throw e;
+}
+
+/* Quality tier: 1 on desktop, lower on small screens or few cores.
+   Scenes scale particle counts by ctx.quality. */
+const small = Math.min(window.innerWidth, window.innerHeight) < 700;
+const weak = (navigator.hardwareConcurrency || 8) <= 4;
+const quality = small ? 0.5 : (weak ? 0.7 : 1);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, quality < 1 ? 1.5 : 2));
+
+const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 500);
+camera.position.set(0, 0, 12);
+
+const ctx = {
+  scene: new THREE.Scene(),
+  camera,
+  renderer,
+  quality,
+  pointer: { x: 0, y: 0 },  /* smoothed, -1..1, y up */
+};
+
+let piece;
+try {
+  piece = createScene(THREE, ctx);
+} catch (e) {
+  document.getElementById('err').style.display = 'grid';
+  document.getElementById('hud').hidden = true;
+  console.error(e);
+  throw e;
+}
+
+function resize() {
+  const w = window.innerWidth, h = window.innerHeight;
+  renderer.setSize(w, h, false);
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+  if (piece.resize) piece.resize(w, h);
+}
+window.addEventListener('resize', resize);
+resize();
+
+/* Pointer parallax target, lerped each frame for weight. */
+const target = { x: 0, y: 0 };
+window.addEventListener('pointermove', (e) => {
+  target.x = (e.clientX / window.innerWidth) * 2 - 1;
+  target.y = -((e.clientY / window.innerHeight) * 2 - 1);
+}, { passive: true });
+
+let userPaused = false;
+let hidden = false;
+let speed = 1;
+let t = 0;
+let last = performance.now();
+
+const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+function setPlayUi() {
+  btnPlay.textContent = userPaused ? 'Play' : 'Pause';
+  btnPlay.setAttribute('aria-pressed', String(userPaused));
+}
+btnPlay.addEventListener('click', () => {
+  userPaused = !userPaused;
+  note.hidden = true;
+  setPlayUi();
+  if (!userPaused) { last = performance.now(); loop(last); }
+});
+canvas.addEventListener('keydown', (e) => {
+  if (e.code === 'Space') { e.preventDefault(); btnPlay.click(); }
+});
+speedEl.addEventListener('input', () => { speed = parseFloat(speedEl.value) || 1; });
+
+btnPng.addEventListener('click', () => {
+  renderer.render(ctx.scene, camera);
+  canvas.toBlob((blob) => {
+    if (!blob) return;
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'pdf-to-audiobook-3d.png';
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+  });
+});
+
+document.addEventListener('visibilitychange', () => {
+  hidden = document.hidden;
+  if (!hidden && !userPaused) { last = performance.now(); loop(last); }
+});
+
+let raf = 0;
+function frame(now) {
+  const dt = Math.min((now - last) / 1000, 0.1);
+  last = now;
+  t += dt * speed;
+  ctx.pointer.x += (target.x - ctx.pointer.x) * 0.06;
+  ctx.pointer.y += (target.y - ctx.pointer.y) * 0.06;
+  piece.update(t, dt * speed);
+  renderer.render(ctx.scene, camera);
+}
+function loop(now) {
+  if (userPaused || hidden) return;
+  frame(now);
+  raf = requestAnimationFrame(loop);
+}
+
+if (reduceMotion) {
+  /* Advance to a composed moment, render one still frame, and wait. */
+  for (let i = 0; i < 240; i++) { t += 1 / 60; piece.update(t, 1 / 60); }
+  renderer.render(ctx.scene, camera);
+  userPaused = true;
+  note.hidden = false;
+  setPlayUi();
+} else {
+  loop(performance.now());
+}
+</script>
+</body>
+</html>

@@ -1317,3 +1317,21 @@ a { color: inherit; text-decoration: none; }
   }
   #apps .pcard::after, .mini::after { opacity: 0 !important; }
 }
+
+/* interactive 3D visualization frames on project pages */
+.proj-viz__frame {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  background: #0B0E16;
+}
+.proj-viz__frame iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  display: block;
+}
+@media (max-width: 560px) {
+  .proj-viz__frame { aspect-ratio: 1 / 1; }
+}

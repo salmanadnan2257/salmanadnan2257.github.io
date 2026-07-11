@@ -1,0 +1,638 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <meta name="theme-color" content="#05070F">
+  <title>Space Race Analysis in 3D · Salman Adnan</title>
+  <meta name="description" content="Launch Arcs: an interactive 3D study of decades of launches arcing off a dark globe.">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="../assets/favicon.png" sizes="any">
+  <style>
+    :root { color-scheme: dark; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      background: #05070F;
+      overflow: hidden;
+      font: 12px/1.4 ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+      color: rgba(255, 255, 255, 0.85);
+    }
+    #stage { position: fixed; inset: 0; }
+    canvas { display: block; width: 100%; height: 100%; outline: none; }
+    canvas:focus-visible { box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.6); }
+    #hud {
+      position: absolute; right: 12px; bottom: 12px;
+      display: flex; align-items: center; gap: 10px;
+      padding: 7px 10px; border-radius: 999px;
+      background: rgba(8, 8, 14, 0.55);
+      backdrop-filter: blur(6px);
+      opacity: 0.55; transition: opacity 0.25s ease;
+    }
+    #hud:hover, #hud:focus-within { opacity: 1; }
+    #hud button {
+      appearance: none; border: 1px solid rgba(255, 255, 255, 0.25);
+      background: transparent; color: inherit; font: inherit;
+      padding: 3px 10px; border-radius: 999px; cursor: pointer;
+    }
+    #hud button:hover { border-color: rgba(255, 255, 255, 0.6); }
+    #hud button:focus-visible, #hud input:focus-visible {
+      outline: 2px solid #fff; outline-offset: 2px;
+    }
+    #hud label { display: flex; align-items: center; gap: 6px; }
+    #hud input[type="range"] { width: 72px; accent-color: #6FB4E8; }
+    #note {
+      position: absolute; left: 12px; bottom: 12px; max-width: 46ch;
+      padding: 8px 12px; border-radius: 10px;
+      background: rgba(8, 8, 14, 0.65);
+    }
+    #err {
+      position: absolute; inset: 0; display: none;
+      place-items: center; text-align: center; padding: 24px;
+    }
+    @media (max-width: 560px) {
+      #hud label { display: none; }
+    }
+  </style>
+</head>
+<body>
+<div id="stage">
+  <canvas id="c" tabindex="0" aria-label="Animated dark globe with era-colored launch trajectories arcing into accumulating orbit rings as a timeline advances."></canvas>
+  <div id="hud" role="group" aria-label="Visualization controls">
+    <button id="btnPlay" type="button" aria-pressed="false">Pause</button>
+    <label for="speed">speed
+      <input id="speed" type="range" min="0.25" max="2" step="0.25" value="1"
+             aria-label="Animation speed">
+    </label>
+    <button id="btnPng" type="button">Save PNG</button>
+  </div>
+  <p id="note" hidden>Motion is paused because your system prefers reduced motion.
+     Press Play to animate.</p>
+  <div id="err"><p>This visualization needs WebGL, which is unavailable here.<br>
+     A screenshot of it lives on the project page.</p></div>
+</div>
+
+<script type="importmap">
+{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js" } }
+</script>
+<script type="module">
+import * as THREE from 'three';
+
+/* ================= scene: space-race-analysis ================= */
+// LAUNCH ARCS
+// Sixty years of launches leave a dark globe, era by era: crimson answered by ice blue,
+// then a gold multi-nation swarm, every success adding a ring to a growing orbital halo.
+// Palette: bg space #05070F, USSR crimson #D6455A, USA ice #6FB4E8, modern gold #E8C468,
+// globe graphite #232A38, star dust #8892A8.
+// Justification: two cold-war hues against neutral graphite tell the dataset's actual story,
+// gold marks the present's diversity.
+// Signature: the halo of accumulated orbits as decades pass.
+
+function createScene(THREE, ctx) {
+  const Q = ctx.quality || 1;
+
+  // ---- tunables
+  const CYCLE = 30;                      // seconds per 1957-to-present timeline pass
+  const R = 3.1;                         // globe radius
+  const GLOBE_PTS = Math.floor(2600 * Q);// graphite surface points
+  const STARS = Math.floor(700 * Q);     // background star dust
+  const LAUNCHES = Math.max(24, Math.floor(56 * Q)); // launch events per pass
+  const TRAIL_PTS = 14;                  // comet trail points per launch
+  const RING_PTS = Math.max(40, Math.floor(72 * Q)); // points per orbit ring
+  const SPIN = 0.04;                     // globe spin, radians per second
+  const CAM_R = 11.2;                    // camera orbit radius
+  const BG = 0x05070F;
+
+  ctx.scene.background = new THREE.Color(BG);
+
+  let seed = 19571004; // Sputnik day
+  function rnd() { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; }
+
+  const uTime = { value: 0 };
+  const uPx = { value: ctx.renderer.domElement.height };
+
+  const softFrag = `
+    varying vec3 vCol;
+    varying float vA;
+    void main() {
+      float d = length(gl_PointCoord - 0.5);
+      float a = smoothstep(0.5, 0.08, d);
+      gl_FragColor = vec4(vCol, a * vA);
+    }
+  `;
+
+  const group = new THREE.Group();
+  ctx.scene.add(group);
+
+  // ---- graphite globe
+  {
+    const pos = new Float32Array(GLOBE_PTS * 3);
+    const phase = new Float32Array(GLOBE_PTS);
+    for (let i = 0; i < GLOBE_PTS; i++) {
+      const z = rnd() * 2 - 1;
+      const a = rnd() * Math.PI * 2;
+      const r = Math.sqrt(Math.max(0, 1 - z * z));
+      pos[i * 3] = r * Math.cos(a) * R;
+      pos[i * 3 + 1] = z * R;
+      pos[i * 3 + 2] = r * Math.sin(a) * R;
+      phase[i] = rnd() * Math.PI * 2;
+    }
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    g.setAttribute('aPhase', new THREE.Float32BufferAttribute(phase, 1));
+    const m = new THREE.ShaderMaterial({
+      uniforms: { uTime: uTime, uPx: uPx },
+      vertexShader: `
+        attribute float aPhase;
+        uniform float uTime;
+        uniform float uPx;
+        varying vec3 vCol;
+        varying float vA;
+        void main() {
+          vec4 mv = modelViewMatrix * vec4(position, 1.0);
+          float fc = dot(normalize((modelViewMatrix * vec4(normalize(position), 0.0)).xyz),
+                         vec3(0.0, 0.0, 1.0));
+          float facing = smoothstep(-0.5, 0.35, fc);
+          vCol = vec3(0.137, 0.165, 0.220) * 3.4;
+          vA = (0.5 + 0.14 * sin(uTime * 0.5 + aPhase)) * (0.18 + 0.82 * facing);
+          gl_PointSize = 3.0 * uPx / (-mv.z * 55.0);
+          gl_Position = projectionMatrix * mv;
+        }
+      `,
+      fragmentShader: softFrag,
+      transparent: true,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending
+    });
+    group.add(new THREE.Points(g, m));
+  }
+
+  // ---- star dust, outside the rotating group
+  {
+    const pos = new Float32Array(STARS * 3);
+    const phase = new Float32Array(STARS);
+    for (let i = 0; i < STARS; i++) {
+      const z = rnd() * 2 - 1;
+      const a = rnd() * Math.PI * 2;
+      const rr = 22 + rnd() * 10;
+      const r = Math.sqrt(Math.max(0, 1 - z * z));
+      pos[i * 3] = r * Math.cos(a) * rr;
+      pos[i * 3 + 1] = z * rr;
+      pos[i * 3 + 2] = r * Math.sin(a) * rr;
+      phase[i] = rnd() * Math.PI * 2;
+    }
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    g.setAttribute('aPhase', new THREE.Float32BufferAttribute(phase, 1));
+    const m = new THREE.ShaderMaterial({
+      uniforms: { uTime: uTime, uPx: uPx },
+      vertexShader: `
+        attribute float aPhase;
+        uniform float uTime;
+        uniform float uPx;
+        varying vec3 vCol;
+        varying float vA;
+        void main() {
+          vec4 mv = modelViewMatrix * vec4(position, 1.0);
+          vCol = vec3(0.533, 0.573, 0.659);
+          vA = 0.40 + 0.22 * sin(uTime * 0.8 + aPhase);
+          gl_PointSize = 2.8 * uPx / (-mv.z * 55.0);
+          gl_Position = projectionMatrix * mv;
+        }
+      `,
+      fragmentShader: softFrag,
+      transparent: true,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending
+    });
+    ctx.scene.add(new THREE.Points(g, m));
+  }
+
+  // ---- launch schedule: deterministic history-shaped cadence
+  function siteVec(lat, lon) {
+    const la = lat * Math.PI / 180, lo = lon * Math.PI / 180;
+    return new THREE.Vector3(
+      Math.cos(la) * Math.cos(lo), Math.sin(la), Math.cos(la) * Math.sin(lo));
+  }
+  const SITES_USSR = [siteVec(45.9, 63.3), siteVec(62.9, 40.6)];   // Baikonur, Plesetsk
+  const SITES_USA = [siteVec(28.4, -80.6), siteVec(34.7, -120.6)]; // Canaveral, Vandenberg
+  const SITES_ALL = SITES_USSR.concat(SITES_USA, [
+    siteVec(5.2, -52.8),   // Kourou
+    siteVec(30.4, 131.0),  // Tanegashima
+    siteVec(40.9, 100.3),  // Jiuquan
+    siteVec(13.7, 80.2)    // Sriharikota
+  ]);
+  const CLASS_COL = [
+    new THREE.Color(0xD6455A), // USSR crimson
+    new THREE.Color(0x6FB4E8), // USA ice
+    new THREE.Color(0xE8C468)  // modern gold
+  ];
+
+  const launches = [];
+  const up = new THREE.Vector3(0, 1, 0);
+  for (let i = 0; i < LAUNCHES; i++) {
+    const r = rnd();
+    let u; // position along the timeline: dense 60s rivalry, thin 80s-90s, dense modern
+    if (r < 0.45) u = (r / 0.45) * 0.40;
+    else if (r < 0.60) u = 0.40 + ((r - 0.45) / 0.15) * 0.32;
+    else u = 0.72 + ((r - 0.60) / 0.40) * 0.28;
+    const start = 0.3 + u * (CYCLE - 6.8);
+    const dur = 4.0 + rnd() * 1.5;
+    let cls;
+    if (u < 0.40) cls = rnd() < 0.58 ? 0 : 1;
+    else if (u < 0.72) cls = rnd() < 0.5 ? 0 : 1;
+    else cls = rnd() < 0.78 ? 2 : 1;
+    const success = rnd() < (u < 0.12 ? 0.68 : 0.90);
+    const pool = cls === 0 ? SITES_USSR : (cls === 1 ? SITES_USA : SITES_ALL);
+    const site = pool[Math.floor(rnd() * pool.length)];
+    const east = new THREE.Vector3().crossVectors(up, site).normalize();
+    const north = new THREE.Vector3().crossVectors(site, east).normalize();
+    const inc = (rnd() - 0.5) * 1.2;
+    const tan = east.clone().multiplyScalar(Math.cos(inc))
+      .add(north.clone().multiplyScalar(Math.sin(inc))).normalize();
+    const axis = new THREE.Vector3().crossVectors(site, tan).normalize();
+    launches.push({
+      site: site, axis: axis, start: start, dur: dur, cls: cls,
+      success: success, alt: 0.8 + rnd() * 0.9, sweep: 2.0 + rnd() * 1.5
+    });
+  }
+
+  // ---- launch trails: analytic ascent, circularization, or fallback ember
+  {
+    const count = LAUNCHES * TRAIL_PTS;
+    const pos = new Float32Array(count * 3);
+    const aSite = new Float32Array(count * 3);
+    const aAxis = new Float32Array(count * 3);
+    const aStart = new Float32Array(count);
+    const aDur = new Float32Array(count);
+    const aTrail = new Float32Array(count);
+    const aAlt = new Float32Array(count);
+    const aSweep = new Float32Array(count);
+    const aFail = new Float32Array(count);
+    const aCol = new Float32Array(count * 3);
+    let w = 0;
+    for (let i = 0; i < LAUNCHES; i++) {
+      const L = launches[i];
+      const c = CLASS_COL[L.cls];
+      for (let k = 0; k < TRAIL_PTS; k++) {
+        aSite[w * 3] = L.site.x; aSite[w * 3 + 1] = L.site.y; aSite[w * 3 + 2] = L.site.z;
+        aAxis[w * 3] = L.axis.x; aAxis[w * 3 + 1] = L.axis.y; aAxis[w * 3 + 2] = L.axis.z;
+        aStart[w] = L.start;
+        aDur[w] = L.dur;
+        aTrail[w] = k / (TRAIL_PTS - 1);
+        aAlt[w] = L.alt;
+        aSweep[w] = L.sweep;
+        aFail[w] = L.success ? 0 : 1;
+        aCol[w * 3] = c.r; aCol[w * 3 + 1] = c.g; aCol[w * 3 + 2] = c.b;
+        w++;
+      }
+    }
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    g.setAttribute('aSite', new THREE.Float32BufferAttribute(aSite, 3));
+    g.setAttribute('aAxis', new THREE.Float32BufferAttribute(aAxis, 3));
+    g.setAttribute('aStart', new THREE.Float32BufferAttribute(aStart, 1));
+    g.setAttribute('aDur', new THREE.Float32BufferAttribute(aDur, 1));
+    g.setAttribute('aTrail', new THREE.Float32BufferAttribute(aTrail, 1));
+    g.setAttribute('aAlt', new THREE.Float32BufferAttribute(aAlt, 1));
+    g.setAttribute('aSweep', new THREE.Float32BufferAttribute(aSweep, 1));
+    g.setAttribute('aFail', new THREE.Float32BufferAttribute(aFail, 1));
+    g.setAttribute('aCol', new THREE.Float32BufferAttribute(aCol, 3));
+    const m = new THREE.ShaderMaterial({
+      uniforms: { uTime: uTime, uPx: uPx, uCycle: { value: CYCLE }, uR: { value: R } },
+      vertexShader: `
+        attribute vec3 aSite;
+        attribute vec3 aAxis;
+        attribute float aStart;
+        attribute float aDur;
+        attribute float aTrail;
+        attribute float aAlt;
+        attribute float aSweep;
+        attribute float aFail;
+        attribute vec3 aCol;
+        uniform float uTime;
+        uniform float uPx;
+        uniform float uCycle;
+        uniform float uR;
+        varying vec3 vCol;
+        varying float vA;
+        vec3 rotAxis(vec3 v, vec3 ax, float a) {
+          float c = cos(a);
+          float s = sin(a);
+          return v * c + cross(ax, v) * s + ax * dot(ax, v) * (1.0 - c);
+        }
+        void main() {
+          float cyc = mod(uTime, uCycle);
+          float lt = cyc - aStart;
+          if (lt < 0.0) lt += uCycle;
+          float head = lt / aDur;
+          float u = head - aTrail * 0.16;
+          float on = step(0.0, u) * step(u, 1.0);
+          float ue = clamp(u, 0.0, 1.0);
+          float ee = ue * ue * (3.0 - 2.0 * ue);
+          float ang;
+          float rad;
+          if (aFail < 0.5) {
+            // eased downrange sweep while the radius climbs, then circular
+            ang = aSweep * (0.4 * ee + 0.6 * ue);
+            rad = uR + aAlt * smoothstep(0.0, 0.55, ue);
+          } else {
+            // rises partway, arcs over, falls back
+            ang = aSweep * 0.35 * ue;
+            rad = uR + aAlt * 0.55 * sin(3.14159 * min(ue * 1.15, 1.0));
+          }
+          vec3 p = rotAxis(aSite, aAxis, ang) * rad;
+          float bright = mix(0.55, 2.2, pow(1.0 - aTrail, 2.0));
+          vec3 col = aCol;
+          // brief ignition ramp so the head never blinks on at full amplitude
+          float a = on * bright * smoothstep(0.0, 0.03, ue);
+          if (aFail > 0.5) {
+            col = mix(col, vec3(0.82, 0.42, 0.24), ue);
+            a *= 1.0 - smoothstep(0.7, 1.0, ue);
+          }
+          float flare = smoothstep(0.06, 0.0, ue);
+          vCol = col * (1.0 + flare * 0.8);
+          vA = a;
+          vec4 mv = modelViewMatrix * vec4(p, 1.0);
+          gl_PointSize = (3.4 + 3.2 * pow(1.0 - aTrail, 2.0) + flare * 3.5)
+                         * uPx / (-mv.z * 55.0);
+          gl_Position = projectionMatrix * mv;
+        }
+      `,
+      fragmentShader: softFrag,
+      transparent: true,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending
+    });
+    const pts = new THREE.Points(g, m);
+    pts.frustumCulled = false;
+    group.add(pts);
+  }
+
+  // ---- accumulated orbit rings: the halo of a timeline pass
+  {
+    let ringCount = 0;
+    for (let i = 0; i < LAUNCHES; i++) if (launches[i].success) ringCount++;
+    const count = ringCount * RING_PTS;
+    const pos = new Float32Array(count * 3);
+    const aTh = new Float32Array(count);
+    const aAppear = new Float32Array(count);
+    const aPhase = new Float32Array(count);
+    const aCol = new Float32Array(count * 3);
+    let w = 0;
+    const e2 = new THREE.Vector3();
+    for (let i = 0; i < LAUNCHES; i++) {
+      const L = launches[i];
+      if (!L.success) continue;
+      e2.crossVectors(L.axis, L.site).normalize();
+      const appear = Math.min(L.start + L.dur * 0.9, CYCLE - 4.5);
+      const phase = rnd();
+      const c = CLASS_COL[L.cls];
+      const rr = R + L.alt;
+      for (let k = 0; k < RING_PTS; k++) {
+        const th = (k / RING_PTS) * Math.PI * 2;
+        pos[w * 3] = (Math.cos(th) * L.site.x + Math.sin(th) * e2.x) * rr;
+        pos[w * 3 + 1] = (Math.cos(th) * L.site.y + Math.sin(th) * e2.y) * rr;
+        pos[w * 3 + 2] = (Math.cos(th) * L.site.z + Math.sin(th) * e2.z) * rr;
+        aTh[w] = th;
+        aAppear[w] = appear;
+        aPhase[w] = phase;
+        aCol[w * 3] = c.r; aCol[w * 3 + 1] = c.g; aCol[w * 3 + 2] = c.b;
+        w++;
+      }
+    }
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    g.setAttribute('aTh', new THREE.Float32BufferAttribute(aTh, 1));
+    g.setAttribute('aAppear', new THREE.Float32BufferAttribute(aAppear, 1));
+    g.setAttribute('aPhase', new THREE.Float32BufferAttribute(aPhase, 1));
+    g.setAttribute('aCol', new THREE.Float32BufferAttribute(aCol, 3));
+    const m = new THREE.ShaderMaterial({
+      uniforms: { uTime: uTime, uPx: uPx, uCycle: { value: CYCLE } },
+      vertexShader: `
+        attribute float aTh;
+        attribute float aAppear;
+        attribute float aPhase;
+        attribute vec3 aCol;
+        uniform float uTime;
+        uniform float uPx;
+        uniform float uCycle;
+        varying vec3 vCol;
+        varying float vA;
+        void main() {
+          float cyc = mod(uTime, uCycle);
+          float ain = smoothstep(aAppear, aAppear + 1.6, cyc);
+          float aout = 1.0 - smoothstep(uCycle - 3.2, uCycle - 0.3, cyc);
+          // a small satellite spark circulates each ring
+          float sat = smoothstep(0.05, 0.0, fract(aTh * 0.1591549 - uTime * 0.06 + aPhase));
+          vCol = aCol;
+          vA = ain * aout * (0.42 + 0.10 * sin(uTime * 1.1 + aTh * 3.0) + sat * 0.7);
+          vec4 mv = modelViewMatrix * vec4(position, 1.0);
+          gl_PointSize = (2.8 + sat * 3.2) * uPx / (-mv.z * 55.0);
+          gl_Position = projectionMatrix * mv;
+        }
+      `,
+      fragmentShader: softFrag,
+      transparent: true,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending
+    });
+    group.add(new THREE.Points(g, m));
+  }
+
+  // ---- small era glow at the base, hue tracking the timeline
+  const eraCol = { value: new THREE.Color(0xD6455A) };
+  {
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute([0, -4.9, 0], 3));
+    const m = new THREE.ShaderMaterial({
+      uniforms: { uPx: uPx, uCol: eraCol },
+      vertexShader: `
+        uniform float uPx;
+        uniform vec3 uCol;
+        varying vec3 vCol;
+        varying float vA;
+        void main() {
+          vec4 mv = modelViewMatrix * vec4(position, 1.0);
+          vCol = uCol;
+          vA = 0.18;
+          gl_PointSize = 120.0 * uPx / (-mv.z * 55.0);
+          gl_Position = projectionMatrix * mv;
+        }
+      `,
+      fragmentShader: softFrag,
+      transparent: true,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending
+    });
+    ctx.scene.add(new THREE.Points(g, m));
+  }
+
+  const CRIM = new THREE.Color(0xD6455A);
+  const ICE = new THREE.Color(0x6FB4E8);
+  const GOLD = new THREE.Color(0xE8C468);
+  const tmpC = new THREE.Color();
+
+  ctx.camera.position.set(0, 2.4, CAM_R);
+  ctx.camera.lookAt(0, 0, 0);
+
+  return {
+    update(t, dt) {
+      uTime.value = t;
+      group.rotation.y = t * SPIN;
+
+      // era glow: rivalry hues trade places early, gold takes the modern era
+      const t01 = (t % CYCLE) / CYCLE;
+      const duel = 0.5 + 0.4 * Math.sin(t * 0.5);
+      const w3 = THREE.MathUtils.smoothstep(t01, 0.62, 0.82);
+      tmpC.copy(CRIM).lerp(ICE, duel).lerp(GOLD, w3);
+      eraCol.value.copy(tmpC);
+
+      // slow orbit, pointer nudges it
+      const a = t * 0.045 + ctx.pointer.x * 0.45;
+      const e = 0.22 + ctx.pointer.y * 0.28;
+      ctx.camera.position.set(
+        Math.sin(a) * CAM_R * Math.cos(e),
+        Math.sin(e) * CAM_R,
+        Math.cos(a) * CAM_R * Math.cos(e)
+      );
+      ctx.camera.lookAt(0, 0, 0);
+    },
+    resize() {
+      uPx.value = ctx.renderer.domElement.height;
+    }
+  };
+}
+
+/* ================= shared runtime ================= */
+
+const canvas = document.getElementById('c');
+const btnPlay = document.getElementById('btnPlay');
+const speedEl = document.getElementById('speed');
+const btnPng = document.getElementById('btnPng');
+const note = document.getElementById('note');
+
+let renderer;
+try {
+  renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
+} catch (e) {
+  document.getElementById('err').style.display = 'grid';
+  document.getElementById('hud').hidden = true;
+  throw e;
+}
+
+/* Quality tier: 1 on desktop, lower on small screens or few cores.
+   Scenes scale particle counts by ctx.quality. */
+const small = Math.min(window.innerWidth, window.innerHeight) < 700;
+const weak = (navigator.hardwareConcurrency || 8) <= 4;
+const quality = small ? 0.5 : (weak ? 0.7 : 1);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, quality < 1 ? 1.5 : 2));
+
+const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 500);
+camera.position.set(0, 0, 12);
+
+const ctx = {
+  scene: new THREE.Scene(),
+  camera,
+  renderer,
+  quality,
+  pointer: { x: 0, y: 0 },  /* smoothed, -1..1, y up */
+};
+
+let piece;
+try {
+  piece = createScene(THREE, ctx);
+} catch (e) {
+  document.getElementById('err').style.display = 'grid';
+  document.getElementById('hud').hidden = true;
+  console.error(e);
+  throw e;
+}
+
+function resize() {
+  const w = window.innerWidth, h = window.innerHeight;
+  renderer.setSize(w, h, false);
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+  if (piece.resize) piece.resize(w, h);
+}
+window.addEventListener('resize', resize);
+resize();
+
+/* Pointer parallax target, lerped each frame for weight. */
+const target = { x: 0, y: 0 };
+window.addEventListener('pointermove', (e) => {
+  target.x = (e.clientX / window.innerWidth) * 2 - 1;
+  target.y = -((e.clientY / window.innerHeight) * 2 - 1);
+}, { passive: true });
+
+let userPaused = false;
+let hidden = false;
+let speed = 1;
+let t = 0;
+let last = performance.now();
+
+const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+function setPlayUi() {
+  btnPlay.textContent = userPaused ? 'Play' : 'Pause';
+  btnPlay.setAttribute('aria-pressed', String(userPaused));
+}
+btnPlay.addEventListener('click', () => {
+  userPaused = !userPaused;
+  note.hidden = true;
+  setPlayUi();
+  if (!userPaused) { last = performance.now(); loop(last); }
+});
+canvas.addEventListener('keydown', (e) => {
+  if (e.code === 'Space') { e.preventDefault(); btnPlay.click(); }
+});
+speedEl.addEventListener('input', () => { speed = parseFloat(speedEl.value) || 1; });
+
+btnPng.addEventListener('click', () => {
+  renderer.render(ctx.scene, camera);
+  canvas.toBlob((blob) => {
+    if (!blob) return;
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'space-race-analysis-3d.png';
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+  });
+});
+
+document.addEventListener('visibilitychange', () => {
+  hidden = document.hidden;
+  if (!hidden && !userPaused) { last = performance.now(); loop(last); }
+});
+
+let raf = 0;
+function frame(now) {
+  const dt = Math.min((now - last) / 1000, 0.1);
+  last = now;
+  t += dt * speed;
+  ctx.pointer.x += (target.x - ctx.pointer.x) * 0.06;
+  ctx.pointer.y += (target.y - ctx.pointer.y) * 0.06;
+  piece.update(t, dt * speed);
+  renderer.render(ctx.scene, camera);
+}
+function loop(now) {
+  if (userPaused || hidden) return;
+  frame(now);
+  raf = requestAnimationFrame(loop);
+}
+
+if (reduceMotion) {
+  /* Advance to a composed moment, render one still frame, and wait. */
+  for (let i = 0; i < 240; i++) { t += 1 / 60; piece.update(t, 1 / 60); }
+  renderer.render(ctx.scene, camera);
+  userPaused = true;
+  note.hidden = false;
+  setPlayUi();
+} else {
+  loop(performance.now());
+}
+</script>
+</body>
+</html>

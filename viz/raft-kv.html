@@ -1,0 +1,737 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <meta name="theme-color" content="#070C1C">
+  <title>Raft Consensus KV Store in 3D · Salman Adnan</title>
+  <meta name="description" content="Consensus Ring: an interactive 3D study of leader election, replication, and partitions in Raft.">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="../assets/favicon.png" sizes="any">
+  <style>
+    :root { color-scheme: dark; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      background: #070C1C;
+      overflow: hidden;
+      font: 12px/1.4 ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+      color: rgba(255, 255, 255, 0.85);
+    }
+    #stage { position: fixed; inset: 0; }
+    canvas { display: block; width: 100%; height: 100%; outline: none; }
+    canvas:focus-visible { box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.6); }
+    #hud {
+      position: absolute; right: 12px; bottom: 12px;
+      display: flex; align-items: center; gap: 10px;
+      padding: 7px 10px; border-radius: 999px;
+      background: rgba(8, 8, 14, 0.55);
+      backdrop-filter: blur(6px);
+      opacity: 0.55; transition: opacity 0.25s ease;
+    }
+    #hud:hover, #hud:focus-within { opacity: 1; }
+    #hud button {
+      appearance: none; border: 1px solid rgba(255, 255, 255, 0.25);
+      background: transparent; color: inherit; font: inherit;
+      padding: 3px 10px; border-radius: 999px; cursor: pointer;
+    }
+    #hud button:hover { border-color: rgba(255, 255, 255, 0.6); }
+    #hud button:focus-visible, #hud input:focus-visible {
+      outline: 2px solid #fff; outline-offset: 2px;
+    }
+    #hud label { display: flex; align-items: center; gap: 6px; }
+    #hud input[type="range"] { width: 72px; accent-color: #F4C95D; }
+    #note {
+      position: absolute; left: 12px; bottom: 12px; max-width: 46ch;
+      padding: 8px 12px; border-radius: 10px;
+      background: rgba(8, 8, 14, 0.65);
+    }
+    #err {
+      position: absolute; inset: 0; display: none;
+      place-items: center; text-align: center; padding: 24px;
+    }
+    @media (max-width: 560px) {
+      #hud label { display: none; }
+    }
+  </style>
+</head>
+<body>
+<div id="stage">
+  <canvas id="c" tabindex="0" aria-label="Animated ring of five node orbs exchanging heartbeat waves and replicating log entries, with occasional partitions forcing a new leader."></canvas>
+  <div id="hud" role="group" aria-label="Visualization controls">
+    <button id="btnPlay" type="button" aria-pressed="false">Pause</button>
+    <label for="speed">speed
+      <input id="speed" type="range" min="0.25" max="2" step="0.25" value="1"
+             aria-label="Animation speed">
+    </label>
+    <button id="btnPng" type="button">Save PNG</button>
+  </div>
+  <p id="note" hidden>Motion is paused because your system prefers reduced motion.
+     Press Play to animate.</p>
+  <div id="err"><p>This visualization needs WebGL, which is unavailable here.<br>
+     A screenshot of it lives on the project page.</p></div>
+</div>
+
+<script type="importmap">
+{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js" } }
+</script>
+<script type="module">
+import * as THREE from 'three';
+
+/* ================= scene: raft-kv ================= */
+// Piece: Consensus Ring. Five Raft nodes on a quiet grid: gold heartbeats ripple from
+// the leader, green log entries replicate and stack beside each node, then a rose
+// partition slices the ring, the majority elects a new leader, and the cluster heals.
+// Palette: bg midnight #070C1C, follower steel #7C8DB0, leader gold #F4C95D, commit
+// green #6FD08C, partition rose #E0566B. Gold leadership on cool steel reads at a
+// glance; rose is reserved strictly for the fault.
+// Signature: the partition slice and the visible re-election it forces.
+
+function createScene(THREE, ctx) {
+  const q = ctx.quality;
+
+  // ---------- tunables ----------
+  const BG = 0x070C1C;                 // midnight background
+  const STEEL = new THREE.Color(0x7C8DB0);  // follower hue
+  const GOLD = new THREE.Color(0xF4C95D);   // leader hue
+  const GREEN = new THREE.Color(0x6FD08C);  // committed log entries
+  const ROSE = 0xE0566B;               // partition plane
+  const RING_R = 3.0;                  // pentagon radius
+  const HB_PERIOD = 1.15;              // seconds between heartbeats
+  const HB_SPEED = 3.6;                // heartbeat ring expansion, units/s
+  const REP_PERIOD = 0.95;             // seconds between log appends
+  const MAX_LOG = 12;                  // bars per node before compaction
+  const COMPACT_KEEP = 3;              // bars kept after the snapshot
+  const GRID_N = Math.max(14, Math.floor(30 * Math.sqrt(q))); // grid points per side
+  const PART_POOL = Math.max(40, Math.floor(90 * q));         // replication particles
+  // phase timeline in seconds
+  const PHASE_DUR = { NORMAL: 9.0, CUT: 1.4, ELECT: 2.4, STEADY2: 4.0, HEAL: 1.4, CATCHUP: 2.4 };
+  const PHASE_ORDER = ['NORMAL', 'CUT', 'ELECT', 'STEADY2', 'HEAL', 'CATCHUP'];
+  const IGNITE_AT = 1.5;               // election ignition moment inside ELECT
+
+  ctx.scene.background = new THREE.Color(BG);
+  ctx.scene.fog = new THREE.FogExp2(BG, 0.02);
+
+  const root = new THREE.Group();
+  ctx.scene.add(root);
+
+  function rand(a, b) { return a + Math.random() * (b - a); }
+  function ease(u) { return u * u * (3.0 - 2.0 * u); }
+
+  // ---------- ground grid ----------
+  const gridCount = GRID_N * GRID_N;
+  const gPos = new Float32Array(gridCount * 3);
+  const gSeed = new Float32Array(gridCount);
+  let gi = 0;
+  for (let ix = 0; ix < GRID_N; ix++) {
+    for (let iz = 0; iz < GRID_N; iz++) {
+      gPos[gi * 3] = (ix / (GRID_N - 1) - 0.5) * 15;
+      gPos[gi * 3 + 1] = -1.4;
+      gPos[gi * 3 + 2] = (iz / (GRID_N - 1) - 0.5) * 15;
+      gSeed[gi] = Math.random();
+      gi++;
+    }
+  }
+  const gridGeo = new THREE.BufferGeometry();
+  gridGeo.setAttribute('position', new THREE.Float32BufferAttribute(gPos, 3));
+  gridGeo.setAttribute('aSeed', new THREE.Float32BufferAttribute(gSeed, 1));
+  const gridMat = new THREE.ShaderMaterial({
+    uniforms: { uTime: { value: 0 }, uColor: { value: new THREE.Color(0x2A3550) } },
+    vertexShader: `
+      uniform float uTime;
+      attribute float aSeed;
+      varying float vTw;
+      void main() {
+        vTw = 0.6 + 0.4 * sin(uTime * 1.2 + aSeed * 6.2831);
+        vec4 mv = modelViewMatrix * vec4(position, 1.0);
+        gl_PointSize = 0.14 * (300.0 / -mv.z);
+        gl_Position = projectionMatrix * mv;
+      }
+    `,
+    fragmentShader: `
+      uniform vec3 uColor;
+      varying float vTw;
+      void main() {
+        float d = length(gl_PointCoord - 0.5);
+        float a = smoothstep(0.5, 0.1, d);
+        gl_FragColor = vec4(uColor, a * vTw * 0.85);
+      }
+    `,
+    transparent: true, depthWrite: false, blending: THREE.AdditiveBlending
+  });
+  root.add(new THREE.Points(gridGeo, gridMat));
+
+  // ---------- the five nodes ----------
+  const N = 5;
+  const nodePos = [];
+  const nodeMesh = [];
+  for (let i = 0; i < N; i++) {
+    const a = (i / N) * Math.PI * 2 + Math.PI / 2;
+    const p = new THREE.Vector3(Math.cos(a) * RING_R, 0, Math.sin(a) * RING_R);
+    nodePos.push(p);
+    const m = new THREE.Mesh(
+      new THREE.SphereGeometry(0.36, 24, 18),
+      new THREE.MeshBasicMaterial({ color: 0xFFFFFF })
+    );
+    m.position.copy(p);
+    root.add(m);
+    nodeMesh.push(m);
+  }
+
+  // halos: one Points object, per-vertex color and size
+  const haloPos = new Float32Array(N * 3);
+  const haloCol = new Float32Array(N * 3);
+  const haloSize = new Float32Array(N);
+  for (let i = 0; i < N; i++) {
+    haloPos[i * 3] = nodePos[i].x; haloPos[i * 3 + 1] = 0; haloPos[i * 3 + 2] = nodePos[i].z;
+  }
+  const haloGeo = new THREE.BufferGeometry();
+  haloGeo.setAttribute('position', new THREE.Float32BufferAttribute(haloPos, 3));
+  const haloColAttr = new THREE.Float32BufferAttribute(haloCol, 3);
+  const haloSizeAttr = new THREE.Float32BufferAttribute(haloSize, 1);
+  haloGeo.setAttribute('aColor', haloColAttr);
+  haloGeo.setAttribute('aSize', haloSizeAttr);
+  root.add(new THREE.Points(haloGeo, new THREE.ShaderMaterial({
+    vertexShader: `
+      attribute vec3 aColor;
+      attribute float aSize;
+      varying vec3 vC;
+      void main() {
+        vC = aColor;
+        vec4 mv = modelViewMatrix * vec4(position, 1.0);
+        gl_PointSize = aSize * (300.0 / -mv.z);
+        gl_Position = projectionMatrix * mv;
+      }
+    `,
+    fragmentShader: `
+      varying vec3 vC;
+      void main() {
+        float d = length(gl_PointCoord - 0.5);
+        float a = smoothstep(0.5, 0.0, d);
+        gl_FragColor = vec4(vC, a * a);
+      }
+    `,
+    transparent: true, depthWrite: false, depthTest: false, blending: THREE.AdditiveBlending
+  })));
+
+  // ---------- heartbeat rings ----------
+  const rings = [];
+  for (let i = 0; i < 6; i++) {
+    const m = new THREE.Mesh(
+      new THREE.RingGeometry(0.94, 1.0, 64),
+      new THREE.MeshBasicMaterial({
+        color: 0xF8E0A0, transparent: true, opacity: 0,
+        side: THREE.DoubleSide, blending: THREE.AdditiveBlending, depthWrite: false
+      })
+    );
+    m.rotation.x = -Math.PI / 2;
+    m.position.y = -1.3;
+    root.add(m);
+    rings.push({ mesh: m, live: false, age: 0, origin: 0, sideSign: 0, reached: [false, false, false, false, false] });
+  }
+
+  // ---------- log bars ----------
+  const barMesh = new THREE.InstancedMesh(
+    new THREE.BoxGeometry(0.15, 0.12, 0.15),
+    new THREE.MeshBasicMaterial({ color: 0xFFFFFF }),
+    N * MAX_LOG
+  );
+  root.add(barMesh);
+  const barGrow = new Float32Array(N * MAX_LOG);
+  const shownCount = [4, 4, 4, 4, 4]; // bars each node displays
+  let leaderCount = 4;                // entries the leader has appended
+  for (let i = 0; i < N; i++) for (let j = 0; j < 4; j++) barGrow[i * MAX_LOG + j] = 1;
+  const m4 = new THREE.Matrix4();
+  const qt = new THREE.Quaternion();
+  const sv = new THREE.Vector3();
+  const pv = new THREE.Vector3();
+  const cTmp = new THREE.Color();
+  const WHITE = new THREE.Color(0xFFFFFF);
+  const outDir = new THREE.Vector3();
+  for (let k = 0; k < N * MAX_LOG; k++) barMesh.setColorAt(k, cTmp.copy(GREEN));
+  barMesh.instanceColor.needsUpdate = true;
+
+  // ---------- replication particles ----------
+  const rpPos = new Float32Array(PART_POOL * 3);
+  const rpAlpha = new Float32Array(PART_POOL);
+  const rpGeo = new THREE.BufferGeometry();
+  const rpPosAttr = new THREE.Float32BufferAttribute(rpPos, 3);
+  const rpAlphaAttr = new THREE.Float32BufferAttribute(rpAlpha, 1);
+  rpGeo.setAttribute('position', rpPosAttr);
+  rpGeo.setAttribute('aAlpha', rpAlphaAttr);
+  root.add(new THREE.Points(rpGeo, new THREE.ShaderMaterial({
+    uniforms: { uColor: { value: GREEN.clone() } },
+    vertexShader: `
+      attribute float aAlpha;
+      varying float vA;
+      void main() {
+        vA = aAlpha;
+        vec4 mv = modelViewMatrix * vec4(position, 1.0);
+        gl_PointSize = 0.3 * (300.0 / -mv.z);
+        gl_Position = projectionMatrix * mv;
+      }
+    `,
+    fragmentShader: `
+      uniform vec3 uColor;
+      varying float vA;
+      void main() {
+        float d = length(gl_PointCoord - 0.5);
+        float a = smoothstep(0.5, 0.05, d);
+        gl_FragColor = vec4(uColor * 1.3, a * vA);
+      }
+    `,
+    transparent: true, depthWrite: false, blending: THREE.AdditiveBlending
+  })));
+  const parts = [];
+  const partFree = [];
+  for (let i = 0; i < PART_POOL; i++) {
+    parts.push({ live: false, from: new THREE.Vector3(), to: new THREE.Vector3(), t: 0, dur: 0.5, node: 0 });
+    partFree.push(i);
+  }
+  function sendEntry(fromIdx, toIdx) {
+    if (!partFree.length) return;
+    const i = partFree.pop();
+    const P = parts[i];
+    P.live = true;
+    P.from.copy(nodePos[fromIdx]);
+    P.to.copy(nodePos[toIdx]);
+    P.t = 0;
+    P.dur = rand(0.45, 0.6);
+    P.node = toIdx;
+  }
+
+  // ---------- partition plane ----------
+  const plane = new THREE.Mesh(
+    new THREE.PlaneGeometry(10.5, 4.6),
+    new THREE.MeshBasicMaterial({
+      color: ROSE, transparent: true, opacity: 0, side: THREE.DoubleSide, depthWrite: false
+    })
+  );
+  plane.position.y = 0.5;
+  root.add(plane);
+
+  // ---------- cluster state ----------
+  let leader = 0;        // current acknowledged leader
+  let oldLeader = 0;     // pre-partition leader, steps down at heal
+  let newLeader = 2;     // elected during partition
+  let phaseIdx = 0;
+  let phaseT = 0;
+  let hbTimer = 0.4;
+  let repTimer = 0;
+  let catchupTimer = 0;
+  let compacting = false;
+  let compactT = 0;
+  let planeOpacityGoal = 0;
+  let ignited = false;
+  const side = [1, 1, 1, 1, 1];       // partition side per node
+  const dim = [1, 1, 1, 1, 1];        // eased brightness per node
+  const dimGoal = [1, 1, 1, 1, 1];
+  const gold = [1, 0, 0, 0, 0];       // eased leader-gold per node
+  const goldGoal = [1, 0, 0, 0, 0];
+  const pulse = [0, 0, 0, 0, 0];      // heartbeat receive bump
+  const flickSeed = [0, 0, 0, 0, 0];
+  const planeN = new THREE.Vector3();
+
+  function phase() { return PHASE_ORDER[phaseIdx]; }
+  function partitioned() {
+    const p = phase();
+    return p === 'CUT' || p === 'ELECT' || p === 'STEADY2';
+  }
+
+  function enterPhase(name) {
+    if (name === 'CUT') {
+      oldLeader = leader;
+      const peer = (oldLeader + (Math.random() < 0.5 ? 1 : N - 1)) % N;
+      const minority = [oldLeader, peer];
+      const cMin = new THREE.Vector3();
+      const cMaj = new THREE.Vector3();
+      let nMaj = 0;
+      for (let i = 0; i < N; i++) {
+        if (minority.indexOf(i) >= 0) {
+          side[i] = 1;
+          cMin.add(nodePos[i]);
+        } else {
+          side[i] = -1;
+          cMaj.add(nodePos[i]);
+          nMaj++;
+        }
+      }
+      cMin.multiplyScalar(1 / 2);
+      cMaj.multiplyScalar(1 / nMaj);
+      planeN.copy(cMin).sub(cMaj).setY(0).normalize();
+      const mid = cMaj.clone().lerp(cMin, 0.52);
+      plane.position.set(mid.x, 0.5, mid.z);
+      // orient in root-local space: yaw the +z normal onto planeN
+      plane.rotation.set(0, Math.atan2(planeN.x, planeN.z), 0);
+      planeOpacityGoal = 0.16;
+      for (let i = 0; i < N; i++) {
+        dimGoal[i] = side[i] === 1 ? 0.32 : 1;
+        flickSeed[i] = rand(6, 14);
+      }
+      // pick the new leader among the majority
+      const maj = [];
+      for (let i = 0; i < N; i++) if (side[i] === -1) maj.push(i);
+      newLeader = maj[Math.floor(Math.random() * maj.length)];
+      ignited = false;
+    } else if (name === 'HEAL') {
+      planeOpacityGoal = 0;
+      goldGoal[oldLeader] = 0; // stepping down
+      for (let i = 0; i < N; i++) dimGoal[i] = 1;
+    } else if (name === 'CATCHUP') {
+      // stale side truncates or catches up to the new leader's log
+      for (let i = 0; i < N; i++) {
+        if (side[i] === 1 && shownCount[i] > leaderCount) shownCount[i] = leaderCount;
+      }
+      catchupTimer = 0;
+    }
+  }
+
+  function emitHeartbeat() {
+    for (let r = 0; r < rings.length; r++) {
+      if (!rings[r].live) {
+        const R = rings[r];
+        R.live = true;
+        R.age = 0;
+        R.origin = leader;
+        R.sideSign = partitioned() ? side[leader] : 0;
+        for (let i = 0; i < N; i++) R.reached[i] = false;
+        R.mesh.position.set(nodePos[leader].x, -1.3, nodePos[leader].z);
+        return;
+      }
+    }
+  }
+
+  function replicate() {
+    if (leaderCount < MAX_LOG) {
+      leaderCount++;
+      shownCount[leader] = leaderCount;
+    } else if (phase() === 'NORMAL' && !compacting) {
+      compacting = true;
+      compactT = 0;
+      return;
+    }
+    for (let i = 0; i < N; i++) {
+      if (i === leader) continue;
+      if (partitioned() && side[i] !== side[leader]) continue;
+      if (shownCount[i] < leaderCount) sendEntry(leader, i);
+    }
+  }
+
+  // ---------- update ----------
+  const look = new THREE.Vector3(0, 0.1, 0);
+  return {
+    update: function (t, dt) {
+      const d = Math.min(dt, 0.05);
+      phaseT += d;
+      gridMat.uniforms.uTime.value = t;
+
+      // phase advance
+      const cur = phase();
+      if (phaseT >= PHASE_DUR[cur]) {
+        phaseIdx = (phaseIdx + 1) % PHASE_ORDER.length;
+        phaseT = 0;
+        enterPhase(phase());
+      }
+
+      // election ignition
+      if (phase() === 'ELECT' && !ignited && phaseT >= IGNITE_AT) {
+        ignited = true;
+        goldGoal[newLeader] = 1;
+        leader = newLeader;
+        // the new leader can only serve the log it actually holds
+        leaderCount = shownCount[newLeader];
+      }
+
+      // heartbeats: silent while the cluster is leaderless
+      const p = phase();
+      const hbAllowed = p === 'NORMAL' || p === 'STEADY2' || p === 'HEAL' || p === 'CATCHUP' ||
+        (p === 'ELECT' && ignited);
+      hbTimer -= d;
+      if (hbTimer <= 0 && hbAllowed) {
+        hbTimer = HB_PERIOD;
+        emitHeartbeat();
+      }
+      if (!hbAllowed && hbTimer < 0.25) hbTimer = 0.25;
+
+      // replication cadence
+      const repAllowed = hbAllowed;
+      repTimer -= d;
+      if (repTimer <= 0 && repAllowed && !compacting) {
+        repTimer = REP_PERIOD;
+        replicate();
+      }
+
+      // log compaction: bars beyond the snapshot shrink, staggered top-down
+      if (compacting) {
+        compactT += d;
+        if (compactT > 1.3) {
+          compacting = false;
+          leaderCount = COMPACT_KEEP;
+          for (let i = 0; i < N; i++) shownCount[i] = Math.min(shownCount[i], COMPACT_KEEP);
+        }
+      }
+
+      // catch-up burst for the stale side
+      if (p === 'CATCHUP') {
+        catchupTimer -= d;
+        if (catchupTimer <= 0) {
+          catchupTimer = 0.12;
+          for (let i = 0; i < N; i++) {
+            if (i !== leader && shownCount[i] < leaderCount) sendEntry(leader, i);
+          }
+        }
+      }
+
+      // heartbeat rings expand; nodes pulse when the front reaches them
+      for (let r = 0; r < rings.length; r++) {
+        const R = rings[r];
+        if (!R.live) continue;
+        R.age += d;
+        const rad = 0.2 + R.age * HB_SPEED;
+        const life = Math.max(0, 1 - rad / (RING_R * 1.9));
+        R.mesh.scale.set(rad, rad, rad);
+        R.mesh.material.opacity = Math.pow(life, 1.3) * 0.5;
+        for (let i = 0; i < N; i++) {
+          if (R.reached[i] || i === R.origin) continue;
+          const dx = nodePos[i].x - nodePos[R.origin].x;
+          const dz = nodePos[i].z - nodePos[R.origin].z;
+          if (Math.sqrt(dx * dx + dz * dz) <= rad) {
+            R.reached[i] = true;
+            if (R.sideSign === 0 || side[i] === R.sideSign) pulse[i] = 1;
+          }
+        }
+        if (life <= 0) { R.live = false; R.mesh.material.opacity = 0; }
+      }
+
+      // replication particles fly leader -> follower with a small arc
+      for (let i = 0; i < PART_POOL; i++) {
+        const P = parts[i];
+        if (!P.live) { rpAlpha[i] = 0; continue; }
+        P.t += d;
+        const u = Math.min(1, P.t / P.dur);
+        const e = ease(u);
+        rpPos[i * 3] = P.from.x + (P.to.x - P.from.x) * e;
+        rpPos[i * 3 + 1] = P.from.y + (P.to.y - P.from.y) * e + Math.sin(u * Math.PI) * 0.7;
+        rpPos[i * 3 + 2] = P.from.z + (P.to.z - P.from.z) * e;
+        rpAlpha[i] = Math.min(1, u * 8) * Math.min(1, (1 - u) * 8 + 0.2);
+        if (u >= 1) {
+          P.live = false;
+          partFree.push(i);
+          rpAlpha[i] = 0;
+          if (shownCount[P.node] < leaderCount) shownCount[P.node]++;
+          pulse[P.node] = Math.max(pulse[P.node], 0.6);
+        }
+      }
+      rpPosAttr.needsUpdate = true;
+      rpAlphaAttr.needsUpdate = true;
+
+      // eased node states
+      for (let i = 0; i < N; i++) {
+        dim[i] += (dimGoal[i] - dim[i]) * Math.min(1, d * 3.2);
+        gold[i] += (goldGoal[i] - gold[i]) * Math.min(1, d * 3.0);
+        pulse[i] = Math.max(0, pulse[i] - d * 3.2);
+      }
+
+      // election flicker on the majority side
+      let flick = [0, 0, 0, 0, 0];
+      if (p === 'ELECT' && !ignited && phaseT > 0.35) {
+        for (let i = 0; i < N; i++) {
+          if (side[i] === -1) {
+            const f = Math.sin(t * flickSeed[i] + i * 2.1);
+            flick[i] = Math.max(0, f) * 0.5;
+          }
+        }
+      }
+
+      // node meshes and halos
+      const ha = haloColAttr.array;
+      for (let i = 0; i < N; i++) {
+        const g = gold[i];
+        const bright = dim[i] * (0.55 + pulse[i] * 0.5 + flick[i]);
+        cTmp.copy(STEEL).lerp(GOLD, g).multiplyScalar(bright);
+        nodeMesh[i].material.color.copy(cTmp);
+        const s = 1 + pulse[i] * 0.18 + g * 0.08;
+        nodeMesh[i].scale.set(s, s, s);
+        const hb = dim[i] * (0.42 + g * 0.95 + pulse[i] * 0.5 + flick[i] * 1.1);
+        ha[i * 3] = (STEEL.r + (GOLD.r - STEEL.r) * g) * hb;
+        ha[i * 3 + 1] = (STEEL.g + (GOLD.g - STEEL.g) * g) * hb;
+        ha[i * 3 + 2] = (STEEL.b + (GOLD.b - STEEL.b) * g) * hb;
+        haloSize[i] = 1.5 + g * 1.1 + pulse[i] * 0.4;
+      }
+      haloColAttr.needsUpdate = true;
+      haloSizeAttr.array.set(haloSize);
+      haloSizeAttr.needsUpdate = true;
+
+      // log bars: grow toward shownCount, shrink during compaction
+      for (let i = 0; i < N; i++) {
+        outDir.set(nodePos[i].x, 0, nodePos[i].z).normalize();
+        const bx = nodePos[i].x + outDir.x * 0.95;
+        const bz = nodePos[i].z + outDir.z * 0.95;
+        for (let j = 0; j < MAX_LOG; j++) {
+          const k = i * MAX_LOG + j;
+          let target = j < shownCount[i] ? 1 : 0;
+          if (compacting && j >= COMPACT_KEEP) {
+            // staggered shrink, newest bars let go first
+            const delay = (MAX_LOG - j) * 0.06;
+            if (compactT > delay) target = 0;
+          }
+          barGrow[k] += (target - barGrow[k]) * Math.min(1, d * 6);
+          const g = barGrow[k];
+          const by = -0.55 + j * 0.155 + 0.06 * g;
+          m4.compose(pv.set(bx, by, bz), qt, sv.set(1, Math.max(0.001, g), 1));
+          barMesh.setMatrixAt(k, m4);
+          cTmp.copy(GREEN).multiplyScalar((0.5 + 0.5 * g) * dim[i]).lerp(WHITE, (1 - g) * 0.3 * g);
+          barMesh.setColorAt(k, cTmp);
+        }
+      }
+      barMesh.instanceMatrix.needsUpdate = true;
+      barMesh.instanceColor.needsUpdate = true;
+
+      // partition plane fade
+      plane.material.opacity += (planeOpacityGoal - plane.material.opacity) * Math.min(1, d * 2.6);
+
+      // slow cluster rotation and camera
+      root.rotation.y = t * 0.03;
+      const a = t * 0.05 + ctx.pointer.x * 0.45;
+      ctx.camera.position.set(
+        Math.sin(a) * 11.6,
+        5.0 + ctx.pointer.y * 1.6,
+        Math.cos(a) * 11.6
+      );
+      ctx.camera.lookAt(look);
+    }
+  };
+}
+
+/* ================= shared runtime ================= */
+
+const canvas = document.getElementById('c');
+const btnPlay = document.getElementById('btnPlay');
+const speedEl = document.getElementById('speed');
+const btnPng = document.getElementById('btnPng');
+const note = document.getElementById('note');
+
+let renderer;
+try {
+  renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
+} catch (e) {
+  document.getElementById('err').style.display = 'grid';
+  document.getElementById('hud').hidden = true;
+  throw e;
+}
+
+/* Quality tier: 1 on desktop, lower on small screens or few cores.
+   Scenes scale particle counts by ctx.quality. */
+const small = Math.min(window.innerWidth, window.innerHeight) < 700;
+const weak = (navigator.hardwareConcurrency || 8) <= 4;
+const quality = small ? 0.5 : (weak ? 0.7 : 1);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, quality < 1 ? 1.5 : 2));
+
+const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 500);
+camera.position.set(0, 0, 12);
+
+const ctx = {
+  scene: new THREE.Scene(),
+  camera,
+  renderer,
+  quality,
+  pointer: { x: 0, y: 0 },  /* smoothed, -1..1, y up */
+};
+
+let piece;
+try {
+  piece = createScene(THREE, ctx);
+} catch (e) {
+  document.getElementById('err').style.display = 'grid';
+  document.getElementById('hud').hidden = true;
+  console.error(e);
+  throw e;
+}
+
+function resize() {
+  const w = window.innerWidth, h = window.innerHeight;
+  renderer.setSize(w, h, false);
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+  if (piece.resize) piece.resize(w, h);
+}
+window.addEventListener('resize', resize);
+resize();
+
+/* Pointer parallax target, lerped each frame for weight. */
+const target = { x: 0, y: 0 };
+window.addEventListener('pointermove', (e) => {
+  target.x = (e.clientX / window.innerWidth) * 2 - 1;
+  target.y = -((e.clientY / window.innerHeight) * 2 - 1);
+}, { passive: true });
+
+let userPaused = false;
+let hidden = false;
+let speed = 1;
+let t = 0;
+let last = performance.now();
+
+const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+function setPlayUi() {
+  btnPlay.textContent = userPaused ? 'Play' : 'Pause';
+  btnPlay.setAttribute('aria-pressed', String(userPaused));
+}
+btnPlay.addEventListener('click', () => {
+  userPaused = !userPaused;
+  note.hidden = true;
+  setPlayUi();
+  if (!userPaused) { last = performance.now(); loop(last); }
+});
+canvas.addEventListener('keydown', (e) => {
+  if (e.code === 'Space') { e.preventDefault(); btnPlay.click(); }
+});
+speedEl.addEventListener('input', () => { speed = parseFloat(speedEl.value) || 1; });
+
+btnPng.addEventListener('click', () => {
+  renderer.render(ctx.scene, camera);
+  canvas.toBlob((blob) => {
+    if (!blob) return;
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'raft-kv-3d.png';
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+  });
+});
+
+document.addEventListener('visibilitychange', () => {
+  hidden = document.hidden;
+  if (!hidden && !userPaused) { last = performance.now(); loop(last); }
+});
+
+let raf = 0;
+function frame(now) {
+  const dt = Math.min((now - last) / 1000, 0.1);
+  last = now;
+  t += dt * speed;
+  ctx.pointer.x += (target.x - ctx.pointer.x) * 0.06;
+  ctx.pointer.y += (target.y - ctx.pointer.y) * 0.06;
+  piece.update(t, dt * speed);
+  renderer.render(ctx.scene, camera);
+}
+function loop(now) {
+  if (userPaused || hidden) return;
+  frame(now);
+  raf = requestAnimationFrame(loop);
+}
+
+if (reduceMotion) {
+  /* Advance to a composed moment, render one still frame, and wait. */
+  for (let i = 0; i < 240; i++) { t += 1 / 60; piece.update(t, 1 / 60); }
+  renderer.render(ctx.scene, camera);
+  userPaused = true;
+  note.hidden = false;
+  setPlayUi();
+} else {
+  loop(performance.now());
+}
+</script>
+</body>
+</html>

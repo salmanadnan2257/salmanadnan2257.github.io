@@ -1,0 +1,596 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <meta name="theme-color" content="#06100F">
+  <title>SQL Database Engine in 3D · Salman Adnan</title>
+  <meta name="description" content="B+tree Pulse: an interactive 3D study of queries descending a B+tree with WAL writes streaming beside.">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="../assets/favicon.png" sizes="any">
+  <style>
+    :root { color-scheme: dark; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      background: #06100F;
+      overflow: hidden;
+      font: 12px/1.4 ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+      color: rgba(255, 255, 255, 0.85);
+    }
+    #stage { position: fixed; inset: 0; }
+    canvas { display: block; width: 100%; height: 100%; outline: none; }
+    canvas:focus-visible { box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.6); }
+    #hud {
+      position: absolute; right: 12px; bottom: 12px;
+      display: flex; align-items: center; gap: 10px;
+      padding: 7px 10px; border-radius: 999px;
+      background: rgba(8, 8, 14, 0.55);
+      backdrop-filter: blur(6px);
+      opacity: 0.55; transition: opacity 0.25s ease;
+    }
+    #hud:hover, #hud:focus-within { opacity: 1; }
+    #hud button {
+      appearance: none; border: 1px solid rgba(255, 255, 255, 0.25);
+      background: transparent; color: inherit; font: inherit;
+      padding: 3px 10px; border-radius: 999px; cursor: pointer;
+    }
+    #hud button:hover { border-color: rgba(255, 255, 255, 0.6); }
+    #hud button:focus-visible, #hud input:focus-visible {
+      outline: 2px solid #fff; outline-offset: 2px;
+    }
+    #hud label { display: flex; align-items: center; gap: 6px; }
+    #hud input[type="range"] { width: 72px; accent-color: #FFB84D; }
+    #note {
+      position: absolute; left: 12px; bottom: 12px; max-width: 46ch;
+      padding: 8px 12px; border-radius: 10px;
+      background: rgba(8, 8, 14, 0.65);
+    }
+    #err {
+      position: absolute; inset: 0; display: none;
+      place-items: center; text-align: center; padding: 24px;
+    }
+    @media (max-width: 560px) {
+      #hud label { display: none; }
+    }
+  </style>
+</head>
+<body>
+<div id="stage">
+  <canvas id="c" tabindex="0" aria-label="Animated 3D B+tree where glowing query pulses descend from root to leaves and a write-ahead-log ribbon streams alongside."></canvas>
+  <div id="hud" role="group" aria-label="Visualization controls">
+    <button id="btnPlay" type="button" aria-pressed="false">Pause</button>
+    <label for="speed">speed
+      <input id="speed" type="range" min="0.25" max="2" step="0.25" value="1"
+             aria-label="Animation speed">
+    </label>
+    <button id="btnPng" type="button">Save PNG</button>
+  </div>
+  <p id="note" hidden>Motion is paused because your system prefers reduced motion.
+     Press Play to animate.</p>
+  <div id="err"><p>This visualization needs WebGL, which is unavailable here.<br>
+     A screenshot of it lives on the project page.</p></div>
+</div>
+
+<script type="importmap">
+{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js" } }
+</script>
+<script type="module">
+import * as THREE from 'three';
+
+/* ================= scene: sqlmill ================= */
+// B+TREE PULSE
+// Concept: a living three-level B+tree; amber query pulses descend root to leaf
+// with eased hops, range scans sweep the linked leaves, and a crimson
+// write-ahead-log ribbon on the side always bursts before the touched leaf glows.
+// Palette: bg teal ink #06100F, slab jade #2E6E5E, pulse amber #FFB84D,
+//          edge mist #9FD8C9, WAL crimson #D95555.
+//   Jade and amber read as engineered calm with warm activity; crimson is
+//   reserved strictly for durability so the eye learns the WAL-first order.
+// Signature: the WAL ribbon flashes a beat before the leaf it protects brightens.
+
+function createScene(THREE, ctx) {
+  var q = ctx.quality;
+
+  // ---- tunables ----
+  var BG = 0x06100f;                 // background, teal ink
+  var FOG_DENSITY = 0.024;           // exponential fog falloff
+  var LEAVES_PER_INT = Math.max(2, Math.round(4 * q)); // leaves under each internal node
+  var N_INT = 6;                     // internal nodes (level 2)
+  var N_LEAF = N_INT * LEAVES_PER_INT; // leaf slabs (24 at quality 1)
+  var TREE_WIDTH = 15.0;             // horizontal spread of the leaf row
+  var MAX_PULSES = Math.max(4, Math.floor(10 * q)); // concurrent query pulses
+  var WAL_PTS = Math.max(90, Math.floor(260 * q));  // points along the WAL ribbon
+  var SPAWN_MIN = 0.45;              // min seconds between pulse spawns
+  var SPAWN_MAX = 1.05;              // max seconds between pulse spawns
+  var HOP1 = 0.62;                   // root to internal hop duration (s)
+  var DWELL = 0.2;                   // pause on the internal node (s)
+  var HOP2 = 0.72;                   // internal to leaf hop duration (s)
+  var SCAN_CHANCE = 0.35;            // chance a read triggers a leaf range scan
+  var WRITE_CHANCE = 0.4;            // chance a pulse is a write (WAL bursts first)
+  var SCAN_STEP = 0.09;              // seconds between neighbor leaves in a scan
+  var SPLIT_EVERY = 7.5;             // average seconds between leaf splits
+  var CAM_R = 15.5;                  // camera orbit radius
+
+  var COL_BG = new THREE.Color(BG);
+  var COL_SLAB = new THREE.Color(0x2e6e5e);   // jade slab base (internal nodes)
+  var COL_LEAF = new THREE.Color(0x49805c);   // warmer jade for leaves, separates the levels
+  var COL_SLAB_HI = new THREE.Color(0x3a8a72); // lighter jade for root
+  var COL_PULSE = new THREE.Color(0xffb84d);  // amber pulse / touched-node warm
+  var COL_MIST = new THREE.Color(0x9fd8c9);   // edge mist
+  var COL_WAL = new THREE.Color(0xd95555);    // WAL crimson
+  var COL_FLASH = new THREE.Color(0xfff2dc);  // split flash
+
+  ctx.scene.background = COL_BG;
+  ctx.scene.fog = new THREE.FogExp2(BG, FOG_DENSITY);
+
+  ctx.scene.add(new THREE.AmbientLight(0x2a4a44, 1.1));
+  var dir = new THREE.DirectionalLight(0xcfe8de, 1.15);
+  dir.position.set(6, 10, 7);
+  ctx.scene.add(dir);
+  var fill = new THREE.DirectionalLight(0x3a6a5e, 0.5);
+  fill.position.set(-7, -4, -6);
+  ctx.scene.add(fill);
+
+  var group = new THREE.Group();
+  ctx.scene.add(group);
+
+  function zBow(x) { return 0.6 - 0.02 * x * x; }
+  function ease(u) { return u * u * (3 - 2 * u); }
+  function ssj(a, b, x) {
+    x = Math.min(1, Math.max(0, (x - a) / (b - a)));
+    return x * x * (3 - 2 * x);
+  }
+
+  // ---- node layout: 0 root, 1..N_INT internals, then leaves, last is split spare
+  var nodes = [];
+  nodes.push({ pos: new THREE.Vector3(0, 3.4, zBow(0)), scale: new THREE.Vector3(2.4, 0.5, 1.0), base: COL_SLAB_HI });
+  for (var i = 0; i < N_INT; i++) {
+    var ix = (i - (N_INT - 1) / 2) * 2.55;
+    nodes.push({ pos: new THREE.Vector3(ix, 1.0, zBow(ix)), scale: new THREE.Vector3(1.5, 0.42, 0.85), base: COL_SLAB });
+  }
+  var leafSpacing = TREE_WIDTH / (N_LEAF - 1);
+  var LEAF0 = 1 + N_INT;
+  for (var j = 0; j < N_LEAF; j++) {
+    var lx = (j - (N_LEAF - 1) / 2) * leafSpacing;
+    nodes.push({ pos: new THREE.Vector3(lx, -1.9, zBow(lx)), scale: new THREE.Vector3(leafSpacing * 0.82, 0.3, 0.62), base: COL_LEAF });
+  }
+  var SPARE = nodes.length;
+  nodes.push({ pos: new THREE.Vector3(0, -50, 0), scale: new THREE.Vector3(0.001, 0.001, 0.001), base: COL_SLAB });
+
+  var slabGeo = new THREE.BoxGeometry(1, 1, 1);
+  var slabMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.55, metalness: 0.25, emissive: 0x123a30, emissiveIntensity: 0.5 });
+  var slabs = new THREE.InstancedMesh(slabGeo, slabMat, nodes.length);
+  var m4 = new THREE.Matrix4();
+  var quatI = new THREE.Quaternion();
+  var tmpCol = new THREE.Color();
+  function writeMatrix(idx, dx, dy, dz, sMul) {
+    var n = nodes[idx];
+    m4.compose(
+      new THREE.Vector3(n.pos.x + dx, n.pos.y + dy, n.pos.z + dz),
+      quatI,
+      new THREE.Vector3(n.scale.x * sMul, n.scale.y * sMul, n.scale.z * sMul)
+    );
+    slabs.setMatrixAt(idx, m4);
+  }
+  for (var k = 0; k < nodes.length; k++) {
+    writeMatrix(k, 0, 0, 0, 1);
+    slabs.setColorAt(k, nodes[k].base);
+  }
+  slabs.instanceMatrix.needsUpdate = true;
+  slabs.instanceColor.needsUpdate = true;
+  group.add(slabs);
+
+  // ---- edge lines: root->internals, internal->leaves, plus the leaf chain
+  var edgeVerts = [];
+  function pushEdge(a, b) {
+    edgeVerts.push(a.pos.x, a.pos.y - a.scale.y * 0.5, a.pos.z, b.pos.x, b.pos.y + b.scale.y * 0.5, b.pos.z);
+  }
+  for (var e = 0; e < N_INT; e++) pushEdge(nodes[0], nodes[1 + e]);
+  for (var f = 0; f < N_LEAF; f++) pushEdge(nodes[1 + Math.floor(f / LEAVES_PER_INT)], nodes[LEAF0 + f]);
+  for (var g = 0; g < N_LEAF - 1; g++) {
+    var A = nodes[LEAF0 + g], B = nodes[LEAF0 + g + 1];
+    edgeVerts.push(A.pos.x, A.pos.y, A.pos.z, B.pos.x, B.pos.y, B.pos.z);
+  }
+  var edgeGeo = new THREE.BufferGeometry();
+  edgeGeo.setAttribute('position', new THREE.Float32BufferAttribute(edgeVerts, 3));
+  var edgeMat = new THREE.LineBasicMaterial({ color: COL_MIST, transparent: true, opacity: 0.26 });
+  group.add(new THREE.LineSegments(edgeGeo, edgeMat));
+
+  // ---- query pulse sprites (positions driven from JS, few of them)
+  var pulseGeo = new THREE.BufferGeometry();
+  var pulsePos = new Float32Array(MAX_PULSES * 3);
+  var pulseGlow = new Float32Array(MAX_PULSES);
+  for (var p0 = 0; p0 < MAX_PULSES; p0++) pulsePos[p0 * 3 + 1] = -999;
+  pulseGeo.setAttribute('position', new THREE.Float32BufferAttribute(pulsePos, 3));
+  pulseGeo.setAttribute('aGlow', new THREE.Float32BufferAttribute(pulseGlow, 1));
+  var pulseMat = new THREE.ShaderMaterial({
+    uniforms: { uColor: { value: COL_PULSE } },
+    vertexShader: [
+      'attribute float aGlow;',
+      'varying float vGlow;',
+      'void main(){',
+      '  vGlow = aGlow;',
+      '  vec4 mv = modelViewMatrix * vec4(position, 1.0);',
+      '  gl_PointSize = (7.0 + 26.0 * aGlow) * (150.0 / -mv.z);',
+      '  gl_Position = projectionMatrix * mv;',
+      '}'
+    ].join('\n'),
+    fragmentShader: [
+      'uniform vec3 uColor;',
+      'varying float vGlow;',
+      'void main(){',
+      '  float d = length(gl_PointCoord - 0.5);',
+      '  float a = smoothstep(0.5, 0.04, d) * vGlow;',
+      '  gl_FragColor = vec4(uColor * (1.0 + 0.8 * vGlow), a);',
+      '}'
+    ].join('\n'),
+    transparent: true, depthWrite: false, blending: THREE.AdditiveBlending
+  });
+  var pulsePoints = new THREE.Points(pulseGeo, pulseMat);
+  pulsePoints.frustumCulled = false; // positions move every frame in JS
+  group.add(pulsePoints);
+
+  // ---- WAL ribbon on the side: flowing crimson points + burst window
+  function walPoint(s) {
+    return new THREE.Vector3(8.5 + 0.2 * Math.sin(s * 9.0), 3.9 - 7.2 * s, 0.5 * Math.sin(s * 5.0 + 2.0));
+  }
+  var walGeo = new THREE.BufferGeometry();
+  var walPos = new Float32Array(WAL_PTS * 3);
+  var walT = new Float32Array(WAL_PTS);
+  for (var w = 0; w < WAL_PTS; w++) {
+    var s = w / (WAL_PTS - 1);
+    var wp = walPoint(s);
+    walPos[w * 3] = wp.x; walPos[w * 3 + 1] = wp.y; walPos[w * 3 + 2] = wp.z;
+    walT[w] = s;
+  }
+  walGeo.setAttribute('position', new THREE.Float32BufferAttribute(walPos, 3));
+  walGeo.setAttribute('aT', new THREE.Float32BufferAttribute(walT, 1));
+  var walUniforms = { uTime: { value: 0 }, uBurst: { value: -100 }, uColor: { value: COL_WAL } };
+  var walMat = new THREE.ShaderMaterial({
+    uniforms: walUniforms,
+    vertexShader: [
+      'attribute float aT;',
+      'uniform float uTime;',
+      'uniform float uBurst;',
+      'varying float vB;',
+      'void main(){',
+      '  float f = fract(aT * 3.0 - uTime * 0.28);',
+      '  float base = smoothstep(0.0, 0.16, f) * smoothstep(0.34, 0.16, f);',
+      '  float bt = uTime - uBurst;',
+      '  float front = bt * 2.4;',
+      '  float burst = exp(-abs(aT - front) * 16.0) * exp(-bt * 1.4) * step(0.0, bt);',
+      '  vB = 0.15 + 0.4 * base + 1.2 * burst;',
+      '  vec4 mv = modelViewMatrix * vec4(position, 1.0);',
+      '  gl_PointSize = min((0.9 + 1.3 * vB) * (70.0 / -mv.z), 9.0);',
+      '  gl_Position = projectionMatrix * mv;',
+      '}'
+    ].join('\n'),
+    fragmentShader: [
+      'uniform vec3 uColor;',
+      'varying float vB;',
+      'void main(){',
+      '  float d = length(gl_PointCoord - 0.5);',
+      '  float a = smoothstep(0.5, 0.06, d) * min(vB, 1.3) * 0.28;',
+      '  vec3 c = uColor + vec3(0.7, 0.45, 0.35) * max(vB - 1.0, 0.0) * 0.3;',
+      '  gl_FragColor = vec4(c, a);',
+      '}'
+    ].join('\n'),
+    transparent: true, depthWrite: false, blending: THREE.AdditiveBlending
+  });
+  var walPoints = new THREE.Points(walGeo, walMat);
+  walPoints.frustumCulled = false; // sized/brightened in the vertex shader
+  group.add(walPoints);
+
+  // dim static ribbon path so the WAL reads as a structure even between bursts
+  var walLineVerts = [];
+  for (var wl = 0; wl < 60; wl++) {
+    var pA = walPoint(wl / 60), pB = walPoint((wl + 1) / 60);
+    walLineVerts.push(pA.x, pA.y, pA.z, pB.x, pB.y, pB.z);
+  }
+  var walLineGeo = new THREE.BufferGeometry();
+  walLineGeo.setAttribute('position', new THREE.Float32BufferAttribute(walLineVerts, 3));
+  group.add(new THREE.LineSegments(walLineGeo, new THREE.LineBasicMaterial({ color: COL_WAL, transparent: true, opacity: 0.3 })));
+
+  // ---- animation state
+  var glow = new Float32Array(nodes.length);   // per-node warm glow, decays
+  var pulses = [];
+  for (var pi = 0; pi < MAX_PULSES; pi++) pulses.push({ phase: 'idle', t0: 0, internal: 0, leaf: 0, isWrite: false });
+  var nextSpawn = 0.5;
+  var scans = [];
+  var split = { active: false, leaf: -1, t0: 0 };
+  var nextSplit = SPLIT_EVERY;
+  var vA = new THREE.Vector3(), vB = new THREE.Vector3(), vM = new THREE.Vector3(), vOut = new THREE.Vector3();
+
+  function qBez(a, m, b, u, out) {
+    var v = 1 - u;
+    out.set(
+      a.x * v * v + m.x * 2 * v * u + b.x * u * u,
+      a.y * v * v + m.y * 2 * v * u + b.y * u * u,
+      a.z * v * v + m.z * 2 * v * u + b.z * u * u
+    );
+    return out;
+  }
+
+  function spawnPulse(t) {
+    for (var s = 0; s < pulses.length; s++) {
+      if (pulses[s].phase === 'idle') {
+        var pu = pulses[s];
+        pu.phase = 'drop';
+        pu.t0 = t;
+        pu.internal = Math.floor(Math.random() * N_INT);
+        pu.leaf = pu.internal * LEAVES_PER_INT + Math.floor(Math.random() * LEAVES_PER_INT);
+        pu.isWrite = Math.random() < WRITE_CHANCE;
+        pu.walFired = false;
+        return;
+      }
+    }
+  }
+
+  return {
+    update: function (t, dt) {
+      walUniforms.uTime.value = t;
+
+      // spawn cadence
+      if (t > nextSpawn) {
+        spawnPulse(t);
+        nextSpawn = t + SPAWN_MIN + Math.random() * (SPAWN_MAX - SPAWN_MIN);
+      }
+
+      // pulse state machines
+      for (var i = 0; i < pulses.length; i++) {
+        var pu = pulses[i];
+        var gv = 0;
+        if (pu.phase === 'idle') {
+          pulsePos[i * 3 + 1] = -999;
+          pulseGlow[i] = 0;
+          continue;
+        }
+        var el = t - pu.t0;
+        var root = nodes[0], intn = nodes[1 + pu.internal], leaf = nodes[LEAF0 + pu.leaf];
+        if (pu.phase === 'drop') {
+          var u0 = Math.min(1, el / 0.4);
+          vOut.set(root.pos.x, root.pos.y + 1.6 * (1 - ease(u0)), root.pos.z);
+          gv = ease(u0) * 0.9;
+          if (u0 >= 1) { pu.phase = 'hop1'; pu.t0 = t; }
+        } else if (pu.phase === 'hop1') {
+          var u1 = Math.min(1, el / HOP1);
+          vA.copy(root.pos); vB.copy(intn.pos);
+          vM.copy(vA).add(vB).multiplyScalar(0.5); vM.y -= 0.25; vM.z += 0.55;
+          qBez(vA, vM, vB, ease(u1), vOut);
+          gv = 0.9;
+          if (u1 >= 1) {
+            pu.phase = 'dwell'; pu.t0 = t;
+            glow[1 + pu.internal] = Math.max(glow[1 + pu.internal], 0.55);
+          }
+        } else if (pu.phase === 'dwell') {
+          vOut.copy(intn.pos);
+          gv = 0.75 + 0.2 * Math.sin(t * 18.0);
+          if (el >= DWELL) {
+            pu.phase = 'hop2'; pu.t0 = t;
+            if (pu.isWrite) { walUniforms.uBurst.value = t; pu.walFired = true; } // WAL first, always
+          }
+        } else if (pu.phase === 'hop2') {
+          var u2 = Math.min(1, el / HOP2);
+          vA.copy(intn.pos); vB.copy(leaf.pos);
+          vM.copy(vA).add(vB).multiplyScalar(0.5); vM.y -= 0.3; vM.z += 0.55;
+          qBez(vA, vM, vB, ease(u2), vOut);
+          gv = 0.9;
+          if (u2 >= 1) {
+            pu.phase = 'linger'; pu.t0 = t;
+            glow[LEAF0 + pu.leaf] = Math.max(glow[LEAF0 + pu.leaf], pu.isWrite ? 1.0 : 0.8);
+            if (!pu.isWrite && Math.random() < SCAN_CHANCE) {
+              var dir2 = pu.leaf < N_LEAF / 2 ? 1 : -1;
+              var len = 3 + Math.floor(Math.random() * 5);
+              scans.push({ leaf: pu.leaf, dir: dir2, t0: t, count: len, done: 0 });
+            }
+          }
+        } else if (pu.phase === 'linger') {
+          vOut.copy(leaf.pos);
+          gv = Math.max(0, 0.9 * (1 - el / 0.5));
+          if (el >= 0.5) pu.phase = 'idle';
+        }
+        pulsePos[i * 3] = vOut.x; pulsePos[i * 3 + 1] = vOut.y; pulsePos[i * 3 + 2] = vOut.z;
+        pulseGlow[i] = gv;
+      }
+      pulseGeo.attributes.position.needsUpdate = true;
+      pulseGeo.attributes.aGlow.needsUpdate = true;
+
+      // range scans sweep neighboring leaves (linked-leaf reads)
+      for (var sc = scans.length - 1; sc >= 0; sc--) {
+        var scan = scans[sc];
+        var step = Math.floor((t - scan.t0) / SCAN_STEP);
+        while (scan.done <= Math.min(step, scan.count - 1)) {
+          var li = scan.leaf + scan.dir * scan.done;
+          if (li >= 0 && li < N_LEAF) glow[LEAF0 + li] = Math.max(glow[LEAF0 + li], 0.75);
+          scan.done++;
+        }
+        if (scan.done >= scan.count) scans.splice(sc, 1);
+      }
+
+      // occasional leaf split: the slab eases apart into two, soft flash, merge back
+      if (!split.active && t > nextSplit) {
+        split.active = true;
+        split.leaf = 1 + Math.floor(Math.random() * (N_LEAF - 2));
+        split.t0 = t;
+        nextSplit = t + SPLIT_EVERY * (0.7 + Math.random() * 0.8);
+      }
+      var splitFlash = 0;
+      if (split.active) {
+        var se = t - split.t0;
+        var apart, sFlash = 0;
+        if (se < 0.9) { apart = ease(se / 0.9); sFlash = ssj(0.15, 0.45, se) * (1 - ssj(0.5, 1.0, se)); }
+        else if (se < 3.1) apart = 1;
+        else if (se < 3.9) apart = 1 - ease((se - 3.1) / 0.8);
+        else {
+          apart = 0; split.active = false;
+          writeMatrix(LEAF0 + split.leaf, 0, 0, 0, 1);
+          writeMatrix(SPARE, 0, 0, 0, 0.001);
+          nodes[SPARE].pos.set(0, -50, 0);
+        }
+        if (split.active) {
+          var ln = nodes[LEAF0 + split.leaf];
+          nodes[SPARE].pos.copy(ln.pos);
+          nodes[SPARE].scale.copy(ln.scale);
+          writeMatrix(LEAF0 + split.leaf, 0, 0, -0.4 * apart, 1 - 0.12 * apart);
+          writeMatrix(SPARE, 0, 0.06 * apart, 0.42 * apart, Math.max(0.001, apart * (1 - 0.12 * apart)));
+          glow[LEAF0 + split.leaf] = Math.max(glow[LEAF0 + split.leaf], sFlash);
+          glow[SPARE] = Math.max(glow[SPARE], sFlash);
+          splitFlash = sFlash;
+        }
+        slabs.instanceMatrix.needsUpdate = true;
+      }
+
+      // node glow decay + instance colors (small loop, ~33 nodes)
+      var dec = Math.exp(-dt * 2.4);
+      for (var n = 0; n < nodes.length; n++) {
+        glow[n] *= dec;
+        tmpCol.copy(nodes[n].base).lerp(COL_PULSE, Math.min(1, glow[n]));
+        if (n === SPARE || (split.active && n === LEAF0 + split.leaf)) tmpCol.lerp(COL_FLASH, splitFlash * 0.6);
+        slabs.setColorAt(n, tmpCol);
+      }
+      slabs.instanceColor.needsUpdate = true;
+
+      // whole tree breathes very slightly
+      group.position.y = 0.12 * Math.sin(t * 0.45);
+
+      // camera: slow orbit + pointer offset
+      var a = t * 0.05 + ctx.pointer.x * 0.35;
+      ctx.camera.position.set(CAM_R * Math.sin(a), 1.4 + ctx.pointer.y * 1.6 + 0.35 * Math.sin(t * 0.13), CAM_R * Math.cos(a));
+      ctx.camera.lookAt(0.6, 0.4, 0);
+    }
+  };
+}
+
+/* ================= shared runtime ================= */
+
+const canvas = document.getElementById('c');
+const btnPlay = document.getElementById('btnPlay');
+const speedEl = document.getElementById('speed');
+const btnPng = document.getElementById('btnPng');
+const note = document.getElementById('note');
+
+let renderer;
+try {
+  renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
+} catch (e) {
+  document.getElementById('err').style.display = 'grid';
+  document.getElementById('hud').hidden = true;
+  throw e;
+}
+
+/* Quality tier: 1 on desktop, lower on small screens or few cores.
+   Scenes scale particle counts by ctx.quality. */
+const small = Math.min(window.innerWidth, window.innerHeight) < 700;
+const weak = (navigator.hardwareConcurrency || 8) <= 4;
+const quality = small ? 0.5 : (weak ? 0.7 : 1);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, quality < 1 ? 1.5 : 2));
+
+const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 500);
+camera.position.set(0, 0, 12);
+
+const ctx = {
+  scene: new THREE.Scene(),
+  camera,
+  renderer,
+  quality,
+  pointer: { x: 0, y: 0 },  /* smoothed, -1..1, y up */
+};
+
+let piece;
+try {
+  piece = createScene(THREE, ctx);
+} catch (e) {
+  document.getElementById('err').style.display = 'grid';
+  document.getElementById('hud').hidden = true;
+  console.error(e);
+  throw e;
+}
+
+function resize() {
+  const w = window.innerWidth, h = window.innerHeight;
+  renderer.setSize(w, h, false);
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+  if (piece.resize) piece.resize(w, h);
+}
+window.addEventListener('resize', resize);
+resize();
+
+/* Pointer parallax target, lerped each frame for weight. */
+const target = { x: 0, y: 0 };
+window.addEventListener('pointermove', (e) => {
+  target.x = (e.clientX / window.innerWidth) * 2 - 1;
+  target.y = -((e.clientY / window.innerHeight) * 2 - 1);
+}, { passive: true });
+
+let userPaused = false;
+let hidden = false;
+let speed = 1;
+let t = 0;
+let last = performance.now();
+
+const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+function setPlayUi() {
+  btnPlay.textContent = userPaused ? 'Play' : 'Pause';
+  btnPlay.setAttribute('aria-pressed', String(userPaused));
+}
+btnPlay.addEventListener('click', () => {
+  userPaused = !userPaused;
+  note.hidden = true;
+  setPlayUi();
+  if (!userPaused) { last = performance.now(); loop(last); }
+});
+canvas.addEventListener('keydown', (e) => {
+  if (e.code === 'Space') { e.preventDefault(); btnPlay.click(); }
+});
+speedEl.addEventListener('input', () => { speed = parseFloat(speedEl.value) || 1; });
+
+btnPng.addEventListener('click', () => {
+  renderer.render(ctx.scene, camera);
+  canvas.toBlob((blob) => {
+    if (!blob) return;
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'sqlmill-3d.png';
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+  });
+});
+
+document.addEventListener('visibilitychange', () => {
+  hidden = document.hidden;
+  if (!hidden && !userPaused) { last = performance.now(); loop(last); }
+});
+
+let raf = 0;
+function frame(now) {
+  const dt = Math.min((now - last) / 1000, 0.1);
+  last = now;
+  t += dt * speed;
+  ctx.pointer.x += (target.x - ctx.pointer.x) * 0.06;
+  ctx.pointer.y += (target.y - ctx.pointer.y) * 0.06;
+  piece.update(t, dt * speed);
+  renderer.render(ctx.scene, camera);
+}
+function loop(now) {
+  if (userPaused || hidden) return;
+  frame(now);
+  raf = requestAnimationFrame(loop);
+}
+
+if (reduceMotion) {
+  /* Advance to a composed moment, render one still frame, and wait. */
+  for (let i = 0; i < 240; i++) { t += 1 / 60; piece.update(t, 1 / 60); }
+  renderer.render(ctx.scene, camera);
+  userPaused = true;
+  note.hidden = false;
+  setPlayUi();
+} else {
+  loop(performance.now());
+}
+</script>
+</body>
+</html>

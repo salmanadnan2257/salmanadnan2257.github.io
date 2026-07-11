@@ -1,0 +1,643 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <meta name="theme-color" content="#10131E">
+  <title>Task Manager in 3D · Salman Adnan</title>
+  <meta name="description" content="Realtime Board: an interactive 3D study of task cards moving as websocket ripples announce them.">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="../assets/favicon.png" sizes="any">
+  <style>
+    :root { color-scheme: dark; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      background: #10131E;
+      overflow: hidden;
+      font: 12px/1.4 ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+      color: rgba(255, 255, 255, 0.85);
+    }
+    #stage { position: fixed; inset: 0; }
+    canvas { display: block; width: 100%; height: 100%; outline: none; }
+    canvas:focus-visible { box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.6); }
+    #hud {
+      position: absolute; right: 12px; bottom: 12px;
+      display: flex; align-items: center; gap: 10px;
+      padding: 7px 10px; border-radius: 999px;
+      background: rgba(8, 8, 14, 0.55);
+      backdrop-filter: blur(6px);
+      opacity: 0.55; transition: opacity 0.25s ease;
+    }
+    #hud:hover, #hud:focus-within { opacity: 1; }
+    #hud button {
+      appearance: none; border: 1px solid rgba(255, 255, 255, 0.25);
+      background: transparent; color: inherit; font: inherit;
+      padding: 3px 10px; border-radius: 999px; cursor: pointer;
+    }
+    #hud button:hover { border-color: rgba(255, 255, 255, 0.6); }
+    #hud button:focus-visible, #hud input:focus-visible {
+      outline: 2px solid #fff; outline-offset: 2px;
+    }
+    #hud label { display: flex; align-items: center; gap: 6px; }
+    #hud input[type="range"] { width: 72px; accent-color: #5B8DEF; }
+    #note {
+      position: absolute; left: 12px; bottom: 12px; max-width: 46ch;
+      padding: 8px 12px; border-radius: 10px;
+      background: rgba(8, 8, 14, 0.65);
+    }
+    #err {
+      position: absolute; inset: 0; display: none;
+      place-items: center; text-align: center; padding: 24px;
+    }
+    @media (max-width: 560px) {
+      #hud label { display: none; }
+    }
+  </style>
+</head>
+<body>
+<div id="stage">
+  <canvas id="c" tabindex="0" aria-label="Animated 3D kanban of floating task cards gliding between columns, each move emitting a ripple that travels to a notification bell."></canvas>
+  <div id="hud" role="group" aria-label="Visualization controls">
+    <button id="btnPlay" type="button" aria-pressed="false">Pause</button>
+    <label for="speed">speed
+      <input id="speed" type="range" min="0.25" max="2" step="0.25" value="1"
+             aria-label="Animation speed">
+    </label>
+    <button id="btnPng" type="button">Save PNG</button>
+  </div>
+  <p id="note" hidden>Motion is paused because your system prefers reduced motion.
+     Press Play to animate.</p>
+  <div id="err"><p>This visualization needs WebGL, which is unavailable here.<br>
+     A screenshot of it lives on the project page.</p></div>
+</div>
+
+<script type="importmap">
+{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js" } }
+</script>
+<script type="module">
+import * as THREE from 'three';
+
+/* ================= scene: task-manager-django ================= */
+// Piece: Realtime Board. A floating three-column kanban where task cards glide between
+// columns in eased arcs; every landing fires a white ripple down a conduit to a bell
+// node that swings and pings, the board's websocket nervous system made visible.
+// Palette: bg night office #10131E, card slate #35415E, doing blue #5B8DEF, done green
+// #57C785, ripple white #E6ECF8. Muted office slate with one live blue; the white
+// ripple carries the realtime signal.
+// Signature: the ripple-to-bell delivery on every single card move.
+
+function createScene(THREE, ctx) {
+  const q = ctx.quality;
+
+  // ---------- tunables ----------
+  const BG = 0x10131E;                       // night office background
+  const SLATE = new THREE.Color(0x35415E);   // todo card hue
+  const BLUE = new THREE.Color(0x5B8DEF);    // doing card hue
+  const GREEN = new THREE.Color(0x57C785);   // done card hue
+  const RIPPLE = new THREE.Color(0xE6ECF8);  // ripple and ping hue
+  const SLOTS = Math.max(6, Math.floor(10 * q)); // card slots per column
+  const COL_X = [-2.9, 0, 2.9];              // column x positions
+  const SLOT_TOP = 2.55;                     // top slot y
+  const SLOT_STEP = 0.62;                    // vertical slot spacing
+  const CARD_W = 1.9, CARD_H = 0.5, CARD_D = 0.07; // card slab size
+  const MOVE_DUR = 1.05;                     // card glide duration
+  const MOVE_EVERY = [1.1, 2.3];             // seconds between scheduled moves
+  const RIPPLE_DUR = 0.75;                   // conduit travel time
+  const RIPPLE_POOL = 6;                     // simultaneous ripples
+  const BELL_POS = new THREE.Vector3(4.3, 3.5, -0.3); // bell node location
+  const DUST = Math.floor(260 * q);          // ambient depth dust
+
+  ctx.scene.background = new THREE.Color(BG);
+  ctx.scene.fog = new THREE.FogExp2(BG, 0.02);
+
+  const board = new THREE.Group();
+  ctx.scene.add(board);
+
+  function rand(a, b) { return a + Math.random() * (b - a); }
+  function ease(u) { return u * u * (3.0 - 2.0 * u); }
+
+  // ---------- card face texture: check circle plus abstract text lines ----------
+  const cv = document.createElement('canvas');
+  cv.width = 256; cv.height = 68;
+  const g2 = cv.getContext('2d');
+  g2.fillStyle = '#8f9bb3';
+  g2.fillRect(0, 0, 256, 68);
+  g2.strokeStyle = '#c9d2e8';
+  g2.lineWidth = 4;
+  g2.beginPath();
+  g2.arc(30, 34, 13, 0, Math.PI * 2);
+  g2.stroke();
+  g2.fillStyle = '#c9d2e8';
+  g2.fillRect(56, 22, 150, 7);
+  g2.fillRect(56, 40, 105, 7);
+  const cardTex = new THREE.CanvasTexture(cv);
+
+  // ---------- column backdrops ----------
+  for (let c = 0; c < 3; c++) {
+    const back = new THREE.Mesh(
+      new THREE.PlaneGeometry(2.25, SLOTS * SLOT_STEP + 0.7),
+      new THREE.MeshBasicMaterial({ color: 0x1B2233, transparent: true, opacity: 0.55, depthWrite: false })
+    );
+    back.position.set(COL_X[c], SLOT_TOP - (SLOTS - 1) * SLOT_STEP * 0.5, -0.35);
+    board.add(back);
+  }
+
+  // ---------- cards ----------
+  const CARD_COUNT = SLOTS * 3;
+  const cardMesh = new THREE.InstancedMesh(
+    new THREE.BoxGeometry(CARD_W, CARD_H, CARD_D),
+    new THREE.MeshBasicMaterial({ color: 0xFFFFFF, map: cardTex }),
+    CARD_COUNT
+  );
+  board.add(cardMesh);
+
+  const columns = [[], [], []]; // card ids top to bottom
+  const cards = [];
+  const m4 = new THREE.Matrix4();
+  const qt = new THREE.Quaternion();
+  const sv = new THREE.Vector3();
+  const cTmp = new THREE.Color();
+
+  function slotPos(col, slot, out) {
+    out.set(COL_X[col], SLOT_TOP - slot * SLOT_STEP, 0);
+    return out;
+  }
+
+  // seed the board mid-life so it looks lived-in from frame one
+  const seedCounts = [Math.floor(SLOTS * 0.7), Math.floor(SLOTS * 0.4), Math.floor(SLOTS * 0.5)];
+  let id = 0;
+  for (let c = 0; c < 3; c++) {
+    for (let s = 0; s < seedCounts[c]; s++) {
+      const card = {
+        col: c, state: 'idle',
+        pos: new THREE.Vector3(), from: new THREE.Vector3(), ctrl: new THREE.Vector3(),
+        t: 0, scale: 1, color: new THREE.Color().copy(c === 0 ? SLATE : c === 1 ? BLUE : GREEN),
+        alive: true
+      };
+      slotPos(c, s, card.pos);
+      cards.push(card);
+      columns[c].push(id);
+      id++;
+    }
+  }
+  while (cards.length < CARD_COUNT) {
+    cards.push({
+      col: 0, state: 'dead',
+      pos: new THREE.Vector3(0, -30, 0), from: new THREE.Vector3(), ctrl: new THREE.Vector3(),
+      t: 0, scale: 0.001, color: new THREE.Color().copy(SLATE), alive: false
+    });
+  }
+
+  // ---------- bell ----------
+  const bell = new THREE.Group();
+  bell.position.copy(BELL_POS);
+  const bellBody = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.06, 0.26, 0.3, 20),
+    new THREE.MeshBasicMaterial({ color: 0xB8C4DC })
+  );
+  bellBody.position.y = -0.2;
+  bell.add(bellBody);
+  const clapper = new THREE.Mesh(
+    new THREE.SphereGeometry(0.05, 10, 8),
+    new THREE.MeshBasicMaterial({ color: 0xE6ECF8 })
+  );
+  clapper.position.y = -0.4;
+  bell.add(clapper);
+  board.add(bell);
+  let bellVel = 0;
+  let bellRot = 0;
+
+  // ping rings at the bell
+  const pings = [];
+  for (let i = 0; i < 3; i++) {
+    const m = new THREE.Mesh(
+      new THREE.RingGeometry(0.9, 1.0, 40),
+      new THREE.MeshBasicMaterial({
+        color: 0xE6ECF8, transparent: true, opacity: 0,
+        side: THREE.DoubleSide, blending: THREE.AdditiveBlending, depthWrite: false
+      })
+    );
+    m.position.copy(BELL_POS);
+    board.add(m);
+    pings.push({ mesh: m, live: false, age: 0 });
+  }
+
+  // ---------- ripples: conduit line + traveling head ----------
+  const RIP_SEGS = 22;
+  const ripples = [];
+  for (let i = 0; i < RIPPLE_POOL; i++) {
+    const posAttr = new THREE.Float32BufferAttribute(new Float32Array(RIP_SEGS * 2 * 3), 3);
+    const colAttr = new THREE.Float32BufferAttribute(new Float32Array(RIP_SEGS * 2 * 3), 3);
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', posAttr);
+    geo.setAttribute('color', colAttr);
+    const line = new THREE.LineSegments(geo, new THREE.LineBasicMaterial({
+      vertexColors: true, transparent: true, opacity: 0,
+      blending: THREE.AdditiveBlending, depthWrite: false
+    }));
+    board.add(line);
+    ripples.push({
+      line: line, posAttr: posAttr, colAttr: colAttr,
+      live: false, t: 0, from: new THREE.Vector3(), ctrl: new THREE.Vector3()
+    });
+  }
+
+  function fireRipple(fromPos) {
+    for (let i = 0; i < RIPPLE_POOL; i++) {
+      if (ripples[i].live) continue;
+      const R = ripples[i];
+      R.live = true;
+      R.t = 0;
+      R.from.copy(fromPos);
+      R.ctrl.copy(fromPos).lerp(BELL_POS, 0.5);
+      R.ctrl.y += 1.1;
+      R.ctrl.z += 0.7;
+      // bake conduit samples into the line
+      const pa = R.posAttr.array;
+      let o = 0;
+      for (let s = 0; s < RIP_SEGS; s++) {
+        for (let v = 0; v < 2; v++) {
+          const u = (s + v) / RIP_SEGS;
+          const w0 = (1 - u) * (1 - u), w1 = 2 * u * (1 - u), w2 = u * u;
+          pa[o++] = R.from.x * w0 + R.ctrl.x * w1 + BELL_POS.x * w2;
+          pa[o++] = R.from.y * w0 + R.ctrl.y * w1 + BELL_POS.y * w2;
+          pa[o++] = R.from.z * w0 + R.ctrl.z * w1 + BELL_POS.z * w2;
+        }
+      }
+      R.posAttr.needsUpdate = true;
+      return;
+    }
+  }
+
+  function bellRing() {
+    bellVel += 5.5;
+    for (let i = 0; i < pings.length; i++) {
+      if (!pings[i].live) { pings[i].live = true; pings[i].age = 0; break; }
+    }
+  }
+
+  // ---------- ambient dust ----------
+  const dustPos = new Float32Array(DUST * 3);
+  const dustSeed = new Float32Array(DUST);
+  for (let i = 0; i < DUST; i++) {
+    dustPos[i * 3] = rand(-9, 9);
+    dustPos[i * 3 + 1] = rand(-4.5, 5.5);
+    dustPos[i * 3 + 2] = rand(-6, -1.5);
+    dustSeed[i] = Math.random();
+  }
+  const dustGeo = new THREE.BufferGeometry();
+  dustGeo.setAttribute('position', new THREE.Float32BufferAttribute(dustPos, 3));
+  dustGeo.setAttribute('aSeed', new THREE.Float32BufferAttribute(dustSeed, 1));
+  const dustMat = new THREE.ShaderMaterial({
+    uniforms: { uTime: { value: 0 }, uColor: { value: new THREE.Color(0x3A4358) } },
+    vertexShader: `
+      uniform float uTime;
+      attribute float aSeed;
+      varying float vA;
+      void main() {
+        vec3 p = position;
+        p.y += sin(uTime * 0.25 + aSeed * 6.2831) * 0.4;
+        p.x += cos(uTime * 0.18 + aSeed * 12.0) * 0.3;
+        vA = 0.5 + 0.5 * sin(uTime * 0.8 + aSeed * 20.0);
+        vec4 mv = modelViewMatrix * vec4(p, 1.0);
+        gl_PointSize = (0.05 + aSeed * 0.06) * (300.0 / -mv.z);
+        gl_Position = projectionMatrix * mv;
+      }
+    `,
+    fragmentShader: `
+      uniform vec3 uColor;
+      varying float vA;
+      void main() {
+        float d = length(gl_PointCoord - 0.5);
+        float a = smoothstep(0.5, 0.1, d);
+        gl_FragColor = vec4(uColor, a * vA * 0.5);
+      }
+    `,
+    transparent: true, depthWrite: false, blending: THREE.AdditiveBlending
+  });
+  board.add(new THREE.Points(dustGeo, dustMat));
+
+  // ---------- scheduling ----------
+  let moveTimer = 1.2;
+  const tmpA = new THREE.Vector3();
+  const tmpB = new THREE.Vector3();
+
+  function colorFor(col) { return col === 0 ? SLATE : col === 1 ? BLUE : GREEN; }
+
+  function startMove(cardId, toCol) {
+    const card = cards[cardId];
+    const fromCol = card.col;
+    const idx = columns[fromCol].indexOf(cardId);
+    if (idx < 0) return;
+    columns[fromCol].splice(idx, 1);
+    columns[toCol].push(cardId);
+    card.col = toCol;
+    card.state = 'moving';
+    card.t = 0;
+    card.from.copy(card.pos);
+    slotPos(toCol, columns[toCol].length - 1, tmpA);
+    card.ctrl.copy(card.from).lerp(tmpA, 0.5);
+    card.ctrl.y += 1.25;
+    card.ctrl.z += 0.9;
+  }
+
+  function spawnCard() {
+    for (let i = 0; i < CARD_COUNT; i++) {
+      if (cards[i].state !== 'dead') continue;
+      const card = cards[i];
+      card.state = 'spawning';
+      card.t = 0;
+      card.col = 0;
+      card.alive = true;
+      columns[0].push(i);
+      slotPos(0, columns[0].length - 1, card.pos);
+      card.pos.y -= 0.9;
+      card.scale = 0.001;
+      card.color.copy(SLATE).multiplyScalar(0.4);
+      return;
+    }
+  }
+
+  function scheduleMove() {
+    // keep the board balanced: feed todo, advance work, retire done
+    if (columns[2].length > Math.max(4, SLOTS - 3)) {
+      const cid = columns[2][0];
+      cards[cid].state = 'sinking';
+      cards[cid].t = 0;
+      columns[2].shift();
+      return;
+    }
+    if (columns[0].length < 4) { spawnCard(); return; }
+    const r = Math.random();
+    if (r < 0.5 && columns[0].length > 0) {
+      startMove(columns[0][Math.floor(Math.random() * Math.min(3, columns[0].length))], 1);
+    } else if (columns[1].length > 0) {
+      startMove(columns[1][Math.floor(Math.random() * columns[1].length)], 2);
+    } else if (columns[0].length > 0) {
+      startMove(columns[0][0], 1);
+    }
+  }
+
+  // ---------- update ----------
+  const look = new THREE.Vector3(0.4, 0.6, 0);
+  return {
+    update: function (t, dt) {
+      const d = Math.min(dt, 0.05);
+      dustMat.uniforms.uTime.value = t;
+
+      moveTimer -= d;
+      if (moveTimer <= 0) {
+        moveTimer = rand(MOVE_EVERY[0], MOVE_EVERY[1]);
+        scheduleMove();
+      }
+
+      // cards
+      for (let i = 0; i < CARD_COUNT; i++) {
+        const card = cards[i];
+        if (card.state === 'dead') {
+          m4.compose(card.pos, qt, sv.set(0.001, 0.001, 0.001));
+          cardMesh.setMatrixAt(i, m4);
+          continue;
+        }
+        if (card.state === 'moving') {
+          card.t += d;
+          const u = Math.min(1, card.t / MOVE_DUR);
+          const e = ease(u);
+          slotPos(card.col, columns[card.col].indexOf(i), tmpA);
+          const w0 = (1 - e) * (1 - e), w1 = 2 * e * (1 - e), w2 = e * e;
+          card.pos.set(
+            card.from.x * w0 + card.ctrl.x * w1 + tmpA.x * w2,
+            card.from.y * w0 + card.ctrl.y * w1 + tmpA.y * w2,
+            card.from.z * w0 + card.ctrl.z * w1 + tmpA.z * w2
+          );
+          if (u >= 1) {
+            card.state = 'idle';
+            fireRipple(card.pos);
+          }
+        } else if (card.state === 'sinking') {
+          card.t += d;
+          card.pos.y -= d * 1.6;
+          card.scale = Math.max(0.001, card.scale - d * 1.3);
+          if (card.scale <= 0.001) {
+            card.state = 'dead';
+            card.pos.set(0, -30, 0);
+          }
+        } else if (card.state === 'spawning') {
+          card.t += d;
+          card.scale = Math.min(1, card.scale + d * 2.2);
+          slotPos(card.col, columns[card.col].indexOf(i), tmpA);
+          card.pos.lerp(tmpA, Math.min(1, d * 4));
+          if (card.t > 1.2) card.state = 'idle';
+        } else {
+          // idle: ease toward the current slot as gaps close beneath
+          slotPos(card.col, columns[card.col].indexOf(i), tmpA);
+          card.pos.lerp(tmpA, Math.min(1, d * 5));
+          card.scale += (1 - card.scale) * Math.min(1, d * 4);
+        }
+        // color eases toward the column hue, brighter while moving
+        cTmp.copy(colorFor(card.col));
+        if (card.state === 'moving') cTmp.lerp(RIPPLE, 0.25);
+        card.color.lerp(cTmp, Math.min(1, d * 3));
+        cardMesh.setColorAt(i, card.color);
+        const bob = Math.sin(t * 0.9 + i * 1.7) * 0.02;
+        tmpB.copy(card.pos);
+        tmpB.y += bob;
+        m4.compose(tmpB, qt, sv.set(card.scale, card.scale, card.scale));
+        cardMesh.setMatrixAt(i, m4);
+      }
+      cardMesh.instanceMatrix.needsUpdate = true;
+      cardMesh.instanceColor.needsUpdate = true;
+
+      // ripples
+      for (let i = 0; i < RIPPLE_POOL; i++) {
+        const R = ripples[i];
+        if (!R.live) continue;
+        R.t += d;
+        const u = R.t / RIPPLE_DUR;
+        if (u >= 1) {
+          R.live = false;
+          R.line.material.opacity = 0;
+          bellRing();
+          continue;
+        }
+        R.line.material.opacity = 1;
+        // brightness window racing along the conduit
+        const ca = R.colAttr.array;
+        let o = 0;
+        for (let s = 0; s < RIP_SEGS; s++) {
+          for (let v = 0; v < 2; v++) {
+            const su = (s + v) / RIP_SEGS;
+            const w = Math.exp(-Math.pow((su - ease(u)) * 7.0, 2.0));
+            const base = 0.06 * Math.min(1, u * 5) * Math.min(1, (1 - u) * 5 + 0.4);
+            const b = base + w * 0.9;
+            ca[o++] = RIPPLE.r * b;
+            ca[o++] = RIPPLE.g * b;
+            ca[o++] = RIPPLE.b * b;
+          }
+        }
+        R.colAttr.needsUpdate = true;
+      }
+
+      // bell swing: damped spring
+      const acc = -34 * bellRot - 4.5 * bellVel;
+      bellVel += acc * d;
+      bellRot += bellVel * d;
+      bell.rotation.z = bellRot * 0.12;
+
+      // ping rings
+      for (let i = 0; i < pings.length; i++) {
+        const P = pings[i];
+        if (!P.live) continue;
+        P.age += d;
+        const u = P.age / 0.8;
+        if (u >= 1) { P.live = false; P.mesh.material.opacity = 0; continue; }
+        const s = 0.15 + ease(u) * 1.15;
+        P.mesh.scale.set(s, s, s);
+        P.mesh.material.opacity = (1 - u) * 0.55;
+        P.mesh.quaternion.copy(ctx.camera.quaternion);
+      }
+
+      // camera: gentle parallax drift, no full orbit for a board piece
+      ctx.camera.position.set(
+        ctx.pointer.x * 1.8 + Math.sin(t * 0.07) * 0.5,
+        0.9 + ctx.pointer.y * 1.2 + Math.sin(t * 0.05) * 0.3,
+        10.5
+      );
+      ctx.camera.lookAt(look);
+    }
+  };
+}
+
+/* ================= shared runtime ================= */
+
+const canvas = document.getElementById('c');
+const btnPlay = document.getElementById('btnPlay');
+const speedEl = document.getElementById('speed');
+const btnPng = document.getElementById('btnPng');
+const note = document.getElementById('note');
+
+let renderer;
+try {
+  renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
+} catch (e) {
+  document.getElementById('err').style.display = 'grid';
+  document.getElementById('hud').hidden = true;
+  throw e;
+}
+
+/* Quality tier: 1 on desktop, lower on small screens or few cores.
+   Scenes scale particle counts by ctx.quality. */
+const small = Math.min(window.innerWidth, window.innerHeight) < 700;
+const weak = (navigator.hardwareConcurrency || 8) <= 4;
+const quality = small ? 0.5 : (weak ? 0.7 : 1);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, quality < 1 ? 1.5 : 2));
+
+const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 500);
+camera.position.set(0, 0, 12);
+
+const ctx = {
+  scene: new THREE.Scene(),
+  camera,
+  renderer,
+  quality,
+  pointer: { x: 0, y: 0 },  /* smoothed, -1..1, y up */
+};
+
+let piece;
+try {
+  piece = createScene(THREE, ctx);
+} catch (e) {
+  document.getElementById('err').style.display = 'grid';
+  document.getElementById('hud').hidden = true;
+  console.error(e);
+  throw e;
+}
+
+function resize() {
+  const w = window.innerWidth, h = window.innerHeight;
+  renderer.setSize(w, h, false);
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+  if (piece.resize) piece.resize(w, h);
+}
+window.addEventListener('resize', resize);
+resize();
+
+/* Pointer parallax target, lerped each frame for weight. */
+const target = { x: 0, y: 0 };
+window.addEventListener('pointermove', (e) => {
+  target.x = (e.clientX / window.innerWidth) * 2 - 1;
+  target.y = -((e.clientY / window.innerHeight) * 2 - 1);
+}, { passive: true });
+
+let userPaused = false;
+let hidden = false;
+let speed = 1;
+let t = 0;
+let last = performance.now();
+
+const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+function setPlayUi() {
+  btnPlay.textContent = userPaused ? 'Play' : 'Pause';
+  btnPlay.setAttribute('aria-pressed', String(userPaused));
+}
+btnPlay.addEventListener('click', () => {
+  userPaused = !userPaused;
+  note.hidden = true;
+  setPlayUi();
+  if (!userPaused) { last = performance.now(); loop(last); }
+});
+canvas.addEventListener('keydown', (e) => {
+  if (e.code === 'Space') { e.preventDefault(); btnPlay.click(); }
+});
+speedEl.addEventListener('input', () => { speed = parseFloat(speedEl.value) || 1; });
+
+btnPng.addEventListener('click', () => {
+  renderer.render(ctx.scene, camera);
+  canvas.toBlob((blob) => {
+    if (!blob) return;
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'task-manager-django-3d.png';
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+  });
+});
+
+document.addEventListener('visibilitychange', () => {
+  hidden = document.hidden;
+  if (!hidden && !userPaused) { last = performance.now(); loop(last); }
+});
+
+let raf = 0;
+function frame(now) {
+  const dt = Math.min((now - last) / 1000, 0.1);
+  last = now;
+  t += dt * speed;
+  ctx.pointer.x += (target.x - ctx.pointer.x) * 0.06;
+  ctx.pointer.y += (target.y - ctx.pointer.y) * 0.06;
+  piece.update(t, dt * speed);
+  renderer.render(ctx.scene, camera);
+}
+function loop(now) {
+  if (userPaused || hidden) return;
+  frame(now);
+  raf = requestAnimationFrame(loop);
+}
+
+if (reduceMotion) {
+  /* Advance to a composed moment, render one still frame, and wait. */
+  for (let i = 0; i < 240; i++) { t += 1 / 60; piece.update(t, 1 / 60); }
+  renderer.render(ctx.scene, camera);
+  userPaused = true;
+  note.hidden = false;
+  setPlayUi();
+} else {
+  loop(performance.now());
+}
+</script>
+</body>
+</html>

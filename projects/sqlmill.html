@@ -91,6 +91,13 @@
         <img src="../assets/screenshots/sqlmill.webp" alt="Benchmark charts: sqlmill's insert throughput by durability mode, and point-lookup vs full-scan latency by row count." loading="lazy" decoding="async" width="1200" height="733">
         <figcaption>From a real single-threaded benchmark run (benchmarks/RESULTS.md).</figcaption>
       </figure>
+
+      <figure class="proj-media proj-viz">
+        <div class="proj-viz__frame">
+          <iframe src="../viz/sqlmill.html" title="Interactive 3D visualization: SQL Database Engine" loading="lazy" allow="fullscreen"></iframe>
+        </div>
+        <figcaption>B+tree Pulse: queries descend the tree, range scans sweep the leaves, the WAL never stops. Live and interactive, it follows your pointer. <a href="../viz/sqlmill.html" target="_blank" rel="noopener">Open full screen</a></figcaption>
+      </figure>
     </div>
   </section>
 

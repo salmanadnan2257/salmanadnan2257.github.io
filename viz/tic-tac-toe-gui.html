@@ -1,0 +1,682 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <meta name="theme-color" content="#0E1018">
+  <title>Tic Tac Toe in 3D · Salman Adnan</title>
+  <meta name="description" content="Endless Openings: an interactive 3D study of games drawing themselves on a floating glass grid.">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="../assets/favicon.png" sizes="any">
+  <style>
+    :root { color-scheme: dark; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      background: #0E1018;
+      overflow: hidden;
+      font: 12px/1.4 ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+      color: rgba(255, 255, 255, 0.85);
+    }
+    #stage { position: fixed; inset: 0; }
+    canvas { display: block; width: 100%; height: 100%; outline: none; }
+    canvas:focus-visible { box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.6); }
+    #hud {
+      position: absolute; right: 12px; bottom: 12px;
+      display: flex; align-items: center; gap: 10px;
+      padding: 7px 10px; border-radius: 999px;
+      background: rgba(8, 8, 14, 0.55);
+      backdrop-filter: blur(6px);
+      opacity: 0.55; transition: opacity 0.25s ease;
+    }
+    #hud:hover, #hud:focus-within { opacity: 1; }
+    #hud button {
+      appearance: none; border: 1px solid rgba(255, 255, 255, 0.25);
+      background: transparent; color: inherit; font: inherit;
+      padding: 3px 10px; border-radius: 999px; cursor: pointer;
+    }
+    #hud button:hover { border-color: rgba(255, 255, 255, 0.6); }
+    #hud button:focus-visible, #hud input:focus-visible {
+      outline: 2px solid #fff; outline-offset: 2px;
+    }
+    #hud label { display: flex; align-items: center; gap: 6px; }
+    #hud input[type="range"] { width: 72px; accent-color: #EEC55E; }
+    #note {
+      position: absolute; left: 12px; bottom: 12px; max-width: 46ch;
+      padding: 8px 12px; border-radius: 10px;
+      background: rgba(8, 8, 14, 0.65);
+    }
+    #err {
+      position: absolute; inset: 0; display: none;
+      place-items: center; text-align: center; padding: 24px;
+    }
+    @media (max-width: 560px) {
+      #hud label { display: none; }
+    }
+  </style>
+</head>
+<body>
+<div id="stage">
+  <canvas id="c" tabindex="0" aria-label="Animated floating glass grid where X and O strokes draw themselves, the win line flares, and the board dissolves into the next game."></canvas>
+  <div id="hud" role="group" aria-label="Visualization controls">
+    <button id="btnPlay" type="button" aria-pressed="false">Pause</button>
+    <label for="speed">speed
+      <input id="speed" type="range" min="0.25" max="2" step="0.25" value="1"
+             aria-label="Animation speed">
+    </label>
+    <button id="btnPng" type="button">Save PNG</button>
+  </div>
+  <p id="note" hidden>Motion is paused because your system prefers reduced motion.
+     Press Play to animate.</p>
+  <div id="err"><p>This visualization needs WebGL, which is unavailable here.<br>
+     A screenshot of it lives on the project page.</p></div>
+</div>
+
+<script type="importmap">
+{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js" } }
+</script>
+<script type="module">
+import * as THREE from 'three';
+
+/* ================= scene: tic-tac-toe-gui ================= */
+// ENDLESS OPENINGS, tic tac toe playing itself on a floating glass grid:
+// every game comes from a precomputed legal script (wins for X, wins for O,
+// draws), strokes draw themselves like a confident pen, the winning line
+// flares gold, and the board dissolves into the next game.
+// Palette: bg ink #0E1018, grid glass #3C4454, X coral #E8705A, O sky #5AA8E8,
+//   win gold #EEC55E. Two friendly rival hues on dark glass, gold only for
+//   the deciding line.
+// Signature: strokes that draw themselves like a confident pen.
+
+function createScene(THREE, ctx) {
+  const q = ctx.quality;
+
+  // ---- tunables -----------------------------------------------------------
+  const BG = 0x0E1018;        // ink background
+  const GRID_COL = 0x3C4454;  // glass slab tint
+  const EDGE_COL = 0x8A96B0;  // grid edge glow
+  const X_COL = 0xE8705A;     // coral X strokes
+  const O_COL = 0x5AA8E8;     // sky O sweeps
+  const WIN_COL = 0xEEC55E;   // gold win flare
+  const S = 1.42;             // cell pitch (center to center)
+  const MOVE_DT = 1.15;       // thinking pause between moves, seconds
+  const STROKE_T = 0.62;      // time to draw one piece
+  const SPARK_POOL = Math.max(120, Math.floor(320 * q)); // dissolve spark budget
+  const GHOSTS = 2;           // faint mid-game boards in the background
+
+  const clamp = (v, a, b) => v < a ? a : (v > b ? b : v);
+  const easeOut = (x) => 1 - Math.pow(1 - clamp(x, 0, 1), 3);
+  const easeIn = (x) => { x = clamp(x, 0, 1); return x * x * x; };
+  let seed = 424242;
+  const rnd = () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let z = Math.imul(seed ^ seed >>> 15, 1 | seed); z = z + Math.imul(z ^ z >>> 7, 61 | z) ^ z; return ((z ^ z >>> 14) >>> 0) / 4294967296; };
+
+  // ---- precomputed legal game scripts (cells 0..8 row-major, X moves first).
+  // Each was checked by hand for legality and sensible play: blocks happen,
+  // wins come from forks or one plausible slip, draws are well fought.
+  const SCRIPTS = [
+    { m: [0, 4, 8, 6, 2, 1, 5], win: 'X', line: [2, 5, 8] },
+    { m: [2, 4, 6, 0, 8, 5, 7], win: 'X', line: [6, 7, 8] },
+    { m: [4, 0, 2, 6, 5, 3, 8], win: 'X', line: [2, 5, 8] },
+    { m: [1, 4, 7, 0, 8, 6, 3, 2], win: 'O', line: [2, 4, 6] },
+    { m: [0, 4, 8, 1, 7, 6, 2, 5, 3], win: 'D', line: null },
+    { m: [4, 0, 6, 2, 3, 5, 1, 7, 8], win: 'D', line: null },
+    { m: [3, 4, 0, 6, 2, 1, 7, 5, 8], win: 'D', line: null }
+  ];
+
+  ctx.scene.background = new THREE.Color(BG);
+  ctx.scene.fog = new THREE.FogExp2(BG, 0.02);
+
+  const cellPos = (i) => new THREE.Vector2(((i % 3) - 1) * S, (1 - Math.floor(i / 3)) * S);
+
+  // ---- board group ---------------------------------------------------------
+  const board = new THREE.Group();
+  ctx.scene.add(board);
+
+  // glass grid: four slabs plus edge glow lines
+  const gridGroup = new THREE.Group();
+  board.add(gridGroup);
+  const slabMat = new THREE.MeshBasicMaterial({ color: GRID_COL, transparent: true, opacity: 0.42 });
+  const edgeMat = new THREE.LineBasicMaterial({ color: EDGE_COL, transparent: true, opacity: 0.35 });
+  const barLen = S * 3 + 0.4;
+  for (let k = 0; k < 4; k++) {
+    const vert = k < 2;
+    const geo = vert ? new THREE.BoxGeometry(0.07, barLen, 0.16) : new THREE.BoxGeometry(barLen, 0.07, 0.16);
+    const slab = new THREE.Mesh(geo, slabMat);
+    const off = (k % 2 === 0 ? -1 : 1) * S / 2;
+    if (vert) slab.position.x = off; else slab.position.y = off;
+    gridGroup.add(slab);
+    const edges = new THREE.LineSegments(new THREE.EdgesGeometry(geo), edgeMat);
+    edges.position.copy(slab.position);
+    gridGroup.add(edges);
+  }
+
+  // ---- piece pools: 9 X groups (two pen strokes each), 9 O shader rings ----
+  function makeXPiece() {
+    const g = new THREE.Group();
+    const mat = new THREE.MeshBasicMaterial({ color: X_COL, transparent: true, opacity: 1 });
+    const barGeo = new THREE.BoxGeometry(1, 0.13, 0.13);
+    barGeo.translate(0.5, 0, 0); // grow from the origin end, like a pen stroke
+    const b1 = new THREE.Mesh(barGeo, mat);
+    b1.position.set(-0.44, 0.44, 0.05); b1.rotation.z = -Math.PI / 4; b1.scale.x = 0.0001;
+    const b2 = new THREE.Mesh(barGeo, mat);
+    b2.position.set(0.44, 0.44, 0.05); b2.rotation.z = -3 * Math.PI / 4; b2.scale.x = 0.0001;
+    g.add(b1, b2);
+    g.visible = false;
+    return { group: g, bars: [b1, b2], mat: mat, len: 1.24 };
+  }
+
+  const O_FRAG = [
+    'uniform float uProg;',
+    'uniform float uFade;',
+    'uniform float uFlash;',
+    'uniform vec3 uColor;',
+    'varying vec2 vUv;',
+    'void main(){',
+    '  vec2 p = vUv * 2.0 - 1.0;',
+    '  float r = length(p);',
+    '  float ring = smoothstep(0.16, 0.05, abs(r - 0.6));',
+    '  float ang = atan(p.x, p.y);',
+    '  float u = ang < 0.0 ? ang + 6.28318 : ang;',
+    '  u /= 6.28318;',
+    '  float reveal = 1.0 - smoothstep(uProg - 0.015, uProg + 0.015, u);',
+    '  float head = smoothstep(0.10, 0.0, abs(u - uProg)) * step(uProg, 0.985) * 0.9;',
+    '  float a = ring * (reveal + head) * uFade;',
+    '  vec3 col = uColor + vec3(1.0, 0.95, 0.8) * uFlash * 0.7;',
+    '  gl_FragColor = vec4(col, a);',
+    '}'
+  ].join('\n');
+  const O_VERT = [
+    'varying vec2 vUv;',
+    'void main(){',
+    '  vUv = uv;',
+    '  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);',
+    '}'
+  ].join('\n');
+
+  function makeOPiece() {
+    const uniforms = {
+      uProg: { value: 0 }, uFade: { value: 1 }, uFlash: { value: 0 },
+      uColor: { value: new THREE.Color(O_COL) }
+    };
+    const mat = new THREE.ShaderMaterial({
+      uniforms: uniforms, vertexShader: O_VERT, fragmentShader: O_FRAG,
+      transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide
+    });
+    const mesh = new THREE.Mesh(new THREE.PlaneGeometry(1.16, 1.16), mat);
+    mesh.visible = false;
+    return { mesh: mesh, u: uniforms };
+  }
+
+  const xPieces = [], oPieces = [];
+  for (let i = 0; i < 9; i++) {
+    const xp = makeXPiece(); board.add(xp.group); xPieces.push(xp);
+    const op = makeOPiece(); board.add(op.mesh); oPieces.push(op);
+  }
+
+  // ---- win line flare -------------------------------------------------------
+  const winUniforms = { uProg: { value: 0 }, uFade: { value: 0 }, uColor: { value: new THREE.Color(WIN_COL) } };
+  const winMat = new THREE.ShaderMaterial({
+    uniforms: winUniforms,
+    vertexShader: O_VERT,
+    fragmentShader: [
+      'uniform float uProg;',
+      'uniform float uFade;',
+      'uniform vec3 uColor;',
+      'varying vec2 vUv;',
+      'void main(){',
+      '  float along = vUv.x;',
+      '  float across = abs(vUv.y - 0.5) * 2.0;',
+      '  float body = smoothstep(1.0, 0.2, across);',
+      '  float reveal = 1.0 - smoothstep(uProg - 0.02, uProg + 0.02, along);',
+      '  float head = smoothstep(0.08, 0.0, abs(along - uProg)) * 1.2;',
+      '  gl_FragColor = vec4(uColor, (body * reveal + head * body) * uFade);',
+      '}'
+    ].join('\n'),
+    transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide
+  });
+  const winBar = new THREE.Mesh(new THREE.PlaneGeometry(1, 0.34), winMat);
+  winBar.visible = false;
+  board.add(winBar);
+
+  function placeWinBar(line) {
+    const a = cellPos(line[0]), c = cellPos(line[2]);
+    const mid = a.clone().add(c).multiplyScalar(0.5);
+    const dir = c.clone().sub(a);
+    const len = dir.length() + 1.0;
+    winBar.position.set(mid.x, mid.y, 0.12);
+    winBar.rotation.z = Math.atan2(dir.y, dir.x);
+    winBar.scale.set(len, 1, 1);
+    winBar.visible = true;
+  }
+
+  // ---- dissolve sparks ------------------------------------------------------
+  const spPos = new Float32Array(SPARK_POOL * 3);
+  const spVel = new Float32Array(SPARK_POOL * 3);
+  const spLife = new Float32Array(SPARK_POOL);
+  const spMax = new Float32Array(SPARK_POOL);
+  const spA = new Float32Array(SPARK_POOL);
+  const spKind = new Float32Array(SPARK_POOL); // 0 coral, 1 sky
+  const spGeo = new THREE.BufferGeometry();
+  spGeo.setAttribute('position', new THREE.Float32BufferAttribute(spPos, 3));
+  spGeo.setAttribute('aAlpha', new THREE.Float32BufferAttribute(spA, 1));
+  spGeo.setAttribute('aKind', new THREE.Float32BufferAttribute(spKind, 1));
+  const spMat = new THREE.ShaderMaterial({
+    uniforms: {
+      uColA: { value: new THREE.Color(X_COL) },
+      uColB: { value: new THREE.Color(O_COL) }
+    },
+    vertexShader: [
+      'attribute float aAlpha;',
+      'attribute float aKind;',
+      'varying float vA;',
+      'varying float vK;',
+      'void main(){',
+      '  vA = aAlpha; vK = aKind;',
+      '  vec4 mv = modelViewMatrix * vec4(position, 1.0);',
+      '  gl_PointSize = (0.3 + 0.5 * aAlpha) * (120.0 / -mv.z);',
+      '  gl_Position = projectionMatrix * mv;',
+      '}'
+    ].join('\n'),
+    fragmentShader: [
+      'uniform vec3 uColA;',
+      'uniform vec3 uColB;',
+      'varying float vA;',
+      'varying float vK;',
+      'void main(){',
+      '  float d = length(gl_PointCoord - 0.5);',
+      '  float a = smoothstep(0.5, 0.08, d) * vA;',
+      '  gl_FragColor = vec4(mix(uColA, uColB, vK), a);',
+      '}'
+    ].join('\n'),
+    transparent: true, depthWrite: false, blending: THREE.AdditiveBlending
+  });
+  const sparks = new THREE.Points(spGeo, spMat);
+  board.add(sparks);
+  let spCursor = 0;
+
+  function spawnSparks(x, y, kind, n) {
+    for (let k = 0; k < n; k++) {
+      const i = spCursor; spCursor = (spCursor + 1) % SPARK_POOL;
+      const a = rnd() * Math.PI * 2, sp = 0.4 + rnd() * 1.4;
+      spPos[i * 3] = x + (rnd() - 0.5) * 0.7;
+      spPos[i * 3 + 1] = y + (rnd() - 0.5) * 0.7;
+      spPos[i * 3 + 2] = 0.1;
+      spVel[i * 3] = Math.cos(a) * sp;
+      spVel[i * 3 + 1] = Math.sin(a) * sp + 0.5;
+      spVel[i * 3 + 2] = (rnd() - 0.5) * 0.6;
+      spMax[i] = 0.5 + rnd() * 0.6;
+      spLife[i] = spMax[i];
+      spKind[i] = kind;
+    }
+    spGeo.attributes.aKind.needsUpdate = true;
+  }
+
+  // ---- ghost boards drifting far behind ------------------------------------
+  function ghostMarkTexture(isX) {
+    const cv = document.createElement('canvas');
+    cv.width = 64; cv.height = 64;
+    const g = cv.getContext('2d');
+    g.clearRect(0, 0, 64, 64);
+    g.strokeStyle = '#ffffff';
+    g.lineWidth = 8; g.lineCap = 'round';
+    if (isX) {
+      g.beginPath(); g.moveTo(16, 16); g.lineTo(48, 48);
+      g.moveTo(48, 16); g.lineTo(16, 48); g.stroke();
+    } else {
+      g.beginPath(); g.arc(32, 32, 18, 0, Math.PI * 2); g.stroke();
+    }
+    return new THREE.CanvasTexture(cv);
+  }
+  const ghostXTex = ghostMarkTexture(true);
+  const ghostOTex = ghostMarkTexture(false);
+  const ghosts = [];
+  for (let g = 0; g < GHOSTS; g++) {
+    const grp = new THREE.Group();
+    const gm = new THREE.LineBasicMaterial({ color: EDGE_COL, transparent: true, opacity: 0.08 });
+    const pts = [];
+    for (let k = 0; k < 4; k++) {
+      const vert = k < 2, off = (k % 2 === 0 ? -1 : 1) * S / 2;
+      if (vert) pts.push(off, -barLen / 2, 0, off, barLen / 2, 0);
+      else pts.push(-barLen / 2, off, 0, barLen / 2, off, 0);
+    }
+    const lg = new THREE.BufferGeometry();
+    lg.setAttribute('position', new THREE.Float32BufferAttribute(pts, 3));
+    grp.add(new THREE.LineSegments(lg, gm));
+    // a frozen mid-game: three ghost marks
+    const gx = new THREE.MeshBasicMaterial({ color: X_COL, transparent: true, opacity: 0.14, map: ghostXTex, depthWrite: false });
+    const go = new THREE.MeshBasicMaterial({ color: O_COL, transparent: true, opacity: 0.14, map: ghostOTex, depthWrite: false });
+    const marks = g === 0 ? [[0, 1], [4, 0], [8, 1]] : [[2, 1], [4, 1], [3, 0]];
+    for (const mk of marks) {
+      const p = cellPos(mk[0]);
+      const quad = new THREE.Mesh(new THREE.PlaneGeometry(1.0, 1.0), mk[1] ? gx : go);
+      quad.position.set(p.x, p.y, 0.02);
+      grp.add(quad);
+    }
+    grp.position.set(g === 0 ? -5.5 : 6.2, g === 0 ? 2.2 : -1.6, -8.5);
+    grp.scale.setScalar(0.62);
+    ctx.scene.add(grp);
+    ghosts.push(grp);
+  }
+
+  // ---- game state machine ---------------------------------------------------
+  let order = shuffle([0, 1, 2, 3, 4, 5, 6]);
+  let orderIdx = 0;
+  let script = SCRIPTS[order[0]];
+  let moveIdx = 0;                 // next move to place
+  let placed = [];                 // {cell, kind:0 X /1 O, t0}
+  let state = 'play';              // play | flare | shimmer | dissolve | reset
+  let stateT = 0;
+  let moveTimer = 0.8;
+  let tt = 0;
+  let boardTiltBase = -0.14, boardYawBase = 0.06;
+  let dissolveSpawned = false;
+  let shimmerPulse = 0;
+
+  function shuffle(arr) {
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(rnd() * (i + 1));
+      const tmp = arr[i]; arr[i] = arr[j]; arr[j] = tmp;
+    }
+    return arr;
+  }
+
+  function hidePieces() {
+    for (let i = 0; i < 9; i++) {
+      xPieces[i].group.visible = false;
+      xPieces[i].bars[0].scale.x = 0.0001;
+      xPieces[i].bars[1].scale.x = 0.0001;
+      xPieces[i].mat.opacity = 1;
+      xPieces[i].mat.color.setHex(X_COL);
+      xPieces[i].group.scale.setScalar(1);
+      oPieces[i].mesh.visible = false;
+      oPieces[i].mesh.scale.setScalar(1);
+      oPieces[i].u.uProg.value = 0;
+      oPieces[i].u.uFade.value = 1;
+      oPieces[i].u.uFlash.value = 0;
+    }
+    winBar.visible = false;
+    winUniforms.uProg.value = 0;
+    winUniforms.uFade.value = 0;
+  }
+
+  function placeMove(cell, kind) {
+    const p = cellPos(cell);
+    if (kind === 0) {
+      const xp = xPieces[cell];
+      xp.group.position.set(p.x, p.y, 0);
+      xp.group.visible = true;
+    } else {
+      const op = oPieces[cell];
+      op.mesh.position.set(p.x, p.y, 0.05);
+      op.mesh.visible = true;
+    }
+    placed.push({ cell: cell, kind: kind, t0: tt });
+  }
+
+  function nextGame() {
+    orderIdx = (orderIdx + 1) % order.length;
+    if (orderIdx === 0) order = shuffle(order);
+    script = SCRIPTS[order[orderIdx]];
+    moveIdx = 0; placed = []; moveTimer = MOVE_DT * 0.7;
+    dissolveSpawned = false;
+    boardTiltBase = -0.14 + (rnd() - 0.5) * 0.16;
+    boardYawBase = (rnd() - 0.5) * 0.2;
+    hidePieces();
+  }
+
+  ctx.camera.position.set(0, 0.4, 10.2);
+  ctx.camera.lookAt(0, 0, 0);
+
+  function update(t, dt) {
+    dt = clamp(dt, 0, 0.05);
+    tt += dt; stateT += dt;
+
+    // advance the current game
+    if (state === 'play') {
+      moveTimer -= dt;
+      if (moveTimer <= 0 && moveIdx < script.m.length) {
+        placeMove(script.m[moveIdx], moveIdx % 2);
+        moveIdx++;
+        moveTimer = MOVE_DT * (0.85 + rnd() * 0.4);
+      }
+      if (moveIdx >= script.m.length) {
+        // wait for the last stroke to finish drawing
+        const last = placed[placed.length - 1];
+        if (last && tt - last.t0 > STROKE_T + 0.35) {
+          if (script.win === 'D') { state = 'shimmer'; shimmerPulse = 1; }
+          else { state = 'flare'; placeWinBar(script.line); }
+          stateT = 0;
+        }
+      }
+    } else if (state === 'flare') {
+      winUniforms.uFade.value = Math.min(1, stateT * 3);
+      winUniforms.uProg.value = easeOut(stateT / 0.55);
+      // pulse the three winning pieces
+      const pulse = 0.5 + 0.5 * Math.sin(stateT * 7 - 1.4);
+      for (const c of script.line) {
+        if (script.win === 'X') {
+          xPieces[c].mat.color.setHex(X_COL).lerp(new THREE.Color(0xffe9c8), pulse * 0.55);
+          xPieces[c].group.scale.setScalar(1 + pulse * 0.07);
+        } else {
+          oPieces[c].u.uFlash.value = pulse;
+          oPieces[c].mesh.scale.setScalar(1 + pulse * 0.07);
+        }
+      }
+      if (stateT > 2.3) { state = 'dissolve'; stateT = 0; }
+    } else if (state === 'shimmer') {
+      shimmerPulse = Math.max(0, 1 - stateT / 1.6);
+      if (stateT > 1.8) { state = 'dissolve'; stateT = 0; }
+    } else if (state === 'dissolve') {
+      const u = stateT / 1.5;
+      // pieces fade, sparks fly once, board tips back
+      const fade = 1 - easeIn(u);
+      for (const pl of placed) {
+        if (pl.kind === 0) xPieces[pl.cell].mat.opacity = fade;
+        else oPieces[pl.cell].u.uFade.value = fade;
+      }
+      winUniforms.uFade.value = fade;
+      if (!dissolveSpawned && u > 0.12) {
+        dissolveSpawned = true;
+        const per = Math.max(6, Math.floor(SPARK_POOL / 14));
+        for (const pl of placed) {
+          const p = cellPos(pl.cell);
+          spawnSparks(p.x, p.y, pl.kind, per);
+        }
+      }
+      if (u >= 1) { state = 'reset'; stateT = 0; nextGame(); }
+    } else if (state === 'reset') {
+      if (stateT > 0.9) { state = 'play'; stateT = 0; }
+    }
+
+    // stroke drawing for placed pieces
+    for (const pl of placed) {
+      const age = tt - pl.t0;
+      if (pl.kind === 0) {
+        const xp = xPieces[pl.cell];
+        const u1 = easeOut(age / (STROKE_T * 0.52));
+        const u2 = easeOut((age - STROKE_T * 0.42) / (STROKE_T * 0.55));
+        xp.bars[0].scale.x = Math.max(0.0001, u1 * xp.len);
+        xp.bars[1].scale.x = Math.max(0.0001, u2 * xp.len);
+      } else {
+        const op = oPieces[pl.cell];
+        op.u.uProg.value = easeOut(age / STROKE_T);
+      }
+    }
+
+    // dissolve sparks integration
+    const pArr = spGeo.attributes.position.array;
+    const aArr = spGeo.attributes.aAlpha.array;
+    for (let i = 0; i < SPARK_POOL; i++) {
+      if (spLife[i] <= 0) { if (aArr[i] !== 0) aArr[i] = 0; continue; }
+      spLife[i] -= dt;
+      spVel[i * 3 + 1] -= 2.2 * dt;
+      pArr[i * 3] += spVel[i * 3] * dt;
+      pArr[i * 3 + 1] += spVel[i * 3 + 1] * dt;
+      pArr[i * 3 + 2] += spVel[i * 3 + 2] * dt;
+      const u = clamp(spLife[i] / spMax[i], 0, 1);
+      aArr[i] = u;
+    }
+    spGeo.attributes.position.needsUpdate = true;
+    spGeo.attributes.aAlpha.needsUpdate = true;
+
+    // board float and the dissolve tilt
+    const tiltExtra = state === 'dissolve' ? easeIn(stateT / 1.5) * -0.55 : 0;
+    const settle = state === 'reset' ? easeOut(stateT / 0.9) : 1;
+    board.rotation.x = boardTiltBase * settle + tiltExtra + Math.sin(tt * 0.4) * 0.02;
+    board.rotation.y = boardYawBase * settle + Math.sin(tt * 0.31) * 0.03;
+    board.position.y = Math.sin(tt * 0.5) * 0.16;
+
+    // grid shimmer (draw celebration), dissolve fade-out, reset fade-in
+    let gridIn = 1;
+    if (state === 'reset') gridIn = easeOut(stateT / 0.9);
+    else if (state === 'dissolve') gridIn = 1 - easeIn(stateT / 1.5);
+    slabMat.opacity = (0.42 + shimmerPulse * 0.25 * (0.5 + 0.5 * Math.sin(tt * 9))) * gridIn;
+    edgeMat.opacity = (0.35 + shimmerPulse * 0.4 * (0.5 + 0.5 * Math.sin(tt * 9 + 1))) * gridIn;
+
+    // ghosts drift
+    for (let g = 0; g < ghosts.length; g++) {
+      ghosts[g].rotation.z = Math.sin(tt * 0.11 + g * 2.1) * 0.1;
+      ghosts[g].position.y += Math.sin(tt * 0.17 + g * 3.7) * 0.0016;
+    }
+
+    // camera parallax
+    ctx.camera.position.x += (ctx.pointer.x * 1.1 - ctx.camera.position.x) * (1 - Math.exp(-dt * 3));
+    ctx.camera.position.y += (0.4 + ctx.pointer.y * 0.8 - ctx.camera.position.y) * (1 - Math.exp(-dt * 3));
+    ctx.camera.lookAt(0, 0, 0);
+  }
+
+  return { update };
+}
+
+/* ================= shared runtime ================= */
+
+const canvas = document.getElementById('c');
+const btnPlay = document.getElementById('btnPlay');
+const speedEl = document.getElementById('speed');
+const btnPng = document.getElementById('btnPng');
+const note = document.getElementById('note');
+
+let renderer;
+try {
+  renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
+} catch (e) {
+  document.getElementById('err').style.display = 'grid';
+  document.getElementById('hud').hidden = true;
+  throw e;
+}
+
+/* Quality tier: 1 on desktop, lower on small screens or few cores.
+   Scenes scale particle counts by ctx.quality. */
+const small = Math.min(window.innerWidth, window.innerHeight) < 700;
+const weak = (navigator.hardwareConcurrency || 8) <= 4;
+const quality = small ? 0.5 : (weak ? 0.7 : 1);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, quality < 1 ? 1.5 : 2));
+
+const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 500);
+camera.position.set(0, 0, 12);
+
+const ctx = {
+  scene: new THREE.Scene(),
+  camera,
+  renderer,
+  quality,
+  pointer: { x: 0, y: 0 },  /* smoothed, -1..1, y up */
+};
+
+let piece;
+try {
+  piece = createScene(THREE, ctx);
+} catch (e) {
+  document.getElementById('err').style.display = 'grid';
+  document.getElementById('hud').hidden = true;
+  console.error(e);
+  throw e;
+}
+
+function resize() {
+  const w = window.innerWidth, h = window.innerHeight;
+  renderer.setSize(w, h, false);
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+  if (piece.resize) piece.resize(w, h);
+}
+window.addEventListener('resize', resize);
+resize();
+
+/* Pointer parallax target, lerped each frame for weight. */
+const target = { x: 0, y: 0 };
+window.addEventListener('pointermove', (e) => {
+  target.x = (e.clientX / window.innerWidth) * 2 - 1;
+  target.y = -((e.clientY / window.innerHeight) * 2 - 1);
+}, { passive: true });
+
+let userPaused = false;
+let hidden = false;
+let speed = 1;
+let t = 0;
+let last = performance.now();
+
+const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+function setPlayUi() {
+  btnPlay.textContent = userPaused ? 'Play' : 'Pause';
+  btnPlay.setAttribute('aria-pressed', String(userPaused));
+}
+btnPlay.addEventListener('click', () => {
+  userPaused = !userPaused;
+  note.hidden = true;
+  setPlayUi();
+  if (!userPaused) { last = performance.now(); loop(last); }
+});
+canvas.addEventListener('keydown', (e) => {
+  if (e.code === 'Space') { e.preventDefault(); btnPlay.click(); }
+});
+speedEl.addEventListener('input', () => { speed = parseFloat(speedEl.value) || 1; });
+
+btnPng.addEventListener('click', () => {
+  renderer.render(ctx.scene, camera);
+  canvas.toBlob((blob) => {
+    if (!blob) return;
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'tic-tac-toe-gui-3d.png';
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+  });
+});
+
+document.addEventListener('visibilitychange', () => {
+  hidden = document.hidden;
+  if (!hidden && !userPaused) { last = performance.now(); loop(last); }
+});
+
+let raf = 0;
+function frame(now) {
+  const dt = Math.min((now - last) / 1000, 0.1);
+  last = now;
+  t += dt * speed;
+  ctx.pointer.x += (target.x - ctx.pointer.x) * 0.06;
+  ctx.pointer.y += (target.y - ctx.pointer.y) * 0.06;
+  piece.update(t, dt * speed);
+  renderer.render(ctx.scene, camera);
+}
+function loop(now) {
+  if (userPaused || hidden) return;
+  frame(now);
+  raf = requestAnimationFrame(loop);
+}
+
+if (reduceMotion) {
+  /* Advance to a composed moment, render one still frame, and wait. */
+  for (let i = 0; i < 240; i++) { t += 1 / 60; piece.update(t, 1 / 60); }
+  renderer.render(ctx.scene, camera);
+  userPaused = true;
+  note.hidden = false;
+  setPlayUi();
+} else {
+  loop(performance.now());
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,617 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <meta name="theme-color" content="#0C1220">
+  <title>University Enrollment System in 3D · Salman Adnan</title>
+  <meta name="description" content="Seat Lattice: an interactive 3D study of course sections filling seat by seat.">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="../assets/favicon.png" sizes="any">
+  <style>
+    :root { color-scheme: dark; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      background: #0C1220;
+      overflow: hidden;
+      font: 12px/1.4 ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+      color: rgba(255, 255, 255, 0.85);
+    }
+    #stage { position: fixed; inset: 0; }
+    canvas { display: block; width: 100%; height: 100%; outline: none; }
+    canvas:focus-visible { box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.6); }
+    #hud {
+      position: absolute; right: 12px; bottom: 12px;
+      display: flex; align-items: center; gap: 10px;
+      padding: 7px 10px; border-radius: 999px;
+      background: rgba(8, 8, 14, 0.55);
+      backdrop-filter: blur(6px);
+      opacity: 0.55; transition: opacity 0.25s ease;
+    }
+    #hud:hover, #hud:focus-within { opacity: 1; }
+    #hud button {
+      appearance: none; border: 1px solid rgba(255, 255, 255, 0.25);
+      background: transparent; color: inherit; font: inherit;
+      padding: 3px 10px; border-radius: 999px; cursor: pointer;
+    }
+    #hud button:hover { border-color: rgba(255, 255, 255, 0.6); }
+    #hud button:focus-visible, #hud input:focus-visible {
+      outline: 2px solid #fff; outline-offset: 2px;
+    }
+    #hud label { display: flex; align-items: center; gap: 6px; }
+    #hud input[type="range"] { width: 72px; accent-color: #E8B54F; }
+    #note {
+      position: absolute; left: 12px; bottom: 12px; max-width: 46ch;
+      padding: 8px 12px; border-radius: 10px;
+      background: rgba(8, 8, 14, 0.65);
+    }
+    #err {
+      position: absolute; inset: 0; display: none;
+      place-items: center; text-align: center; padding: 24px;
+    }
+    @media (max-width: 560px) {
+      #hud label { display: none; }
+    }
+  </style>
+</head>
+<body>
+<div id="stage">
+  <canvas id="c" tabindex="0" aria-label="Animated amphitheater lattice of seats filling in waves as enrollment pulses arrive, with capacity columns rising toward full."></canvas>
+  <div id="hud" role="group" aria-label="Visualization controls">
+    <button id="btnPlay" type="button" aria-pressed="false">Pause</button>
+    <label for="speed">speed
+      <input id="speed" type="range" min="0.25" max="2" step="0.25" value="1"
+             aria-label="Animation speed">
+    </label>
+    <button id="btnPng" type="button">Save PNG</button>
+  </div>
+  <p id="note" hidden>Motion is paused because your system prefers reduced motion.
+     Press Play to animate.</p>
+  <div id="err"><p>This visualization needs WebGL, which is unavailable here.<br>
+     A screenshot of it lives on the project page.</p></div>
+</div>
+
+<script type="importmap">
+{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js" } }
+</script>
+<script type="module">
+import * as THREE from 'three';
+
+/* ================= scene: university-enrollment-system ================= */
+// SEAT LATTICE
+// Concept: a curved amphitheater of instanced seat blocks in four wedge
+// sections facing a small stage; blue enrollment pulses arrive along four
+// conduits and fill seats in staggered golden ripples, capacity columns rise,
+// full sections flash red and reroute arriving pulses, then the whole hall
+// empties in a graceful semester-turnover wave and begins again.
+// Palette: bg campus night #0C1220, seat slate #3C4A66, filled gold #E8B54F,
+//          conduit blue #5D9BE8, full red #D96A5E.
+//   Quiet institutional navy; gold marks a seat taken, red appears only when a
+//   section is full.
+// Signature: watching a full section reroute its arriving pulses to a neighbor.
+
+function createScene(THREE, ctx) {
+  var q = ctx.quality;
+
+  // ---- tunables ----
+  var BG = 0x0c1220;                  // background, campus night
+  var N_WEDGES = 4;                   // wedge sections
+  var WEDGE_SPAN = 0.52;              // radians of seating per wedge
+  var AISLE = 0.09;                   // radians between wedges
+  var N_ROWS = Math.max(6, Math.floor(13 * q)); // seat rows (scales instance count)
+  var ROW_R0 = 5.0;                   // first row radius
+  var ROW_DR = 0.72;                  // radius step per row
+  var ROW_DY = 0.3;                   // rise per row
+  var SEAT_ARC = 0.34;                // arc length per seat
+  var MAX_PULSES = 12;                // concurrent enrollment pulses
+  var SPAWN_EVERY = 0.55;             // average seconds between pulses
+  var CLUSTER = 8;                    // seats filled per arriving pulse
+  var FILL_TIME = 0.6;                // one seat fill animation (s)
+  var STAGGER = 0.07;                 // delay between seats in a cluster (s)
+  var LEG_TIME = 1.5;                 // conduit travel time (s)
+  var REROUTE_TIME = 1.0;             // reroute hop time (s)
+  var TURNOVER_AT = 0.95;             // filled fraction that triggers turnover
+  var COLUMN_H = 3.0;                 // capacity column height at full
+
+  var COL_SLATE = new THREE.Color(0x3c4a66);
+  var COL_GOLD = new THREE.Color(0xe8b54f);
+  var COL_BLUE = new THREE.Color(0x5d9be8);
+  var COL_RED = new THREE.Color(0xd96a5e);
+  var COL_FLASH = new THREE.Color(0xfff0d0);
+
+  ctx.scene.background = new THREE.Color(BG);
+  ctx.scene.fog = new THREE.FogExp2(BG, 0.026);
+  ctx.scene.add(new THREE.AmbientLight(0x28324e, 1.25));
+  var dir = new THREE.DirectionalLight(0xd0dcf2, 1.05);
+  dir.position.set(-4, 10, -6);
+  ctx.scene.add(dir);
+  var fill = new THREE.DirectionalLight(0x30456a, 0.5);
+  fill.position.set(5, 3, 9);
+  ctx.scene.add(fill);
+
+  function ease(u) { return u * u * (3 - 2 * u); }
+  function ssj(a, b, x) {
+    x = Math.min(1, Math.max(0, (x - a) / (b - a)));
+    return x * x * (3 - 2 * x);
+  }
+
+  var totalSpan = N_WEDGES * WEDGE_SPAN + (N_WEDGES - 1) * AISLE;
+  var ang0 = -totalSpan / 2;
+  function wedgeCenter(w) { return ang0 + WEDGE_SPAN / 2 + w * (WEDGE_SPAN + AISLE); }
+
+  // ---- build seats
+  var seats = [];               // {pos, rotY, angle, wedge, row}
+  for (var w = 0; w < N_WEDGES; w++) {
+    var wa = ang0 + w * (WEDGE_SPAN + AISLE);
+    for (var r = 0; r < N_ROWS; r++) {
+      var rad = ROW_R0 + r * ROW_DR;
+      var count = Math.max(3, Math.floor(WEDGE_SPAN * rad / SEAT_ARC));
+      for (var s = 0; s < count; s++) {
+        var th = wa + WEDGE_SPAN * (s + 0.5) / count;
+        seats.push({
+          pos: new THREE.Vector3(Math.sin(th) * rad, r * ROW_DY, Math.cos(th) * rad),
+          rotY: th + Math.PI,
+          angle: th, wedge: w, row: r
+        });
+      }
+    }
+  }
+  var N_SEATS = seats.length;
+
+  var seatGeo = new THREE.BoxGeometry(0.3, 0.34, 0.26);
+  var seatMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.6, metalness: 0.2, emissive: 0x141c30, emissiveIntensity: 0.6 });
+  var seatMesh = new THREE.InstancedMesh(seatGeo, seatMat, N_SEATS);
+  var m4 = new THREE.Matrix4();
+  var quat = new THREE.Quaternion();
+  var eul = new THREE.Euler();
+  var vS = new THREE.Vector3(1, 1, 1);
+  var vP = new THREE.Vector3();
+  var tmpCol = new THREE.Color();
+  function seatMatrix(i, lift) {
+    var st = seats[i];
+    eul.set(0, st.rotY, 0);
+    quat.setFromEuler(eul);
+    vP.set(st.pos.x, st.pos.y + lift, st.pos.z);
+    m4.compose(vP, quat, vS);
+    seatMesh.setMatrixAt(i, m4);
+  }
+  for (var i0 = 0; i0 < N_SEATS; i0++) {
+    seatMatrix(i0, 0);
+    seatMesh.setColorAt(i0, COL_SLATE);
+  }
+  seatMesh.instanceMatrix.needsUpdate = true;
+  seatMesh.instanceColor.needsUpdate = true;
+  ctx.scene.add(seatMesh);
+
+  // ---- per-wedge fill order: front rows first, center outward, light shuffle
+  var fillOrder = [];
+  var fillPtr = [];
+  var capacity = [];
+  for (var fw = 0; fw < N_WEDGES; fw++) {
+    var list = [];
+    for (var fi = 0; fi < N_SEATS; fi++) if (seats[fi].wedge === fw) list.push(fi);
+    var cw = wedgeCenter(fw);
+    list.sort(function (a, b) {
+      var ka = seats[a].row * 10 + Math.abs(seats[a].angle - cw) * 8 + Math.random() * 0.8;
+      var kb = seats[b].row * 10 + Math.abs(seats[b].angle - cw) * 8 + Math.random() * 0.8;
+      return ka - kb;
+    });
+    fillOrder.push(list);
+    fillPtr.push(0);
+    capacity.push(list.length);
+  }
+
+  // seat states: 0 empty, 2 filled; transitions live in the anims list
+  var seatState = new Uint8Array(N_SEATS);
+  var anims = []; // {seat, t0, dir} dir 1 fill, -1 empty
+
+  // ---- conduits (one bezier per wedge) + line rendering
+  var conduits = [];
+  var conduitVerts = [];
+  for (var cw2 = 0; cw2 < N_WEDGES; cw2++) {
+    var thc = wedgeCenter(cw2);
+    var c = {
+      p0: new THREE.Vector3(Math.sin(thc) * 19, 8.0, Math.cos(thc) * 19),
+      p1: new THREE.Vector3(Math.sin(thc) * 11, 5.2, Math.cos(thc) * 11),
+      p2: new THREE.Vector3(Math.sin(thc) * (ROW_R0 - 0.6), 0.5, Math.cos(thc) * (ROW_R0 - 0.6))
+    };
+    conduits.push(c);
+    var prev = null;
+    for (var cs = 0; cs <= 36; cs++) {
+      var u = cs / 36, v = 1 - u;
+      var px = c.p0.x * v * v + c.p1.x * 2 * v * u + c.p2.x * u * u;
+      var py = c.p0.y * v * v + c.p1.y * 2 * v * u + c.p2.y * u * u;
+      var pz = c.p0.z * v * v + c.p1.z * 2 * v * u + c.p2.z * u * u;
+      if (prev) conduitVerts.push(prev[0], prev[1], prev[2], px, py, pz);
+      prev = [px, py, pz];
+    }
+  }
+  var conduitGeo = new THREE.BufferGeometry();
+  conduitGeo.setAttribute('position', new THREE.Float32BufferAttribute(conduitVerts, 3));
+  ctx.scene.add(new THREE.LineSegments(conduitGeo, new THREE.LineBasicMaterial({ color: COL_BLUE, transparent: true, opacity: 0.22 })));
+
+  // ---- capacity columns
+  var colGeo = new THREE.BoxGeometry(0.22, 1, 0.22);
+  colGeo.translate(0, 0.5, 0);
+  var columns = [];
+  var colFlash = new Float32Array(N_WEDGES);
+  var rMax = ROW_R0 + (N_ROWS - 1) * ROW_DR;
+  for (var cc = 0; cc < N_WEDGES; cc++) {
+    var thcc = wedgeCenter(cc);
+    var cMat = new THREE.MeshBasicMaterial({ color: COL_BLUE.clone(), transparent: true, opacity: 0.85 });
+    var cMesh = new THREE.Mesh(colGeo, cMat);
+    cMesh.position.set(Math.sin(thcc) * (rMax + 1.5), 0, Math.cos(thcc) * (rMax + 1.5));
+    cMesh.scale.y = 0.001;
+    ctx.scene.add(cMesh);
+    columns.push(cMesh);
+  }
+
+  // ---- stage glow
+  var stageGeo = new THREE.BufferGeometry();
+  stageGeo.setAttribute('position', new THREE.Float32BufferAttribute([0, 0.4, 0], 3));
+  var stageUniforms = { uTime: { value: 0 }, uColor: { value: COL_GOLD } };
+  var stageMat = new THREE.ShaderMaterial({
+    uniforms: stageUniforms,
+    vertexShader: [
+      'uniform float uTime;',
+      'varying float vP;',
+      'void main(){',
+      '  vP = 0.7 + 0.3 * sin(uTime * 1.1);',
+      '  vec4 mv = modelViewMatrix * vec4(position, 1.0);',
+      '  gl_PointSize = 46.0 * vP * (150.0 / -mv.z);',
+      '  gl_Position = projectionMatrix * mv;',
+      '}'
+    ].join('\n'),
+    fragmentShader: [
+      'uniform vec3 uColor;',
+      'varying float vP;',
+      'void main(){',
+      '  float d = length(gl_PointCoord - 0.5);',
+      '  float a = smoothstep(0.5, 0.02, d) * 0.5 * vP;',
+      '  gl_FragColor = vec4(uColor, a);',
+      '}'
+    ].join('\n'),
+    transparent: true, depthWrite: false, blending: THREE.AdditiveBlending
+  });
+  ctx.scene.add(new THREE.Points(stageGeo, stageMat));
+
+  // ---- pulse sprites
+  var pulseGeo = new THREE.BufferGeometry();
+  var pulsePos = new Float32Array(MAX_PULSES * 3);
+  var pulseGlow = new Float32Array(MAX_PULSES);
+  for (var pz = 0; pz < MAX_PULSES; pz++) pulsePos[pz * 3 + 1] = -999;
+  pulseGeo.setAttribute('position', new THREE.Float32BufferAttribute(pulsePos, 3));
+  pulseGeo.setAttribute('aGlow', new THREE.Float32BufferAttribute(pulseGlow, 1));
+  var pulseMat = new THREE.ShaderMaterial({
+    uniforms: { uColor: { value: COL_BLUE } },
+    vertexShader: [
+      'attribute float aGlow;',
+      'varying float vG;',
+      'void main(){',
+      '  vG = aGlow;',
+      '  vec4 mv = modelViewMatrix * vec4(position, 1.0);',
+      '  gl_PointSize = (6.0 + 22.0 * aGlow) * (150.0 / -mv.z);',
+      '  gl_Position = projectionMatrix * mv;',
+      '}'
+    ].join('\n'),
+    fragmentShader: [
+      'uniform vec3 uColor;',
+      'varying float vG;',
+      'void main(){',
+      '  float d = length(gl_PointCoord - 0.5);',
+      '  float a = smoothstep(0.5, 0.05, d) * vG;',
+      '  gl_FragColor = vec4(uColor * (1.0 + 0.7 * vG), a);',
+      '}'
+    ].join('\n'),
+    transparent: true, depthWrite: false, blending: THREE.AdditiveBlending
+  });
+  var pulsePoints = new THREE.Points(pulseGeo, pulseMat);
+  pulsePoints.frustumCulled = false; // positions move every frame in JS
+  ctx.scene.add(pulsePoints);
+
+  var pulses = [];
+  for (var pp = 0; pp < MAX_PULSES; pp++) {
+    pulses.push({ active: false, t0: 0, wedge: 0, leg: 0, rerouteTo: -1, a: new THREE.Vector3(), m: new THREE.Vector3(), b: new THREE.Vector3() });
+  }
+  var nextSpawn = 0.6;
+  var turnover = { active: false, start: 0 };
+  var vOut = new THREE.Vector3();
+
+  function qBez(a, m, b, u, out) {
+    var v = 1 - u;
+    out.set(
+      a.x * v * v + m.x * 2 * v * u + b.x * u * u,
+      a.y * v * v + m.y * 2 * v * u + b.y * u * u,
+      a.z * v * v + m.z * 2 * v * u + b.z * u * u
+    );
+    return out;
+  }
+
+  function wedgeFront(w) {
+    var th = wedgeCenter(w);
+    return new THREE.Vector3(Math.sin(th) * (ROW_R0 - 0.6), 0.5, Math.cos(th) * (ROW_R0 - 0.6));
+  }
+
+  function wedgeFull(w) { return fillPtr[w] >= capacity[w]; }
+
+  function fillCluster(w, t) {
+    var n = Math.min(CLUSTER, capacity[w] - fillPtr[w]);
+    for (var k = 0; k < n; k++) {
+      var si = fillOrder[w][fillPtr[w]++];
+      anims.push({ seat: si, t0: t + k * STAGGER, dir: 1 });
+    }
+    if (wedgeFull(w)) colFlash[w] = 1;
+  }
+
+  function totalFilled() {
+    var tf = 0;
+    for (var w2 = 0; w2 < N_WEDGES; w2++) tf += fillPtr[w2];
+    return tf;
+  }
+
+  return {
+    update: function (t, dt) {
+      stageUniforms.uTime.value = t;
+
+      // spawn enrollment pulses (paused during turnover)
+      if (!turnover.active && t > nextSpawn) {
+        for (var sp = 0; sp < MAX_PULSES; sp++) {
+          if (!pulses[sp].active) {
+            var pu = pulses[sp];
+            pu.active = true;
+            pu.t0 = t;
+            pu.leg = 0;
+            pu.wedge = Math.floor(Math.random() * N_WEDGES);
+            pu.rerouteTo = -1;
+            var cd = conduits[pu.wedge];
+            pu.a.copy(cd.p0); pu.m.copy(cd.p1); pu.b.copy(cd.p2);
+            break;
+          }
+        }
+        nextSpawn = t + SPAWN_EVERY * (0.6 + Math.random() * 0.8);
+      }
+
+      // advance pulses
+      for (var pi = 0; pi < MAX_PULSES; pi++) {
+        var pu2 = pulses[pi];
+        if (!pu2.active) { pulsePos[pi * 3 + 1] = -999; pulseGlow[pi] = 0; continue; }
+        var dur = pu2.leg === 0 ? LEG_TIME : REROUTE_TIME;
+        var u = (t - pu2.t0) / dur;
+        if (u >= 1) {
+          if (pu2.leg === 0 && wedgeFull(pu2.wedge) && !turnover.active) {
+            // section full: flash its column red and reroute to a section with room
+            colFlash[pu2.wedge] = 1;
+            var target = -1;
+            for (var tw = 0; tw < N_WEDGES; tw++) {
+              var cand = (pu2.wedge + 1 + tw) % N_WEDGES;
+              if (!wedgeFull(cand)) { target = cand; break; }
+            }
+            if (target >= 0) {
+              pu2.leg = 1;
+              pu2.t0 = t;
+              pu2.rerouteTo = target;
+              pu2.a.copy(wedgeFront(pu2.wedge));
+              pu2.b.copy(wedgeFront(target));
+              pu2.m.copy(pu2.a).add(pu2.b).multiplyScalar(0.5);
+              pu2.m.y += 2.6;
+              continue;
+            }
+            pu2.active = false;
+            continue;
+          }
+          var landW = pu2.leg === 1 ? pu2.rerouteTo : pu2.wedge;
+          if (!turnover.active && !wedgeFull(landW)) fillCluster(landW, t);
+          pu2.active = false;
+          continue;
+        }
+        qBez(pu2.a, pu2.m, pu2.b, ease(Math.max(0, u)), vOut);
+        pulsePos[pi * 3] = vOut.x; pulsePos[pi * 3 + 1] = vOut.y; pulsePos[pi * 3 + 2] = vOut.z;
+        pulseGlow[pi] = 0.55 + 0.45 * Math.sin(t * 9.0 + pi);
+      }
+      pulseGeo.attributes.position.needsUpdate = true;
+      pulseGeo.attributes.aGlow.needsUpdate = true;
+
+      // trigger turnover when the hall is nearly full
+      if (!turnover.active && totalFilled() >= TURNOVER_AT * N_SEATS) {
+        turnover.active = true;
+        turnover.start = t + 2.2; // hold a beat before the wave
+      }
+      if (turnover.active) {
+        var twv = t - turnover.start;
+        if (twv >= 0) {
+          var front = ang0 - 0.15 + (totalSpan + 0.3) * ssj(0, 3.0, twv);
+          for (var se = 0; se < N_SEATS; se++) {
+            if (seatState[se] === 2 && seats[se].angle < front) {
+              seatState[se] = 3;
+              anims.push({ seat: se, t0: t, dir: -1 });
+            }
+          }
+          if (twv > 4.2) {
+            turnover.active = false;
+            for (var rw = 0; rw < N_WEDGES; rw++) fillPtr[rw] = 0;
+          }
+        }
+      }
+
+      // seat animations (bounded list)
+      var seatsDirty = anims.length > 0;
+      for (var an = anims.length - 1; an >= 0; an--) {
+        var A = anims[an];
+        var au = (t - A.t0) / FILL_TIME;
+        if (au < 0) continue;
+        if (au >= 1) {
+          if (A.dir === 1) {
+            seatState[A.seat] = 2;
+            seatMatrix(A.seat, 0.16);
+            seatMesh.setColorAt(A.seat, COL_GOLD);
+          } else {
+            seatState[A.seat] = 0;
+            seatMatrix(A.seat, 0);
+            seatMesh.setColorAt(A.seat, COL_SLATE);
+          }
+          anims.splice(an, 1);
+          continue;
+        }
+        var eu = ease(au);
+        var lift = A.dir === 1 ? 0.16 * eu + 0.05 * Math.sin(au * Math.PI) : 0.16 * (1 - eu);
+        seatMatrix(A.seat, lift);
+        tmpCol.copy(COL_SLATE).lerp(COL_GOLD, A.dir === 1 ? eu : 1 - eu);
+        if (A.dir === 1) tmpCol.lerp(COL_FLASH, Math.sin(au * Math.PI) * 0.35);
+        seatMesh.setColorAt(A.seat, tmpCol);
+      }
+      if (seatsDirty) {
+        seatMesh.instanceMatrix.needsUpdate = true;
+        seatMesh.instanceColor.needsUpdate = true;
+      }
+
+      // capacity columns
+      for (var cu = 0; cu < N_WEDGES; cu++) {
+        colFlash[cu] *= Math.exp(-dt * 2.2);
+        var frac = fillPtr[cu] / capacity[cu];
+        var target = Math.max(0.001, frac * COLUMN_H);
+        columns[cu].scale.y += (target - columns[cu].scale.y) * Math.min(1, dt * 4.0);
+        var flashPulse = colFlash[cu] * (0.6 + 0.4 * Math.sin(t * 10.0));
+        columns[cu].material.color.copy(COL_BLUE).lerp(COL_GOLD, frac * 0.5).lerp(COL_RED, Math.min(1, flashPulse));
+      }
+
+      // camera: gentle sway behind the stage, pointer pans
+      var pan = 0.22 * Math.sin(t * 0.06) + ctx.pointer.x * 0.4;
+      ctx.camera.position.set(Math.sin(pan) * 8.5, 5.2 + ctx.pointer.y * 1.6 + 0.3 * Math.sin(t * 0.1), -Math.cos(pan) * 8.0);
+      ctx.camera.lookAt(0, 1.8, 7.0);
+    }
+  };
+}
+
+/* ================= shared runtime ================= */
+
+const canvas = document.getElementById('c');
+const btnPlay = document.getElementById('btnPlay');
+const speedEl = document.getElementById('speed');
+const btnPng = document.getElementById('btnPng');
+const note = document.getElementById('note');
+
+let renderer;
+try {
+  renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
+} catch (e) {
+  document.getElementById('err').style.display = 'grid';
+  document.getElementById('hud').hidden = true;
+  throw e;
+}
+
+/* Quality tier: 1 on desktop, lower on small screens or few cores.
+   Scenes scale particle counts by ctx.quality. */
+const small = Math.min(window.innerWidth, window.innerHeight) < 700;
+const weak = (navigator.hardwareConcurrency || 8) <= 4;
+const quality = small ? 0.5 : (weak ? 0.7 : 1);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, quality < 1 ? 1.5 : 2));
+
+const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 500);
+camera.position.set(0, 0, 12);
+
+const ctx = {
+  scene: new THREE.Scene(),
+  camera,
+  renderer,
+  quality,
+  pointer: { x: 0, y: 0 },  /* smoothed, -1..1, y up */
+};
+
+let piece;
+try {
+  piece = createScene(THREE, ctx);
+} catch (e) {
+  document.getElementById('err').style.display = 'grid';
+  document.getElementById('hud').hidden = true;
+  console.error(e);
+  throw e;
+}
+
+function resize() {
+  const w = window.innerWidth, h = window.innerHeight;
+  renderer.setSize(w, h, false);
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+  if (piece.resize) piece.resize(w, h);
+}
+window.addEventListener('resize', resize);
+resize();
+
+/* Pointer parallax target, lerped each frame for weight. */
+const target = { x: 0, y: 0 };
+window.addEventListener('pointermove', (e) => {
+  target.x = (e.clientX / window.innerWidth) * 2 - 1;
+  target.y = -((e.clientY / window.innerHeight) * 2 - 1);
+}, { passive: true });
+
+let userPaused = false;
+let hidden = false;
+let speed = 1;
+let t = 0;
+let last = performance.now();
+
+const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+function setPlayUi() {
+  btnPlay.textContent = userPaused ? 'Play' : 'Pause';
+  btnPlay.setAttribute('aria-pressed', String(userPaused));
+}
+btnPlay.addEventListener('click', () => {
+  userPaused = !userPaused;
+  note.hidden = true;
+  setPlayUi();
+  if (!userPaused) { last = performance.now(); loop(last); }
+});
+canvas.addEventListener('keydown', (e) => {
+  if (e.code === 'Space') { e.preventDefault(); btnPlay.click(); }
+});
+speedEl.addEventListener('input', () => { speed = parseFloat(speedEl.value) || 1; });
+
+btnPng.addEventListener('click', () => {
+  renderer.render(ctx.scene, camera);
+  canvas.toBlob((blob) => {
+    if (!blob) return;
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'university-enrollment-system-3d.png';
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+  });
+});
+
+document.addEventListener('visibilitychange', () => {
+  hidden = document.hidden;
+  if (!hidden && !userPaused) { last = performance.now(); loop(last); }
+});
+
+let raf = 0;
+function frame(now) {
+  const dt = Math.min((now - last) / 1000, 0.1);
+  last = now;
+  t += dt * speed;
+  ctx.pointer.x += (target.x - ctx.pointer.x) * 0.06;
+  ctx.pointer.y += (target.y - ctx.pointer.y) * 0.06;
+  piece.update(t, dt * speed);
+  renderer.render(ctx.scene, camera);
+}
+function loop(now) {
+  if (userPaused || hidden) return;
+  frame(now);
+  raf = requestAnimationFrame(loop);
+}
+
+if (reduceMotion) {
+  /* Advance to a composed moment, render one still frame, and wait. */
+  for (let i = 0; i < 240; i++) { t += 1 / 60; piece.update(t, 1 / 60); }
+  renderer.render(ctx.scene, camera);
+  userPaused = true;
+  note.hidden = false;
+  setPlayUi();
+} else {
+  loop(performance.now());
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,678 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <meta name="theme-color" content="#120F0C">
+  <title>Disappearing Text in 3D · Salman Adnan</title>
+  <meta name="description" content="Fading Words: an interactive 3D study of typed words eroding to ash when the writer stops.">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="../assets/favicon.png" sizes="any">
+  <style>
+    :root { color-scheme: dark; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      background: #120F0C;
+      overflow: hidden;
+      font: 12px/1.4 ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+      color: rgba(255, 255, 255, 0.85);
+    }
+    #stage { position: fixed; inset: 0; }
+    canvas { display: block; width: 100%; height: 100%; outline: none; }
+    canvas:focus-visible { box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.6); }
+    #hud {
+      position: absolute; right: 12px; bottom: 12px;
+      display: flex; align-items: center; gap: 10px;
+      padding: 7px 10px; border-radius: 999px;
+      background: rgba(8, 8, 14, 0.55);
+      backdrop-filter: blur(6px);
+      opacity: 0.55; transition: opacity 0.25s ease;
+    }
+    #hud:hover, #hud:focus-within { opacity: 1; }
+    #hud button {
+      appearance: none; border: 1px solid rgba(255, 255, 255, 0.25);
+      background: transparent; color: inherit; font: inherit;
+      padding: 3px 10px; border-radius: 999px; cursor: pointer;
+    }
+    #hud button:hover { border-color: rgba(255, 255, 255, 0.6); }
+    #hud button:focus-visible, #hud input:focus-visible {
+      outline: 2px solid #fff; outline-offset: 2px;
+    }
+    #hud label { display: flex; align-items: center; gap: 6px; }
+    #hud input[type="range"] { width: 72px; accent-color: #E8A84E; }
+    #note {
+      position: absolute; left: 12px; bottom: 12px; max-width: 46ch;
+      padding: 8px 12px; border-radius: 10px;
+      background: rgba(8, 8, 14, 0.65);
+    }
+    #err {
+      position: absolute; inset: 0; display: none;
+      place-items: center; text-align: center; padding: 24px;
+    }
+    @media (max-width: 560px) {
+      #hud label { display: none; }
+    }
+  </style>
+</head>
+<body>
+<div id="stage">
+  <canvas id="c" tabindex="0" aria-label="Animated glyphs typing themselves into a floating sentence while a countdown ring depletes, the words eroding into drifting ash whenever typing pauses."></canvas>
+  <div id="hud" role="group" aria-label="Visualization controls">
+    <button id="btnPlay" type="button" aria-pressed="false">Pause</button>
+    <label for="speed">speed
+      <input id="speed" type="range" min="0.25" max="2" step="0.25" value="1"
+             aria-label="Animation speed">
+    </label>
+    <button id="btnPng" type="button">Save PNG</button>
+  </div>
+  <p id="note" hidden>Motion is paused because your system prefers reduced motion.
+     Press Play to animate.</p>
+  <div id="err"><p>This visualization needs WebGL, which is unavailable here.<br>
+     A screenshot of it lives on the project page.</p></div>
+</div>
+
+<script type="importmap">
+{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js" } }
+</script>
+<script type="module">
+import * as THREE from 'three';
+
+/* ================= scene: disappearing-text-app ================= */
+// Fading Words
+// Concept: a sentence types itself in human rhythm while an amber countdown ring
+// refills on every keystroke and depletes in the pauses; hesitate too long and the
+// oldest letters loosen, break into ash, and the erosion front chases the cursor.
+// Palette: bg deep sepia #120F0C, glyph paper #EBE2D0, ring amber #E8A84E,
+//          ash gray #6A6258, cursor teal #5AB8A8. Paper and ash in candlelit sepia:
+//          the app's threat made beautiful.
+// Signature: the erosion front advancing letter by letter toward the newest text.
+
+function createScene(THREE, ctx) {
+  const Q = ctx.quality;
+
+  // ---- tunables ----
+  const MAXG = 40;            // glyph slot budget (longest phrase plus margin)
+  const ASH_POOL = Math.max(500, Math.floor(1400 * Q)); // ash particle pool
+  const ASH_PER = 30;         // ash particles per eroded glyph
+  const RING_LIMIT = 2.4;     // seconds of silence before erosion begins
+  const ERODE_STEP = 0.32;    // seconds between glyphs falling to ash
+  const RING_R = 0.55;        // countdown ring radius
+  const RING_PTS = Math.floor(90 * Q) + 30;  // points forming the ring
+  const DUST = Math.floor(160 * Q);          // ambient sepia motes
+  const FAR_BORN = 1e9;       // "not yet typed" sentinel time
+  const COL_PAPER = new THREE.Color(0xEBE2D0);
+  const COL_ASH = new THREE.Color(0x6A6258);
+  const COL_AMBER = new THREE.Color(0xE8A84E);
+  const COL_TEAL = new THREE.Color(0x5AB8A8);
+
+  const PHRASES = [
+    'KEEP WRITING',
+    'THE WORDS STAY WHILE YOU MOVE',
+    'STILLNESS TAKES THEM BACK',
+    'WRITE THROUGH THE SILENCE',
+    'ASH REMEMBERS EVERY PAUSE',
+    'MOTION IS THE ONLY INK',
+  ];
+
+  ctx.scene.background = new THREE.Color(0x120F0C);
+
+  // ---- glyph atlas: 26 letters on an 8 x 4 grid ----
+  function makeAtlas() {
+    const cv = document.createElement('canvas');
+    cv.width = 1024;
+    cv.height = 512;
+    const g = cv.getContext('2d');
+    g.clearRect(0, 0, 1024, 512);
+    g.fillStyle = '#FFFFFF';
+    g.font = '600 92px Georgia, "Times New Roman", serif';
+    g.textAlign = 'center';
+    g.textBaseline = 'middle';
+    for (let i = 0; i < 26; i++) {
+      const cx = (i % 8) * 128 + 64;
+      const cy = Math.floor(i / 8) * 128 + 66;
+      g.fillText(String.fromCharCode(65 + i), cx, cy);
+    }
+    return new THREE.CanvasTexture(cv);
+  }
+  const atlas = makeAtlas();
+
+  // ---- glyph points ----
+  const gPos = new Float32Array(MAXG * 3);
+  const gGlyph = new Float32Array(MAXG);
+  const gBorn = new Float32Array(MAXG).fill(FAR_BORN);
+  const gErode = new Float32Array(MAXG).fill(FAR_BORN);
+  const gSeed = new Float32Array(MAXG);
+  for (let i = 0; i < MAXG; i++) gSeed[i] = Math.random() * 100;
+
+  const glyphGeo = new THREE.BufferGeometry();
+  glyphGeo.setAttribute('position', new THREE.Float32BufferAttribute(gPos, 3));
+  glyphGeo.setAttribute('aGlyph', new THREE.Float32BufferAttribute(gGlyph, 1));
+  glyphGeo.setAttribute('aBorn', new THREE.Float32BufferAttribute(gBorn, 1));
+  glyphGeo.setAttribute('aErode', new THREE.Float32BufferAttribute(gErode, 1));
+  glyphGeo.setAttribute('aSeed', new THREE.Float32BufferAttribute(gSeed, 1));
+
+  const uTime = { value: 0 };
+  const uGlyphSize = { value: 1.0 };
+
+  const glyphMat = new THREE.ShaderMaterial({
+    vertexShader: `
+      attribute float aGlyph;
+      attribute float aBorn;
+      attribute float aErode;
+      attribute float aSeed;
+      uniform float uTime;
+      uniform float uGlyphSize;
+      varying vec2 vCell;
+      varying float vA;
+      void main() {
+        float ageB = uTime - aBorn;
+        float pop = smoothstep(0.0, 0.22, ageB);
+        float er = clamp((uTime - aErode) / 0.7, 0.0, 1.0);
+        vA = pop * (1.0 - er);
+        vec3 p = position;
+        p.y += (1.0 - pop) * 0.30;
+        p.x += sin(uTime * 21.0 + aSeed * 61.0) * 0.035 * er;
+        p.y -= er * er * 0.45;
+        vCell = vec2(mod(aGlyph, 8.0), floor(aGlyph / 8.0));
+        vec4 mv = modelViewMatrix * vec4(p, 1.0);
+        gl_PointSize = uGlyphSize * (430.0 / -mv.z) * (0.9 + 0.1 * pop);
+        gl_Position = projectionMatrix * mv;
+      }
+    `,
+    fragmentShader: `
+      uniform sampler2D uAtlas;
+      uniform vec3 uColor;
+      varying vec2 vCell;
+      varying float vA;
+      void main() {
+        vec2 uv = vec2((vCell.x + gl_PointCoord.x) / 8.0, 1.0 - (vCell.y + gl_PointCoord.y) / 4.0);
+        float tA = texture2D(uAtlas, uv).a;
+        if (tA * vA < 0.01) discard;
+        gl_FragColor = vec4(uColor, tA * vA);
+      }
+    `,
+    uniforms: {
+      uTime: uTime,
+      uGlyphSize: uGlyphSize,
+      uAtlas: { value: atlas },
+      uColor: { value: COL_PAPER },
+    },
+    transparent: true,
+    depthWrite: false,
+  });
+  const glyphs = new THREE.Points(glyphGeo, glyphMat);
+  glyphs.frustumCulled = false;
+  ctx.scene.add(glyphs);
+
+  // ---- ash particle pool ----
+  const aPos = new Float32Array(ASH_POOL * 3);
+  const aVel = new Float32Array(ASH_POOL * 3);
+  const aBorn = new Float32Array(ASH_POOL).fill(-1e3);
+  const aLife = new Float32Array(ASH_POOL).fill(1);
+  const aSeed = new Float32Array(ASH_POOL);
+  for (let i = 0; i < ASH_POOL; i++) aSeed[i] = Math.random() * 100;
+
+  const ashGeo = new THREE.BufferGeometry();
+  ashGeo.setAttribute('position', new THREE.Float32BufferAttribute(aPos, 3));
+  ashGeo.setAttribute('aVel', new THREE.Float32BufferAttribute(aVel, 3));
+  ashGeo.setAttribute('aBorn', new THREE.Float32BufferAttribute(aBorn, 1));
+  ashGeo.setAttribute('aLife', new THREE.Float32BufferAttribute(aLife, 1));
+  ashGeo.setAttribute('aSeed', new THREE.Float32BufferAttribute(aSeed, 1));
+
+  const ashMat = new THREE.ShaderMaterial({
+    vertexShader: `
+      attribute vec3 aVel;
+      attribute float aBorn;
+      attribute float aLife;
+      attribute float aSeed;
+      uniform float uTime;
+      varying float vA;
+      void main() {
+        float age = uTime - aBorn;
+        float k = clamp(age / aLife, 0.0, 1.0);
+        float alive = step(0.0, age) * (1.0 - step(1.0, k));
+        vec3 p = position + aVel * age;
+        p.x += age * 0.35 + sin(age * 2.2 + aSeed) * 0.06;
+        p.y += sin(age * 1.7 + aSeed * 2.0) * 0.04;
+        vA = alive * smoothstep(0.0, 0.08, k) * (1.0 - smoothstep(0.45, 1.0, k));
+        vec4 mv = modelViewMatrix * vec4(p, 1.0);
+        gl_PointSize = (2.6 - k * 1.6) * (90.0 / -mv.z);
+        gl_Position = projectionMatrix * mv;
+      }
+    `,
+    fragmentShader: `
+      uniform vec3 uColor;
+      varying float vA;
+      void main() {
+        float d = length(gl_PointCoord - 0.5);
+        float a = smoothstep(0.5, 0.12, d);
+        gl_FragColor = vec4(uColor, a * vA * 0.85);
+      }
+    `,
+    uniforms: { uTime: uTime, uColor: { value: COL_ASH } },
+    transparent: true,
+    depthWrite: false,
+  });
+  const ash = new THREE.Points(ashGeo, ashMat);
+  ash.frustumCulled = false;
+  ctx.scene.add(ash);
+  let ashCursor = 0;
+
+  function spawnAsh(x, y, t) {
+    const posA = ashGeo.attributes.position;
+    const velA = ashGeo.attributes.aVel;
+    const bornA = ashGeo.attributes.aBorn;
+    const lifeA = ashGeo.attributes.aLife;
+    for (let j = 0; j < ASH_PER; j++) {
+      const i = ashCursor % ASH_POOL;
+      ashCursor++;
+      posA.setXYZ(i,
+        x + (Math.random() - 0.5) * 0.34,
+        y + (Math.random() - 0.5) * 0.4,
+        (Math.random() - 0.5) * 0.2);
+      velA.setXYZ(i,
+        0.1 + Math.random() * 0.3,
+        -0.15 - Math.random() * 0.4,
+        (Math.random() - 0.5) * 0.1);
+      bornA.setX(i, t);
+      lifeA.setX(i, 2.2 + Math.random() * 1.4);
+    }
+    posA.needsUpdate = true;
+    velA.needsUpdate = true;
+    bornA.needsUpdate = true;
+    lifeA.needsUpdate = true;
+  }
+
+  // ---- countdown ring ----
+  const RING_POS = new THREE.Vector3(6.3, 1.2, 0);
+  const rAng = new Float32Array(RING_PTS);
+  const rPos = new Float32Array(RING_PTS * 3);
+  for (let i = 0; i < RING_PTS; i++) {
+    const a = (i / RING_PTS) * Math.PI * 2;
+    rAng[i] = a;
+    // start at 12 o'clock, run clockwise
+    rPos[i * 3] = RING_POS.x + Math.sin(a) * RING_R;
+    rPos[i * 3 + 1] = RING_POS.y + Math.cos(a) * RING_R;
+    rPos[i * 3 + 2] = RING_POS.z;
+  }
+  const ringGeo = new THREE.BufferGeometry();
+  ringGeo.setAttribute('position', new THREE.Float32BufferAttribute(rPos, 3));
+  ringGeo.setAttribute('aAng', new THREE.Float32BufferAttribute(rAng, 1));
+  const uFill = { value: 1 };
+  const uRingBright = { value: 1 };
+  const ringMat = new THREE.ShaderMaterial({
+    vertexShader: `
+      attribute float aAng;
+      uniform float uFill;
+      uniform float uRingBright;
+      varying float vA;
+      void main() {
+        float lit = 1.0 - smoothstep(uFill * 6.2831853 - 0.02, uFill * 6.2831853 + 0.22, aAng);
+        vA = (0.12 + 0.88 * lit) * uRingBright;
+        vec4 mv = modelViewMatrix * vec4(position, 1.0);
+        gl_PointSize = (2.2 + lit * 1.4) * (110.0 / -mv.z);
+        gl_Position = projectionMatrix * mv;
+      }
+    `,
+    fragmentShader: `
+      uniform vec3 uColor;
+      varying float vA;
+      void main() {
+        float d = length(gl_PointCoord - 0.5);
+        float a = smoothstep(0.5, 0.08, d);
+        gl_FragColor = vec4(uColor * vA, a * vA);
+      }
+    `,
+    uniforms: { uFill: uFill, uRingBright: uRingBright, uColor: { value: COL_AMBER } },
+    blending: THREE.AdditiveBlending,
+    transparent: true,
+    depthWrite: false,
+  });
+  const ring = new THREE.Points(ringGeo, ringMat);
+  ring.frustumCulled = false;
+  ctx.scene.add(ring);
+
+  // ---- blinking teal cursor ----
+  const cursorMat = new THREE.MeshBasicMaterial({
+    color: COL_TEAL, transparent: true, opacity: 0.8,
+    blending: THREE.AdditiveBlending, depthWrite: false,
+  });
+  const cursor = new THREE.Mesh(new THREE.PlaneGeometry(0.07, 0.52), cursorMat);
+  ctx.scene.add(cursor);
+
+  // ---- ambient sepia motes ----
+  {
+    const pos = new Float32Array(DUST * 3);
+    const sd = new Float32Array(DUST);
+    for (let i = 0; i < DUST; i++) {
+      pos[i * 3] = (Math.random() - 0.5) * 22;
+      pos[i * 3 + 1] = (Math.random() - 0.5) * 12;
+      pos[i * 3 + 2] = -2 - Math.random() * 6;
+      sd[i] = Math.random() * 100;
+    }
+    const dg = new THREE.BufferGeometry();
+    dg.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    dg.setAttribute('aSeed', new THREE.Float32BufferAttribute(sd, 1));
+    const dm = new THREE.ShaderMaterial({
+      vertexShader: `
+        attribute float aSeed;
+        uniform float uTime;
+        varying float vA;
+        void main() {
+          vec3 p = position;
+          p.x += sin(uTime * 0.08 + aSeed * 13.0) * 1.2;
+          p.y += sin(uTime * 0.06 + aSeed * 31.0) * 0.9;
+          vA = 0.08 + 0.06 * sin(uTime * 0.4 + aSeed * 47.0);
+          vec4 mv = modelViewMatrix * vec4(p, 1.0);
+          gl_PointSize = 2.2 * (40.0 / -mv.z);
+          gl_Position = projectionMatrix * mv;
+        }
+      `,
+      fragmentShader: `
+        varying float vA;
+        void main() {
+          float d = length(gl_PointCoord - 0.5);
+          float a = smoothstep(0.5, 0.1, d);
+          gl_FragColor = vec4(vec3(0.91, 0.66, 0.31) * vA, a * vA);
+        }
+      `,
+      uniforms: { uTime: uTime },
+      blending: THREE.AdditiveBlending,
+      transparent: true,
+      depthWrite: false,
+    });
+    const dust = new THREE.Points(dg, dm);
+    dust.frustumCulled = false;
+    ctx.scene.add(dust);
+  }
+
+  // ---- the writing script: one cycle = one sentence typed, threatened, and lost ----
+  const state = {
+    started: false,
+    phraseIdx: Math.floor(Math.random() * PHRASES.length),
+    chars: [],        // {ch, x, glyphSlot or -1 for space}
+    glyphOrder: [],   // slot indices in typed order (oldest first)
+    delays: [],
+    nextCharAt: 0,
+    charsTyped: 0,
+    lastKey: 0,
+    erodeIdx: 0,
+    nextErodeAt: 0,
+    lastErodeAt: 0,
+    beatUntil: 0,
+    cursorX: 0,
+    fill: 1,
+  };
+
+  function startCycle(t) {
+    state.phraseIdx = (state.phraseIdx + 1 + Math.floor(Math.random() * (PHRASES.length - 1))) % PHRASES.length;
+    const text = PHRASES[state.phraseIdx];
+    const cw = Math.min(0.5, 10.5 / text.length);
+    uGlyphSize.value = cw * 1.7;
+    const x0 = -0.8 - (text.length * cw) / 2 + cw / 2;
+
+    state.chars = [];
+    state.glyphOrder = [];
+    state.delays = [];
+    const bornA = glyphGeo.attributes.aBorn;
+    const erodeA = glyphGeo.attributes.aErode;
+    const posA = glyphGeo.attributes.position;
+    const glyA = glyphGeo.attributes.aGlyph;
+    for (let i = 0; i < MAXG; i++) {
+      bornA.setX(i, FAR_BORN);
+      erodeA.setX(i, FAR_BORN);
+    }
+
+    // pick 1 or 2 hesitation points at word boundaries (never the first word)
+    const spaceIdx = [];
+    for (let i = 1; i < text.length; i++) if (text[i] === ' ') spaceIdx.push(i);
+    const hesitations = new Set();
+    const nHes = spaceIdx.length > 2 && Math.random() < 0.6 ? 2 : Math.min(1, spaceIdx.length);
+    while (hesitations.size < nHes) {
+      hesitations.add(spaceIdx[Math.floor(Math.random() * spaceIdx.length)]);
+    }
+
+    let slot = 0;
+    for (let i = 0; i < text.length; i++) {
+      const ch = text[i];
+      const x = x0 + i * cw;
+      let gs = -1;
+      if (ch !== ' ') {
+        gs = slot++;
+        posA.setXYZ(gs, x, 0, 0);
+        glyA.setX(gs, ch.charCodeAt(0) - 65);
+        state.glyphOrder.push(gs);
+      }
+      state.chars.push({ x: x, glyphSlot: gs });
+      // human rhythm: bursts, breaths at spaces, scripted hesitations
+      let d = ch === ' ' ? 0.24 + Math.random() * 0.22 : 0.08 + Math.random() * 0.10;
+      if (Math.random() < 0.08) d += 0.28;
+      if (hesitations.has(i)) d += RING_LIMIT + 2.2 + Math.random() * 1.5;
+      state.delays.push(d);
+    }
+    posA.needsUpdate = true;
+    glyA.needsUpdate = true;
+    bornA.needsUpdate = true;
+    erodeA.needsUpdate = true;
+
+    state.charsTyped = 0;
+    state.nextCharAt = t + 0.6;
+    state.lastKey = t + 0.6;
+    state.erodeIdx = 0;
+    state.nextErodeAt = 0;
+    state.lastErodeAt = 0;
+    state.beatUntil = 0;
+    state.fill = 1;
+    state.cursorX = x0 - cw;
+    state.started = true;
+  }
+
+  ctx.camera.position.set(0, 0.4, 13.5);
+  ctx.camera.lookAt(0, 0.2, 0);
+
+  return {
+    update(t, dt) {
+      const step = Math.min(dt || 0.016, 0.05);
+      uTime.value = t;
+
+      if (!state.started) startCycle(t);
+
+      const bornA = glyphGeo.attributes.aBorn;
+      const erodeA = glyphGeo.attributes.aErode;
+      const total = state.chars.length;
+
+      // typing
+      if (state.charsTyped < total && t >= state.nextCharAt) {
+        const c = state.chars[state.charsTyped];
+        if (c.glyphSlot >= 0) {
+          bornA.setX(c.glyphSlot, t);
+          bornA.needsUpdate = true;
+        }
+        state.lastKey = t;
+        state.charsTyped++;
+        if (state.charsTyped < total) state.nextCharAt = t + state.delays[state.charsTyped];
+      }
+
+      // countdown ring: refills on keystrokes, drains in silence
+      const target = THREE.MathUtils.clamp(1 - (t - state.lastKey) / RING_LIMIT, 0, 1);
+      const rate = target > state.fill ? 10 : 8;
+      state.fill += (target - state.fill) * Math.min(1, step * rate);
+      uFill.value = state.fill;
+      uRingBright.value = state.fill < 0.25 ? 0.7 + 0.3 * Math.sin(t * 10.0) : 1.0;
+
+      // erosion front: silence lets the oldest glyphs fall to ash
+      let typedCount = 0;
+      for (let i = 0; i < state.charsTyped; i++) if (state.chars[i].glyphSlot >= 0) typedCount++;
+      if (state.fill <= 0.004 && state.erodeIdx < typedCount) {
+        if (t >= state.nextErodeAt) {
+          const gs = state.glyphOrder[state.erodeIdx];
+          erodeA.setX(gs, t);
+          erodeA.needsUpdate = true;
+          const posA = glyphGeo.attributes.position;
+          spawnAsh(posA.getX(gs), posA.getY(gs), t);
+          state.erodeIdx++;
+          state.lastErodeAt = t;
+          state.nextErodeAt = t + ERODE_STEP;
+        }
+      }
+
+      // cycle end: everything typed, everything eroded, then a beat of empty dark
+      if (state.charsTyped >= total && state.erodeIdx >= state.glyphOrder.length) {
+        if (state.beatUntil === 0) state.beatUntil = t + 2.0;
+        if (t >= state.beatUntil) startCycle(t);
+      }
+
+      // cursor chases the head of the text, hides during the empty beat
+      const headIdx = Math.min(state.charsTyped, total - 1);
+      const headX = state.charsTyped >= total
+        ? state.chars[total - 1].x + 0.4
+        : state.chars[headIdx].x;
+      state.cursorX += (headX - state.cursorX) * Math.min(1, step * 9);
+      cursor.position.set(state.cursorX, 0, 0.05);
+      const emptyBeat = state.beatUntil > 0 && state.erodeIdx >= state.glyphOrder.length && state.charsTyped >= total;
+      const blink = 0.35 + 0.6 * Math.pow(0.5 + 0.5 * Math.sin(t * 4.6), 2.0);
+      const opTarget = emptyBeat ? 0 : blink;
+      cursorMat.opacity += (opTarget - cursorMat.opacity) * Math.min(1, step * 6);
+
+      // gentle parallax
+      const px = ctx.pointer.x;
+      const py = ctx.pointer.y;
+      ctx.camera.position.set(px * 0.9, 0.4 + py * 0.7, 13.5);
+      ctx.camera.lookAt(0, 0.2, 0);
+    },
+  };
+}
+
+/* ================= shared runtime ================= */
+
+const canvas = document.getElementById('c');
+const btnPlay = document.getElementById('btnPlay');
+const speedEl = document.getElementById('speed');
+const btnPng = document.getElementById('btnPng');
+const note = document.getElementById('note');
+
+let renderer;
+try {
+  renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
+} catch (e) {
+  document.getElementById('err').style.display = 'grid';
+  document.getElementById('hud').hidden = true;
+  throw e;
+}
+
+/* Quality tier: 1 on desktop, lower on small screens or few cores.
+   Scenes scale particle counts by ctx.quality. */
+const small = Math.min(window.innerWidth, window.innerHeight) < 700;
+const weak = (navigator.hardwareConcurrency || 8) <= 4;
+const quality = small ? 0.5 : (weak ? 0.7 : 1);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, quality < 1 ? 1.5 : 2));
+
+const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 500);
+camera.position.set(0, 0, 12);
+
+const ctx = {
+  scene: new THREE.Scene(),
+  camera,
+  renderer,
+  quality,
+  pointer: { x: 0, y: 0 },  /* smoothed, -1..1, y up */
+};
+
+let piece;
+try {
+  piece = createScene(THREE, ctx);
+} catch (e) {
+  document.getElementById('err').style.display = 'grid';
+  document.getElementById('hud').hidden = true;
+  console.error(e);
+  throw e;
+}
+
+function resize() {
+  const w = window.innerWidth, h = window.innerHeight;
+  renderer.setSize(w, h, false);
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+  if (piece.resize) piece.resize(w, h);
+}
+window.addEventListener('resize', resize);
+resize();
+
+/* Pointer parallax target, lerped each frame for weight. */
+const target = { x: 0, y: 0 };
+window.addEventListener('pointermove', (e) => {
+  target.x = (e.clientX / window.innerWidth) * 2 - 1;
+  target.y = -((e.clientY / window.innerHeight) * 2 - 1);
+}, { passive: true });
+
+let userPaused = false;
+let hidden = false;
+let speed = 1;
+let t = 0;
+let last = performance.now();
+
+const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+function setPlayUi() {
+  btnPlay.textContent = userPaused ? 'Play' : 'Pause';
+  btnPlay.setAttribute('aria-pressed', String(userPaused));
+}
+btnPlay.addEventListener('click', () => {
+  userPaused = !userPaused;
+  note.hidden = true;
+  setPlayUi();
+  if (!userPaused) { last = performance.now(); loop(last); }
+});
+canvas.addEventListener('keydown', (e) => {
+  if (e.code === 'Space') { e.preventDefault(); btnPlay.click(); }
+});
+speedEl.addEventListener('input', () => { speed = parseFloat(speedEl.value) || 1; });
+
+btnPng.addEventListener('click', () => {
+  renderer.render(ctx.scene, camera);
+  canvas.toBlob((blob) => {
+    if (!blob) return;
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'disappearing-text-app-3d.png';
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+  });
+});
+
+document.addEventListener('visibilitychange', () => {
+  hidden = document.hidden;
+  if (!hidden && !userPaused) { last = performance.now(); loop(last); }
+});
+
+let raf = 0;
+function frame(now) {
+  const dt = Math.min((now - last) / 1000, 0.1);
+  last = now;
+  t += dt * speed;
+  ctx.pointer.x += (target.x - ctx.pointer.x) * 0.06;
+  ctx.pointer.y += (target.y - ctx.pointer.y) * 0.06;
+  piece.update(t, dt * speed);
+  renderer.render(ctx.scene, camera);
+}
+function loop(now) {
+  if (userPaused || hidden) return;
+  frame(now);
+  raf = requestAnimationFrame(loop);
+}
+
+if (reduceMotion) {
+  /* Advance to a composed moment, render one still frame, and wait. */
+  for (let i = 0; i < 240; i++) { t += 1 / 60; piece.update(t, 1 / 60); }
+  renderer.render(ctx.scene, camera);
+  userPaused = true;
+  note.hidden = false;
+  setPlayUi();
+} else {
+  loop(performance.now());
+}
+</script>
+</body>
+</html>

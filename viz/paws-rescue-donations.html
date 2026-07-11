@@ -1,0 +1,482 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <meta name="theme-color" content="#130D14">
+  <title>Paws Rescue Donations in 3D · Salman Adnan</title>
+  <meta name="description" content="Lantern Paws: an interactive 3D study of donations rising like lanterns and blooming into paw prints.">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="../assets/favicon.png" sizes="any">
+  <style>
+    :root { color-scheme: dark; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      background: #130D14;
+      overflow: hidden;
+      font: 12px/1.4 ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+      color: rgba(255, 255, 255, 0.85);
+    }
+    #stage { position: fixed; inset: 0; }
+    canvas { display: block; width: 100%; height: 100%; outline: none; }
+    canvas:focus-visible { box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.6); }
+    #hud {
+      position: absolute; right: 12px; bottom: 12px;
+      display: flex; align-items: center; gap: 10px;
+      padding: 7px 10px; border-radius: 999px;
+      background: rgba(8, 8, 14, 0.55);
+      backdrop-filter: blur(6px);
+      opacity: 0.55; transition: opacity 0.25s ease;
+    }
+    #hud:hover, #hud:focus-within { opacity: 1; }
+    #hud button {
+      appearance: none; border: 1px solid rgba(255, 255, 255, 0.25);
+      background: transparent; color: inherit; font: inherit;
+      padding: 3px 10px; border-radius: 999px; cursor: pointer;
+    }
+    #hud button:hover { border-color: rgba(255, 255, 255, 0.6); }
+    #hud button:focus-visible, #hud input:focus-visible {
+      outline: 2px solid #fff; outline-offset: 2px;
+    }
+    #hud label { display: flex; align-items: center; gap: 6px; }
+    #hud input[type="range"] { width: 72px; accent-color: #F0A85A; }
+    #note {
+      position: absolute; left: 12px; bottom: 12px; max-width: 46ch;
+      padding: 8px 12px; border-radius: 10px;
+      background: rgba(8, 8, 14, 0.65);
+    }
+    #err {
+      position: absolute; inset: 0; display: none;
+      place-items: center; text-align: center; padding: 24px;
+    }
+    @media (max-width: 560px) {
+      #hud label { display: none; }
+    }
+  </style>
+</head>
+<body>
+<div id="stage">
+  <canvas id="c" tabindex="0" aria-label="Animated warm orbs rising like festival lanterns that softly burst into paw-print constellations above a gently pulsing ground glow."></canvas>
+  <div id="hud" role="group" aria-label="Visualization controls">
+    <button id="btnPlay" type="button" aria-pressed="false">Pause</button>
+    <label for="speed">speed
+      <input id="speed" type="range" min="0.25" max="2" step="0.25" value="1"
+             aria-label="Animation speed">
+    </label>
+    <button id="btnPng" type="button">Save PNG</button>
+  </div>
+  <p id="note" hidden>Motion is paused because your system prefers reduced motion.
+     Press Play to animate.</p>
+  <div id="err"><p>This visualization needs WebGL, which is unavailable here.<br>
+     A screenshot of it lives on the project page.</p></div>
+</div>
+
+<script type="importmap">
+{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js" } }
+</script>
+<script type="module">
+import * as THREE from 'three';
+
+/* ================= scene: paws-rescue-donations ================= */
+// LANTERN PAWS
+// Donations rise from a heart-pulsing ground glow like festival lanterns and bloom,
+// at their apex, into paw print constellations that twinkle and slowly fade.
+// Palette: bg dusk plum #130D14, lantern amber #F0A85A, paw cream #F4E8D0,
+// heart rose #E07A8A, leaf teal #4E8C7A.
+// Justification: warm candlelight against dusk plum reads as care, not commerce.
+// Signature: the lantern to pawprint transformation.
+
+function createScene(THREE, ctx) {
+  const Q = ctx.quality || 1;
+
+  // ---- tunables
+  const EVENTS = Math.max(6, Math.floor(12 * Q)); // concurrent lantern life cycles
+  const PERIOD = 36;               // seconds for one full event loop
+  const RISE = 9;                  // seconds a lantern takes to ascend
+  const PAW_LIFE = 14;             // seconds a paw constellation lives
+  const LANTERN_PTS = 7;           // core plus halo points per lantern
+  const PAW_PAD = 30;              // points in the paw pad
+  const PAW_TOE = 14;              // points per toe, 4 toes
+  const MOTES = Math.floor(160 * Q);   // drifting teal leaf motes
+  const GROUND_PTS = Math.floor(500 * Q); // dim warm ground shimmer points
+  const HEART_BPM_T = 1.7;         // seconds per heartbeat
+  const PAW_SCALE = 1.35;          // world size of a paw print
+  const BG = 0x130D14;
+
+  ctx.scene.background = new THREE.Color(BG);
+
+  let seed = 51413;
+  function rnd() { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; }
+
+  const uTime = { value: 0 };
+  const uPx = { value: ctx.renderer.domElement.height };
+  const uHeart = { value: 0 };
+
+  const softFrag = `
+    varying vec3 vCol;
+    varying float vA;
+    void main() {
+      float d = length(gl_PointCoord - 0.5);
+      float a = smoothstep(0.5, 0.08, d);
+      gl_FragColor = vec4(vCol, a * vA);
+    }
+  `;
+
+  // ---- build one combined analytic point cloud: lanterns, paws, motes, ground
+  const PAW_PTS = PAW_PAD + PAW_TOE * 4;
+  const total = EVENTS * (LANTERN_PTS + PAW_PTS) + MOTES + GROUND_PTS;
+  const pos = new Float32Array(total * 3);   // role-specific local offset or base position
+  const aRole = new Float32Array(total);
+  const aStart = new Float32Array(total);
+  const aGround = new Float32Array(total * 2);
+  const aApex = new Float32Array(total);
+  const aSeed = new Float32Array(total);
+  let w = 0;
+
+  function put(role, x, y, z, start, gx, gz, apex, sd) {
+    pos[w * 3] = x; pos[w * 3 + 1] = y; pos[w * 3 + 2] = z;
+    aRole[w] = role; aStart[w] = start;
+    aGround[w * 2] = gx; aGround[w * 2 + 1] = gz;
+    aApex[w] = apex; aSeed[w] = sd;
+    w++;
+  }
+
+  const euler = new THREE.Euler();
+  const v3 = new THREE.Vector3();
+  for (let e = 0; e < EVENTS; e++) {
+    const start = e * PERIOD / EVENTS + (rnd() - 0.5) * 2.0;
+    const gx = (rnd() * 2 - 1) * 6.5;
+    const gz = (rnd() * 2 - 1) * 3.0;
+    const apex = 3.8 + rnd() * 2.2;
+    const yaw = (rnd() - 0.5) * 1.2;
+    const roll = (rnd() - 0.5) * 0.8;
+    euler.set(roll * 0.35, yaw, roll, 'XYZ');
+
+    // lantern: one core point plus a small halo cluster
+    put(0, 0, 0, 0, start, gx, gz, apex, rnd());
+    for (let k = 1; k < LANTERN_PTS; k++) {
+      const an = rnd() * Math.PI * 2;
+      const rr = 0.06 + rnd() * 0.10;
+      put(0, Math.cos(an) * rr, (rnd() - 0.5) * 0.14, Math.sin(an) * rr,
+        start, gx, gz, apex, rnd());
+    }
+
+    // paw print constellation: pad plus four toes, in a randomly tilted plane
+    function pawPoint(lx, ly) {
+      v3.set(lx * PAW_SCALE, ly * PAW_SCALE, (rnd() - 0.5) * 0.10);
+      v3.applyEuler(euler);
+      put(1, v3.x, v3.y, v3.z, start, gx, gz, apex, rnd());
+    }
+    for (let k = 0; k < PAW_PAD; k++) {
+      const an = rnd() * Math.PI * 2;
+      const rr = Math.sqrt(rnd());
+      pawPoint(Math.cos(an) * rr * 0.42, Math.sin(an) * rr * 0.32 - 0.24);
+    }
+    const toes = [[-0.52, 0.40], [-0.19, 0.60], [0.19, 0.60], [0.52, 0.40]];
+    for (let tI = 0; tI < 4; tI++) {
+      for (let k = 0; k < PAW_TOE; k++) {
+        const an = rnd() * Math.PI * 2;
+        const rr = Math.sqrt(rnd()) * 0.16;
+        pawPoint(toes[tI][0] + Math.cos(an) * rr, toes[tI][1] + Math.sin(an) * rr);
+      }
+    }
+  }
+
+  // drifting teal leaf motes for depth
+  for (let i = 0; i < MOTES; i++) {
+    put(2, (rnd() * 2 - 1) * 13, 0.8 + rnd() * 6.0, -4 - rnd() * 5.0, 0, 0, 0, 0, rnd());
+  }
+
+  // dim warm shimmer points on the ground disc
+  for (let i = 0; i < GROUND_PTS; i++) {
+    const an = rnd() * Math.PI * 2;
+    const rr = Math.sqrt(rnd()) * 8.0;
+    put(3, Math.cos(an) * rr, 0.02 + rnd() * 0.08, Math.sin(an) * rr * 0.6, 0, 0, 0, 0, rnd());
+  }
+
+  {
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    g.setAttribute('aRole', new THREE.Float32BufferAttribute(aRole, 1));
+    g.setAttribute('aStart', new THREE.Float32BufferAttribute(aStart, 1));
+    g.setAttribute('aGround', new THREE.Float32BufferAttribute(aGround, 2));
+    g.setAttribute('aApex', new THREE.Float32BufferAttribute(aApex, 1));
+    g.setAttribute('aSeed', new THREE.Float32BufferAttribute(aSeed, 1));
+    const m = new THREE.ShaderMaterial({
+      uniforms: {
+        uTime: uTime, uPx: uPx, uHeart: uHeart,
+        uPeriod: { value: PERIOD }, uRise: { value: RISE }, uPawLife: { value: PAW_LIFE }
+      },
+      vertexShader: `
+        attribute float aRole;
+        attribute float aStart;
+        attribute vec2 aGround;
+        attribute float aApex;
+        attribute float aSeed;
+        uniform float uTime;
+        uniform float uPx;
+        uniform float uHeart;
+        uniform float uPeriod;
+        uniform float uRise;
+        uniform float uPawLife;
+        varying vec3 vCol;
+        varying float vA;
+        void main() {
+          vec3 p = vec3(0.0);
+          vec3 col = vec3(1.0);
+          float a = 0.0;
+          float sz = 2.0;
+          if (aRole < 0.5) {
+            // lantern: eased ascent with a gentle sway that stills at the top
+            float tl = mod(uTime - aStart, uPeriod);
+            float u = clamp(tl / uRise, 0.0, 1.0);
+            float e = u * u * (3.0 - 2.0 * u);
+            float swayA = sin(3.14159 * u);
+            vec2 sway = vec2(sin(tl * 0.55 + aSeed * 13.0),
+                             sin(tl * 0.43 + aSeed * 29.0)) * 0.5 * swayA;
+            float flick = 0.85 + 0.15 * sin(uTime * 6.0 + aSeed * 40.0);
+            float breathe = 0.9 + 0.25 * sin(uTime * 2.2 + aSeed * 9.0);
+            p = vec3(aGround.x + sway.x, 0.25 + e * aApex, aGround.y + sway.y)
+              + position * breathe;
+            a = smoothstep(0.0, 1.5, tl)
+              * (1.0 - smoothstep(uRise - 0.8, uRise, tl)) * flick;
+            col = vec3(0.941, 0.659, 0.353) * (1.4 + 0.5 * flick);
+            sz = mix(14.0, 6.0, step(0.001, length(position)));
+          } else if (aRole < 1.5) {
+            // paw particle: blooms outward from the apex, twinkles, drifts, fades
+            float tl = mod(uTime - aStart, uPeriod);
+            float tp = tl - uRise;
+            float live = step(0.0, tp) * step(tp, uPawLife);
+            float bloom = smoothstep(0.0, 1.6, tp);
+            float scale = 0.12 + 0.88 * bloom;
+            float drift = max(tp, 0.0);
+            vec2 dxz = vec2(sin(aSeed * 31.0), cos(aSeed * 47.0)) * drift * 0.02;
+            float twinkle = 0.7 + 0.3 * sin(uTime * 2.6 + aSeed * 50.0);
+            float fade = 1.0 - smoothstep(uPawLife * 0.5, uPawLife, tp);
+            p = vec3(aGround.x, 0.25 + aApex, aGround.y)
+              + position * scale + vec3(dxz.x, drift * 0.05, dxz.y);
+            a = live * bloom * fade * twinkle * 1.1;
+            col = mix(vec3(0.957, 0.910, 0.816), vec3(0.878, 0.478, 0.541), aSeed * 0.22)
+                * vec3(1.22, 1.12, 0.90);
+            sz = 4.2;
+          } else if (aRole < 2.5) {
+            // leaf mote: slow lateral drift, fading at the edges
+            float dir = sign(fract(aSeed * 13.0) - 0.5);
+            float span = 26.0;
+            float x = mod(position.x + uTime * dir * (0.22 + 0.2 * fract(aSeed * 7.0))
+                          + span * 0.5, span) - span * 0.5;
+            float y = position.y + 0.4 * sin(uTime * 0.3 + aSeed * 20.0);
+            p = vec3(x, y, position.z);
+            a = smoothstep(13.0, 10.0, abs(x)) * 0.42
+              * (0.7 + 0.3 * sin(uTime * 1.2 + aSeed * 31.0));
+            col = vec3(0.306, 0.549, 0.478) * 1.4;
+            sz = 2.8;
+          } else {
+            // ground shimmer, breathing with the heartbeat near the center
+            p = position;
+            float len = length(position.xz);
+            float hb = uHeart * exp(-len * 0.30);
+            a = 0.18 + 0.10 * sin(uTime * 0.9 + aSeed * 40.0) + hb * 0.5;
+            col = mix(vec3(0.941, 0.659, 0.353), vec3(0.878, 0.478, 0.541), hb) * 1.3;
+            sz = 2.8 + hb * 2.5;
+          }
+          vec4 mv = modelViewMatrix * vec4(p, 1.0);
+          vCol = col;
+          vA = a;
+          gl_PointSize = sz * uPx / (-mv.z * 32.0);
+          gl_Position = projectionMatrix * mv;
+        }
+      `,
+      fragmentShader: softFrag,
+      transparent: true,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending
+    });
+    const pts = new THREE.Points(g, m);
+    pts.frustumCulled = false;
+    ctx.scene.add(pts);
+  }
+
+  // ---- central ground glow, pulsing like a heartbeat
+  {
+    const gp = new Float32Array([0, 0.15, 0, -1.6, 0.12, 0.6, 1.6, 0.12, -0.5]);
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(gp, 3));
+    const m = new THREE.ShaderMaterial({
+      uniforms: { uTime: uTime, uPx: uPx, uHeart: uHeart },
+      vertexShader: `
+        uniform float uTime;
+        uniform float uPx;
+        uniform float uHeart;
+        varying vec3 vCol;
+        varying float vA;
+        void main() {
+          vec4 mv = modelViewMatrix * vec4(position, 1.0);
+          vCol = mix(vec3(0.941, 0.659, 0.353), vec3(0.878, 0.478, 0.541), 0.45);
+          vA = 0.16 + 0.11 * uHeart;
+          gl_PointSize = (160.0 + 40.0 * uHeart) * uPx / (-mv.z * 32.0);
+          gl_Position = projectionMatrix * mv;
+        }
+      `,
+      fragmentShader: softFrag,
+      transparent: true,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending
+    });
+    ctx.scene.add(new THREE.Points(g, m));
+  }
+
+  ctx.camera.position.set(0, 2.6, 11);
+  ctx.camera.lookAt(0, 3.0, 0);
+
+  return {
+    update(t, dt) {
+      uTime.value = t;
+      // two-part heartbeat envelope, lub then dub
+      const u = (t / HEART_BPM_T) % 1;
+      uHeart.value =
+        Math.exp(-Math.pow((u - 0.10) / 0.045, 2)) +
+        0.55 * Math.exp(-Math.pow((u - 0.30) / 0.05, 2));
+      // pointer tilts the sky gently
+      ctx.camera.position.set(ctx.pointer.x * 0.8, 2.6 + ctx.pointer.y * 0.5, 11);
+      ctx.camera.lookAt(ctx.pointer.x * 1.5, 3.0 + ctx.pointer.y * 1.2, 0);
+    },
+    resize() {
+      uPx.value = ctx.renderer.domElement.height;
+    }
+  };
+}
+
+/* ================= shared runtime ================= */
+
+const canvas = document.getElementById('c');
+const btnPlay = document.getElementById('btnPlay');
+const speedEl = document.getElementById('speed');
+const btnPng = document.getElementById('btnPng');
+const note = document.getElementById('note');
+
+let renderer;
+try {
+  renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
+} catch (e) {
+  document.getElementById('err').style.display = 'grid';
+  document.getElementById('hud').hidden = true;
+  throw e;
+}
+
+/* Quality tier: 1 on desktop, lower on small screens or few cores.
+   Scenes scale particle counts by ctx.quality. */
+const small = Math.min(window.innerWidth, window.innerHeight) < 700;
+const weak = (navigator.hardwareConcurrency || 8) <= 4;
+const quality = small ? 0.5 : (weak ? 0.7 : 1);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, quality < 1 ? 1.5 : 2));
+
+const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 500);
+camera.position.set(0, 0, 12);
+
+const ctx = {
+  scene: new THREE.Scene(),
+  camera,
+  renderer,
+  quality,
+  pointer: { x: 0, y: 0 },  /* smoothed, -1..1, y up */
+};
+
+let piece;
+try {
+  piece = createScene(THREE, ctx);
+} catch (e) {
+  document.getElementById('err').style.display = 'grid';
+  document.getElementById('hud').hidden = true;
+  console.error(e);
+  throw e;
+}
+
+function resize() {
+  const w = window.innerWidth, h = window.innerHeight;
+  renderer.setSize(w, h, false);
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+  if (piece.resize) piece.resize(w, h);
+}
+window.addEventListener('resize', resize);
+resize();
+
+/* Pointer parallax target, lerped each frame for weight. */
+const target = { x: 0, y: 0 };
+window.addEventListener('pointermove', (e) => {
+  target.x = (e.clientX / window.innerWidth) * 2 - 1;
+  target.y = -((e.clientY / window.innerHeight) * 2 - 1);
+}, { passive: true });
+
+let userPaused = false;
+let hidden = false;
+let speed = 1;
+let t = 0;
+let last = performance.now();
+
+const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+function setPlayUi() {
+  btnPlay.textContent = userPaused ? 'Play' : 'Pause';
+  btnPlay.setAttribute('aria-pressed', String(userPaused));
+}
+btnPlay.addEventListener('click', () => {
+  userPaused = !userPaused;
+  note.hidden = true;
+  setPlayUi();
+  if (!userPaused) { last = performance.now(); loop(last); }
+});
+canvas.addEventListener('keydown', (e) => {
+  if (e.code === 'Space') { e.preventDefault(); btnPlay.click(); }
+});
+speedEl.addEventListener('input', () => { speed = parseFloat(speedEl.value) || 1; });
+
+btnPng.addEventListener('click', () => {
+  renderer.render(ctx.scene, camera);
+  canvas.toBlob((blob) => {
+    if (!blob) return;
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'paws-rescue-donations-3d.png';
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+  });
+});
+
+document.addEventListener('visibilitychange', () => {
+  hidden = document.hidden;
+  if (!hidden && !userPaused) { last = performance.now(); loop(last); }
+});
+
+let raf = 0;
+function frame(now) {
+  const dt = Math.min((now - last) / 1000, 0.1);
+  last = now;
+  t += dt * speed;
+  ctx.pointer.x += (target.x - ctx.pointer.x) * 0.06;
+  ctx.pointer.y += (target.y - ctx.pointer.y) * 0.06;
+  piece.update(t, dt * speed);
+  renderer.render(ctx.scene, camera);
+}
+function loop(now) {
+  if (userPaused || hidden) return;
+  frame(now);
+  raf = requestAnimationFrame(loop);
+}
+
+if (reduceMotion) {
+  /* Advance to a composed moment, render one still frame, and wait. */
+  for (let i = 0; i < 240; i++) { t += 1 / 60; piece.update(t, 1 / 60); }
+  renderer.render(ctx.scene, camera);
+  userPaused = true;
+  note.hidden = false;
+  setPlayUi();
+} else {
+  loop(performance.now());
+}
+</script>
+</body>
+</html>

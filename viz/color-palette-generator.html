@@ -1,0 +1,556 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <meta name="theme-color" content="#101014">
+  <title>Color Palette Generator in 3D · Salman Adnan</title>
+  <meta name="description" content="K-means Bloom: an interactive 3D study of scattered pixels clustering into clean swatches.">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="../assets/favicon.png" sizes="any">
+  <style>
+    :root { color-scheme: dark; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      background: #101014;
+      overflow: hidden;
+      font: 12px/1.4 ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+      color: rgba(255, 255, 255, 0.85);
+    }
+    #stage { position: fixed; inset: 0; }
+    canvas { display: block; width: 100%; height: 100%; outline: none; }
+    canvas:focus-visible { box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.6); }
+    #hud {
+      position: absolute; right: 12px; bottom: 12px;
+      display: flex; align-items: center; gap: 10px;
+      padding: 7px 10px; border-radius: 999px;
+      background: rgba(8, 8, 14, 0.55);
+      backdrop-filter: blur(6px);
+      opacity: 0.55; transition: opacity 0.25s ease;
+    }
+    #hud:hover, #hud:focus-within { opacity: 1; }
+    #hud button {
+      appearance: none; border: 1px solid rgba(255, 255, 255, 0.25);
+      background: transparent; color: inherit; font: inherit;
+      padding: 3px 10px; border-radius: 999px; cursor: pointer;
+    }
+    #hud button:hover { border-color: rgba(255, 255, 255, 0.6); }
+    #hud button:focus-visible, #hud input:focus-visible {
+      outline: 2px solid #fff; outline-offset: 2px;
+    }
+    #hud label { display: flex; align-items: center; gap: 6px; }
+    #hud input[type="range"] { width: 72px; accent-color: #C87888; }
+    #note {
+      position: absolute; left: 12px; bottom: 12px; max-width: 46ch;
+      padding: 8px 12px; border-radius: 10px;
+      background: rgba(8, 8, 14, 0.65);
+    }
+    #err {
+      position: absolute; inset: 0; display: none;
+      place-items: center; text-align: center; padding: 24px;
+    }
+    @media (max-width: 560px) {
+      #hud label { display: none; }
+    }
+  </style>
+</head>
+<body>
+<div id="stage">
+  <canvas id="c" tabindex="0" aria-label="Animated cloud of thousands of tiny colored cubes that drift, then gather into five clean swatch clusters that arrange into floating bars."></canvas>
+  <div id="hud" role="group" aria-label="Visualization controls">
+    <button id="btnPlay" type="button" aria-pressed="false">Pause</button>
+    <label for="speed">speed
+      <input id="speed" type="range" min="0.25" max="2" step="0.25" value="1"
+             aria-label="Animation speed">
+    </label>
+    <button id="btnPng" type="button">Save PNG</button>
+  </div>
+  <p id="note" hidden>Motion is paused because your system prefers reduced motion.
+     Press Play to animate.</p>
+  <div id="err"><p>This visualization needs WebGL, which is unavailable here.<br>
+     A screenshot of it lives on the project page.</p></div>
+</div>
+
+<script type="importmap">
+{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js" } }
+</script>
+<script type="module">
+import * as THREE from 'three';
+
+/* ================= scene: color-palette-generator ================= */
+// K-MEANS BLOOM
+// Concept: a drifting cloud of tiny colored cubes gathers into five centroid
+//          clusters, compacts into swatch bars, hangs as a tidy palette card,
+//          then releases into a new color harmony and does it again.
+// Palette: bg neutral studio #101014; the data itself cycles through curated
+//          harmonies: dusty rose #C87888, ochre #D8A458, sage #88A878,
+//          denim #5878A8, plum #8858A0 (plus hue-shifted variants).
+//          Justification: the piece must prove taste in color, so even the
+//          chaos samples disciplined harmonies, never random RGB.
+// Signature: chaos assembling into a tidy, hangable palette card.
+
+function createScene(THREE, ctx) {
+  const Q = ctx.quality;
+
+  // Tunables
+  const COUNT = Math.floor(2500 * Q);  // tiny cubes
+  const K = 5;                         // clusters / swatches
+  const CUBE = 0.075;                  // cube edge length
+  const CYCLE = 16.0;                  // full loop seconds
+  const T_G0 = 5.0, T_G1 = 9.0;        // gather window
+  const T_B0 = 9.0, T_B1 = 11.0;       // bar-forming window
+  const T_R0 = 14.0, T_R1 = 16.0;      // release window
+  const DRIFT_R = 5.4;                 // radius of the drifting cloud
+  const BLOB_R = 0.95;                 // cluster blob radius
+  const BAR_W = 2.6;                   // swatch bar half width
+  const BAR_R = 0.26;                  // swatch bar half thickness
+  const BAR_GAP = 0.95;                // vertical spacing between bars
+  const SWIRL = 0.9;                   // iron-filings swirl strength on arrival
+  const BG = 0x101014;
+  const HARMONY = [0xC87888, 0xD8A458, 0x88A878, 0x5878A8, 0x8858A0];
+
+  ctx.scene.background = new THREE.Color(BG);
+  ctx.scene.fog = new THREE.FogExp2(BG, 0.014);
+
+  // Cube geometry with per-face brightness baked into vertex colors
+  // (fake lighting without lights).
+  function makeCubeGeo(s) {
+    const h = s / 2;
+    const faces = [
+      // normal-axis, sign, brightness
+      [1, 1, 0.74], [1, -1, 0.62], [2, 1, 1.00],
+      [2, -1, 0.45], [0, 1, 0.86], [0, -1, 0.55]
+    ];
+    // axis order per face: [u, v, w] where w is the face normal axis
+    const pos = [], col = [], idx = [];
+    let vi = 0;
+    for (const f of faces) {
+      const w = f[0] === 0 ? 2 : f[0] === 1 ? 0 : 1; // pick normal axis
+      const axes = [0, 1, 2].filter(a => a !== w);
+      const corners = [[-h, -h], [h, -h], [h, h], [-h, h]];
+      for (const c of corners) {
+        const p = [0, 0, 0];
+        p[axes[0]] = c[0]; p[axes[1]] = c[1]; p[w] = h * f[1];
+        pos.push(p[0], p[1], p[2]);
+        col.push(f[2], f[2], f[2]);
+      }
+      if (f[1] > 0) idx.push(vi, vi + 1, vi + 2, vi, vi + 2, vi + 3);
+      else idx.push(vi, vi + 2, vi + 1, vi, vi + 3, vi + 2);
+      vi += 4;
+    }
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+    g.setIndex(idx);
+    return g;
+  }
+
+  const cubeGeo = makeCubeGeo(CUBE);
+  const cubeMat = new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.DoubleSide });
+  const mesh = new THREE.InstancedMesh(cubeGeo, cubeMat, COUNT);
+  ctx.scene.add(mesh);
+
+  // Per-cube static data
+  const driftBase = new Float32Array(COUNT * 3);
+  const wanderF = new Float32Array(COUNT * 3);   // wander frequencies
+  const wanderP = new Float32Array(COUNT * 3);   // wander phases
+  const clusterOf = new Uint8Array(COUNT);
+  const blobOff = new Float32Array(COUNT * 3);
+  const barSlot = new Float32Array(COUNT * 3);
+  const stagger = new Float32Array(COUNT);
+  const spinAxis = new Float32Array(COUNT * 3);
+  const spinSpeed = new Float32Array(COUNT);
+  const spinPhase = new Float32Array(COUNT);
+  // colors: current jittered, current pure, next jittered
+  const colJit = new Float32Array(COUNT * 3);
+  const colPure = new Float32Array(COUNT * 3);
+  const colNextJit = new Float32Array(COUNT * 3);
+
+  function gauss() { return (Math.random() + Math.random() + Math.random()) / 1.5 - 1; }
+
+  for (let i = 0; i < COUNT; i++) {
+    const u = Math.random(), v = Math.random(), w = Math.random();
+    const r = DRIFT_R * Math.cbrt(u);
+    const th = v * Math.PI * 2, ph = Math.acos(2 * w - 1);
+    driftBase[i * 3] = r * Math.sin(ph) * Math.cos(th);
+    driftBase[i * 3 + 1] = r * Math.cos(ph) * 0.75;
+    driftBase[i * 3 + 2] = r * Math.sin(ph) * Math.sin(th);
+    for (let c = 0; c < 3; c++) {
+      wanderF[i * 3 + c] = 0.15 + Math.random() * 0.25;
+      wanderP[i * 3 + c] = Math.random() * Math.PI * 2;
+    }
+    clusterOf[i] = i % K;
+    blobOff[i * 3] = gauss() * BLOB_R;
+    blobOff[i * 3 + 1] = gauss() * BLOB_R * 0.8;
+    blobOff[i * 3 + 2] = gauss() * BLOB_R;
+    // slot inside the swatch bar: uniform x, disc in yz, tapered ends
+    const bx = (Math.random() * 2 - 1);
+    const taper = Math.sqrt(Math.max(0.15, 1 - Math.pow(Math.abs(bx), 6)));
+    const ang = Math.random() * Math.PI * 2;
+    const rad = Math.sqrt(Math.random()) * BAR_R * taper;
+    barSlot[i * 3] = bx * BAR_W;
+    barSlot[i * 3 + 1] = Math.sin(ang) * rad;
+    barSlot[i * 3 + 2] = Math.cos(ang) * rad;
+    stagger[i] = Math.random();
+    const ax = gauss(), ay = gauss(), az = gauss();
+    const al = Math.hypot(ax, ay, az) || 1;
+    spinAxis[i * 3] = ax / al; spinAxis[i * 3 + 1] = ay / al; spinAxis[i * 3 + 2] = az / al;
+    spinSpeed[i] = 0.3 + Math.random() * 0.7;
+    spinPhase[i] = Math.random() * Math.PI * 2;
+  }
+
+  // Harmony management
+  const pure = [];       // K THREE.Colors of the current harmony
+  const nextPure = [];
+  for (let k = 0; k < K; k++) { pure.push(new THREE.Color()); nextPure.push(new THREE.Color()); }
+  const tmpC = new THREE.Color();
+
+  function harmonyFor(cycleIdx, out) {
+    const rot = cycleIdx % K;
+    const shift = ((cycleIdx * 0.073) % 0.35) * (cycleIdx % 2 === 0 ? 1 : -1);
+    for (let k = 0; k < K; k++) {
+      out[k].setHex(HARMONY[(k + rot) % K]);
+      out[k].offsetHSL(shift, 0, 0);
+    }
+  }
+
+  function jitterInto(arr, i, base) {
+    tmpC.copy(base);
+    tmpC.offsetHSL((Math.random() - 0.5) * 0.05, (Math.random() - 0.5) * 0.14, (Math.random() - 0.5) * 0.16);
+    arr[i * 3] = tmpC.r; arr[i * 3 + 1] = tmpC.g; arr[i * 3 + 2] = tmpC.b;
+  }
+
+  // Centroid positions for the gather phase, refreshed per cycle.
+  const centroids = [];
+  for (let k = 0; k < K; k++) centroids.push(new THREE.Vector3());
+  function placeCentroids() {
+    const a0 = Math.random() * Math.PI * 2;
+    for (let k = 0; k < K; k++) {
+      const a = a0 + k * (Math.PI * 2 / K) + (Math.random() - 0.5) * 0.4;
+      centroids[k].set(Math.cos(a) * 2.7, (Math.random() - 0.5) * 2.0, Math.sin(a) * 2.7);
+    }
+  }
+
+  // Centroid beacons: soft billboards that fade in while gathering.
+  function makeGlowTexture() {
+    const c = document.createElement('canvas');
+    c.width = 128; c.height = 128;
+    const g = c.getContext('2d');
+    const grad = g.createRadialGradient(64, 64, 0, 64, 64, 64);
+    grad.addColorStop(0, 'rgba(255,255,255,0.9)');
+    grad.addColorStop(0.25, 'rgba(255,255,255,0.3)');
+    grad.addColorStop(1, 'rgba(255,255,255,0)');
+    g.fillStyle = grad;
+    g.fillRect(0, 0, 128, 128);
+    return new THREE.CanvasTexture(c);
+  }
+  const glowTex = makeGlowTexture();
+  const quad = new THREE.BufferGeometry();
+  quad.setAttribute('position', new THREE.Float32BufferAttribute(
+    [-0.5, -0.5, 0, 0.5, -0.5, 0, 0.5, 0.5, 0, -0.5, 0.5, 0], 3));
+  quad.setAttribute('uv', new THREE.Float32BufferAttribute([0, 0, 1, 0, 1, 1, 0, 1], 2));
+  quad.setIndex([0, 1, 2, 0, 2, 3]);
+  const beacons = [];
+  for (let k = 0; k < K; k++) {
+    const m = new THREE.Mesh(quad, new THREE.MeshBasicMaterial({
+      map: glowTex, transparent: true, opacity: 0,
+      blending: THREE.AdditiveBlending, depthWrite: false
+    }));
+    m.scale.setScalar(1.6);
+    ctx.scene.add(m);
+    beacons.push(m);
+  }
+
+  // Initialize harmony 0 and colors.
+  harmonyFor(0, pure);
+  for (let i = 0; i < COUNT; i++) {
+    const k = clusterOf[i];
+    jitterInto(colJit, i, pure[k]);
+    colPure[i * 3] = pure[k].r; colPure[i * 3 + 1] = pure[k].g; colPure[i * 3 + 2] = pure[k].b;
+  }
+  // seed the next-harmony buffers too, so a skipped frame can never leave
+  // uninitialized (black) colors at a cycle rollover
+  for (let k = 0; k < K; k++) nextPure[k].copy(pure[k]);
+  colNextJit.set(colJit);
+  placeCentroids();
+
+  // Seed instance colors once so instanceColor exists.
+  for (let i = 0; i < COUNT; i++) {
+    tmpC.setRGB(colJit[i * 3], colJit[i * 3 + 1], colJit[i * 3 + 2]);
+    mesh.setColorAt(i, tmpC);
+  }
+  mesh.instanceColor.needsUpdate = true;
+
+  // Reused temps for the per-frame instance loop.
+  const _p = new THREE.Vector3();
+  const _q = new THREE.Quaternion();
+  const _qi = new THREE.Quaternion();
+  const _s = new THREE.Vector3(1, 1, 1);
+  const _m = new THREE.Matrix4();
+  const _axis = new THREE.Vector3();
+
+  let cycleSeen = 0;
+  let releasePrepared = false;
+
+  ctx.camera.position.set(0, 0.8, 11.5);
+  ctx.camera.lookAt(0, 0, 0);
+
+  function smooth01(x) { return x <= 0 ? 0 : x >= 1 ? 1 : x * x * (3 - 2 * x); }
+
+  return {
+    update(t) {
+      const cyc = Math.floor(t / CYCLE);
+      const tl = t - cyc * CYCLE;
+
+      // new cycle: commit the harmony chosen during release, new centroids
+      if (cyc !== cycleSeen) {
+        cycleSeen = cyc;
+        releasePrepared = false;
+        placeCentroids();
+        for (let k = 0; k < K; k++) pure[k].copy(nextPure[k]);
+        colJit.set(colNextJit);
+        for (let i = 0; i < COUNT; i++) {
+          const k = clusterOf[i];
+          colPure[i * 3] = pure[k].r; colPure[i * 3 + 1] = pure[k].g; colPure[i * 3 + 2] = pure[k].b;
+        }
+      }
+
+      // choose the NEXT harmony as release begins
+      if (tl >= T_R0 && !releasePrepared) {
+        releasePrepared = true;
+        harmonyFor(cyc + 1, nextPure);
+        for (let i = 0; i < COUNT; i++) jitterInto(colNextJit, i, nextPure[clusterOf[i]]);
+      }
+
+      // global phase envelopes (per-cube stagger applied inside the loop)
+      const g1 = (tl - T_G0) / (T_G1 - T_G0);   // gather
+      const g2 = (tl - T_B0) / (T_B1 - T_B0);   // bars
+      const g3 = (tl - T_R0) / (T_R1 - T_R0);   // release
+      const bob = Math.sin(t * 0.8) * 0.05;     // held card breathes
+      const stirX = ctx.pointer.x * 0.9, stirY = ctx.pointer.y * 0.7;
+
+      for (let i = 0; i < COUNT; i++) {
+        const s = stagger[i];
+        const e1 = smooth01(g1 * 1.3 - s * 0.3);
+        const e2 = smooth01(g2 * 1.25 - s * 0.25);
+        const e3 = smooth01(g3 * 1.25 - s * 0.25);
+        const k = clusterOf[i];
+        const i3 = i * 3;
+
+        // analytic drift (continuous across cycles)
+        const dx = driftBase[i3] + Math.sin(t * wanderF[i3] + wanderP[i3]) * 0.9 + stirX;
+        const dy = driftBase[i3 + 1] + Math.sin(t * wanderF[i3 + 1] + wanderP[i3 + 1]) * 0.7 + stirY;
+        const dz = driftBase[i3 + 2] + Math.sin(t * wanderF[i3 + 2] + wanderP[i3 + 2]) * 0.9;
+
+        // gather toward the cluster blob with a tangential swirl
+        const cx = centroids[k].x + blobOff[i3];
+        const cy = centroids[k].y + blobOff[i3 + 1];
+        const cz = centroids[k].z + blobOff[i3 + 2];
+        let px = dx + (cx - dx) * e1;
+        let py = dy + (cy - dy) * e1;
+        let pz = dz + (cz - dz) * e1;
+        if (e1 > 0 && e1 < 1) {
+          const sw = Math.sin(e1 * Math.PI) * SWIRL;
+          const vx = cx - dx, vz = cz - dz;
+          const vl = Math.hypot(vx, vz) || 1;
+          px += (-vz / vl) * sw;
+          pz += (vx / vl) * sw;
+        }
+
+        // compact into the swatch bar / palette card
+        if (e2 > 0) {
+          const bx = barSlot[i3];
+          const by = (2 - k) * BAR_GAP + barSlot[i3 + 1] + bob * e2;
+          const bz = barSlot[i3 + 2];
+          px += (bx - px) * e2;
+          py += (by - py) * e2;
+          pz += (bz - pz) * e2;
+        }
+
+        // release back to drift
+        if (e3 > 0) {
+          px += (dx - px) * e3;
+          py += (dy - py) * e3;
+          pz += (dz - pz) * e3;
+        }
+
+        // spin that aligns to identity while racked in the card
+        const spinScale = 1 - e2 * (1 - e3);
+        const ang = (t * spinSpeed[i] + spinPhase[i]) * spinScale;
+        _axis.set(spinAxis[i3], spinAxis[i3 + 1], spinAxis[i3 + 2]);
+        _q.setFromAxisAngle(_axis, ang % (Math.PI * 2));
+        _p.set(px, py, pz);
+        _m.compose(_p, _q, _s);
+        mesh.setMatrixAt(i, _m);
+
+        // color: jitter -> pure while gathering, pure -> next jitter on release
+        const cm = Math.max(e1, e2) * (1 - e3);
+        let r0, g0, b0;
+        if (e3 > 0 && releasePrepared) {
+          r0 = colPure[i3] + (colNextJit[i3] - colPure[i3]) * e3;
+          g0 = colPure[i3 + 1] + (colNextJit[i3 + 1] - colPure[i3 + 1]) * e3;
+          b0 = colPure[i3 + 2] + (colNextJit[i3 + 2] - colPure[i3 + 2]) * e3;
+        } else {
+          r0 = colJit[i3] + (colPure[i3] - colJit[i3]) * cm;
+          g0 = colJit[i3 + 1] + (colPure[i3 + 1] - colJit[i3 + 1]) * cm;
+          b0 = colJit[i3 + 2] + (colPure[i3 + 2] - colJit[i3 + 2]) * cm;
+        }
+        tmpC.setRGB(r0, g0, b0);
+        mesh.setColorAt(i, tmpC);
+      }
+      mesh.instanceMatrix.needsUpdate = true;
+      mesh.instanceColor.needsUpdate = true;
+
+      // beacons fade in while gathering, out as the bars form
+      const bg1 = smooth01(g1 * 1.3);
+      const bg2 = smooth01(g2 * 1.25);
+      for (let k = 0; k < K; k++) {
+        beacons[k].position.copy(centroids[k]);
+        beacons[k].material.color.copy(pure[k]);
+        beacons[k].material.opacity = bg1 * (1 - bg2) * (0.35 + 0.08 * Math.sin(t * 2.0 + k));
+        beacons[k].quaternion.copy(ctx.camera.quaternion);
+      }
+
+      const a = t * 0.04 + ctx.pointer.x * 0.25;
+      ctx.camera.position.set(
+        Math.sin(a) * 11.5,
+        0.8 + ctx.pointer.y * 1.0,
+        Math.cos(a) * 11.5);
+      ctx.camera.lookAt(0, 0, 0);
+    }
+  };
+}
+
+/* ================= shared runtime ================= */
+
+const canvas = document.getElementById('c');
+const btnPlay = document.getElementById('btnPlay');
+const speedEl = document.getElementById('speed');
+const btnPng = document.getElementById('btnPng');
+const note = document.getElementById('note');
+
+let renderer;
+try {
+  renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
+} catch (e) {
+  document.getElementById('err').style.display = 'grid';
+  document.getElementById('hud').hidden = true;
+  throw e;
+}
+
+/* Quality tier: 1 on desktop, lower on small screens or few cores.
+   Scenes scale particle counts by ctx.quality. */
+const small = Math.min(window.innerWidth, window.innerHeight) < 700;
+const weak = (navigator.hardwareConcurrency || 8) <= 4;
+const quality = small ? 0.5 : (weak ? 0.7 : 1);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, quality < 1 ? 1.5 : 2));
+
+const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 500);
+camera.position.set(0, 0, 12);
+
+const ctx = {
+  scene: new THREE.Scene(),
+  camera,
+  renderer,
+  quality,
+  pointer: { x: 0, y: 0 },  /* smoothed, -1..1, y up */
+};
+
+let piece;
+try {
+  piece = createScene(THREE, ctx);
+} catch (e) {
+  document.getElementById('err').style.display = 'grid';
+  document.getElementById('hud').hidden = true;
+  console.error(e);
+  throw e;
+}
+
+function resize() {
+  const w = window.innerWidth, h = window.innerHeight;
+  renderer.setSize(w, h, false);
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+  if (piece.resize) piece.resize(w, h);
+}
+window.addEventListener('resize', resize);
+resize();
+
+/* Pointer parallax target, lerped each frame for weight. */
+const target = { x: 0, y: 0 };
+window.addEventListener('pointermove', (e) => {
+  target.x = (e.clientX / window.innerWidth) * 2 - 1;
+  target.y = -((e.clientY / window.innerHeight) * 2 - 1);
+}, { passive: true });
+
+let userPaused = false;
+let hidden = false;
+let speed = 1;
+let t = 0;
+let last = performance.now();
+
+const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+function setPlayUi() {
+  btnPlay.textContent = userPaused ? 'Play' : 'Pause';
+  btnPlay.setAttribute('aria-pressed', String(userPaused));
+}
+btnPlay.addEventListener('click', () => {
+  userPaused = !userPaused;
+  note.hidden = true;
+  setPlayUi();
+  if (!userPaused) { last = performance.now(); loop(last); }
+});
+canvas.addEventListener('keydown', (e) => {
+  if (e.code === 'Space') { e.preventDefault(); btnPlay.click(); }
+});
+speedEl.addEventListener('input', () => { speed = parseFloat(speedEl.value) || 1; });
+
+btnPng.addEventListener('click', () => {
+  renderer.render(ctx.scene, camera);
+  canvas.toBlob((blob) => {
+    if (!blob) return;
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'color-palette-generator-3d.png';
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+  });
+});
+
+document.addEventListener('visibilitychange', () => {
+  hidden = document.hidden;
+  if (!hidden && !userPaused) { last = performance.now(); loop(last); }
+});
+
+let raf = 0;
+function frame(now) {
+  const dt = Math.min((now - last) / 1000, 0.1);
+  last = now;
+  t += dt * speed;
+  ctx.pointer.x += (target.x - ctx.pointer.x) * 0.06;
+  ctx.pointer.y += (target.y - ctx.pointer.y) * 0.06;
+  piece.update(t, dt * speed);
+  renderer.render(ctx.scene, camera);
+}
+function loop(now) {
+  if (userPaused || hidden) return;
+  frame(now);
+  raf = requestAnimationFrame(loop);
+}
+
+if (reduceMotion) {
+  /* Advance to a composed moment, render one still frame, and wait. */
+  for (let i = 0; i < 240; i++) { t += 1 / 60; piece.update(t, 1 / 60); }
+  renderer.render(ctx.scene, camera);
+  userPaused = true;
+  note.hidden = false;
+  setPlayUi();
+} else {
+  loop(performance.now());
+}
+</script>
+</body>
+</html>

@@ -91,6 +91,13 @@
         <img src="../assets/screenshots/raft-kv.webp" alt="Terminal output from a real pytest run and a 150-seed chaos simulation of raft-kv, all passing with zero linearizability violations." loading="lazy" decoding="async" width="1200" height="800">
         <figcaption>56 tests passed; 150-seed chaos sweep, 16,604 client ops, 0 failures.</figcaption>
       </figure>
+
+      <figure class="proj-media proj-viz">
+        <div class="proj-viz__frame">
+          <iframe src="../viz/raft-kv.html" title="Interactive 3D visualization: Raft Consensus KV Store" loading="lazy" allow="fullscreen"></iframe>
+        </div>
+        <figcaption>Consensus Ring: heartbeats, replication, a partition, an election, and the cluster heals. Live and interactive, it follows your pointer. <a href="../viz/raft-kv.html" target="_blank" rel="noopener">Open full screen</a></figcaption>
+      </figure>
     </div>
   </section>
 

@@ -1,0 +1,618 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <meta name="theme-color" content="#120E12">
+  <title>Image Watermarking Tool in 3D · Salman Adnan</title>
+  <meta name="description" content="The Stamp Ripple: an interactive 3D study of photos receiving their watermark in one pass.">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="../assets/favicon.png" sizes="any">
+  <style>
+    :root { color-scheme: dark; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      background: #120E12;
+      overflow: hidden;
+      font: 12px/1.4 ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+      color: rgba(255, 255, 255, 0.85);
+    }
+    #stage { position: fixed; inset: 0; }
+    canvas { display: block; width: 100%; height: 100%; outline: none; }
+    canvas:focus-visible { box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.6); }
+    #hud {
+      position: absolute; right: 12px; bottom: 12px;
+      display: flex; align-items: center; gap: 10px;
+      padding: 7px 10px; border-radius: 999px;
+      background: rgba(8, 8, 14, 0.55);
+      backdrop-filter: blur(6px);
+      opacity: 0.55; transition: opacity 0.25s ease;
+    }
+    #hud:hover, #hud:focus-within { opacity: 1; }
+    #hud button {
+      appearance: none; border: 1px solid rgba(255, 255, 255, 0.25);
+      background: transparent; color: inherit; font: inherit;
+      padding: 3px 10px; border-radius: 999px; cursor: pointer;
+    }
+    #hud button:hover { border-color: rgba(255, 255, 255, 0.6); }
+    #hud button:focus-visible, #hud input:focus-visible {
+      outline: 2px solid #fff; outline-offset: 2px;
+    }
+    #hud label { display: flex; align-items: center; gap: 6px; }
+    #hud input[type="range"] { width: 72px; accent-color: #8E7AD8; }
+    #note {
+      position: absolute; left: 12px; bottom: 12px; max-width: 46ch;
+      padding: 8px 12px; border-radius: 10px;
+      background: rgba(8, 8, 14, 0.65);
+    }
+    #err {
+      position: absolute; inset: 0; display: none;
+      place-items: center; text-align: center; padding: 24px;
+    }
+    @media (max-width: 560px) {
+      #hud label { display: none; }
+    }
+  </style>
+</head>
+<body>
+<div id="stage">
+  <canvas id="c" tabindex="0" aria-label="Animated photo planes gliding on a belt while a seal descends and a radial ripple crosses each plane, leaving a subtle repeating mark."></canvas>
+  <div id="hud" role="group" aria-label="Visualization controls">
+    <button id="btnPlay" type="button" aria-pressed="false">Pause</button>
+    <label for="speed">speed
+      <input id="speed" type="range" min="0.25" max="2" step="0.25" value="1"
+             aria-label="Animation speed">
+    </label>
+    <button id="btnPng" type="button">Save PNG</button>
+  </div>
+  <p id="note" hidden>Motion is paused because your system prefers reduced motion.
+     Press Play to animate.</p>
+  <div id="err"><p>This visualization needs WebGL, which is unavailable here.<br>
+     A screenshot of it lives on the project page.</p></div>
+</div>
+
+<script type="importmap">
+{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js" } }
+</script>
+<script type="module">
+import * as THREE from 'three';
+
+/* ================= scene: image-watermarking-tool ================= */
+// The Stamp Ripple
+// Concept: procedural photo planes glide single-file along a darkroom belt; a silver
+// seal eases down onto each one and a violet radial ripple crosses the surface, leaving
+// a subtle diagonal watermark lattice in its wake, then a before/after divider sweep.
+// Palette: bg darkroom plum #120E12, seal silver #C9D2DA, ripple violet #8E7AD8,
+//          belt graphite #2A2A34, photo scapes procedural and muted. Darkroom plum and
+//          silver keep the photos themselves the color; violet marks the single act.
+// Signature: the before/after divider sweep right after the stamp.
+
+function createScene(THREE, ctx) {
+  const Q = ctx.quality;
+
+  // ---- tunables ----
+  const PHOTOS = 8;            // photo planes riding the belt (small fixed mesh count)
+  const SLOTS = 10;            // belt positions; slot 4 is the seal, slot 5 the split view
+  const STAMP_SLOT = 4;
+  const SPLIT_SLOT = 5;
+  const CYCLE = 4.6;           // seconds per belt advance cycle
+  const MOVE = 1.5;            // seconds of eased movement inside each cycle
+  const SEG_X = Math.floor(36 * Q) + 8;   // photo plane subdivisions for the ripple
+  const SEG_Y = Math.floor(24 * Q) + 6;
+  const DUST = Math.floor(240 * Q);       // darkroom dust motes
+  const RIPPLE_DUR = 1.6;      // seconds for the stamp ripple to cross a photo
+  const PHOTO_W = 3.0;
+  const PHOTO_H = 2.0;
+  const BELT_Y = -0.62;        // belt surface height
+  const COL_BG = 0x120E12;
+  const COL_VIOLET = new THREE.Color(0x8E7AD8);
+
+  ctx.scene.background = new THREE.Color(COL_BG);
+  ctx.scene.fog = new THREE.FogExp2(COL_BG, 0.02);
+
+  const NOISE = `
+    vec3 mod289(vec3 x){return x - floor(x * (1.0/289.0)) * 289.0;}
+    vec4 mod289(vec4 x){return x - floor(x * (1.0/289.0)) * 289.0;}
+    vec4 permute(vec4 x){return mod289(((x*34.0)+1.0)*x);}
+    vec4 taylorInvSqrt(vec4 r){return 1.79284291400159 - 0.85373472095314 * r;}
+    float snoise(vec3 v){
+      const vec2 C = vec2(1.0/6.0, 1.0/3.0);
+      const vec4 D = vec4(0.0, 0.5, 1.0, 2.0);
+      vec3 i  = floor(v + dot(v, C.yyy));
+      vec3 x0 = v - i + dot(i, C.xxx);
+      vec3 g = step(x0.yzx, x0.xyz);
+      vec3 l = 1.0 - g;
+      vec3 i1 = min(g.xyz, l.zxy);
+      vec3 i2 = max(g.xyz, l.zxy);
+      vec3 x1 = x0 - i1 + C.xxx;
+      vec3 x2 = x0 - i2 + C.yyy;
+      vec3 x3 = x0 - D.yyy;
+      i = mod289(i);
+      vec4 p = permute(permute(permute(
+                i.z + vec4(0.0, i1.z, i2.z, 1.0))
+              + i.y + vec4(0.0, i1.y, i2.y, 1.0))
+              + i.x + vec4(0.0, i1.x, i2.x, 1.0));
+      float n_ = 0.142857142857;
+      vec3 ns = n_ * D.wyz - D.xzx;
+      vec4 j = p - 49.0 * floor(p * ns.z * ns.z);
+      vec4 x_ = floor(j * ns.z);
+      vec4 y_ = floor(j - 7.0 * x_);
+      vec4 x = x_ * ns.x + ns.yyyy;
+      vec4 y = y_ * ns.x + ns.yyyy;
+      vec4 h = 1.0 - abs(x) - abs(y);
+      vec4 b0 = vec4(x.xy, y.xy);
+      vec4 b1 = vec4(x.zw, y.zw);
+      vec4 s0 = floor(b0) * 2.0 + 1.0;
+      vec4 s1 = floor(b1) * 2.0 + 1.0;
+      vec4 sh = -step(h, vec4(0.0));
+      vec4 a0 = b0.xzyw + s0.xzyw * sh.xxyy;
+      vec4 a1 = b1.xzyw + s1.xzyw * sh.zzww;
+      vec3 p0 = vec3(a0.xy, h.x);
+      vec3 p1 = vec3(a0.zw, h.y);
+      vec3 p2 = vec3(a1.xy, h.z);
+      vec3 p3 = vec3(a1.zw, h.w);
+      vec4 norm = taylorInvSqrt(vec4(dot(p0,p0), dot(p1,p1), dot(p2,p2), dot(p3,p3)));
+      p0 *= norm.x; p1 *= norm.y; p2 *= norm.z; p3 *= norm.w;
+      vec4 m = max(0.6 - vec4(dot(x0,x0), dot(x1,x1), dot(x2,x2), dot(x3,x3)), 0.0);
+      m = m * m;
+      return 42.0 * dot(m*m, vec4(dot(p0,x0), dot(p1,x1), dot(p2,x2), dot(p3,x3)));
+    }
+  `;
+
+  // ---- photo shader: procedural muted scape + ripple + watermark lattice + divider ----
+  const photoVert = `
+    uniform float uStampAge;
+    varying vec2 vUv;
+    void main() {
+      vUv = uv;
+      vec3 p = position;
+      if (uStampAge > 0.0 && uStampAge < ${RIPPLE_DUR.toFixed(2)}) {
+        float k = uStampAge / ${RIPPLE_DUR.toFixed(2)};
+        float r = length((uv - 0.5) * vec2(1.5, 1.0));
+        float front = k * 1.1;
+        float w = exp(-pow((r - front) * 9.0, 2.0));
+        p.z += sin(r * 30.0 - uStampAge * 14.0) * 0.05 * w * (1.0 - k);
+      }
+      gl_Position = projectionMatrix * modelViewMatrix * vec4(p, 1.0);
+    }
+  `;
+  const photoFrag = NOISE + `
+    uniform float uSeed;
+    uniform float uMood;
+    uniform float uStampAge;
+    uniform float uMarked;
+    uniform float uDivider;
+    uniform float uSplitEnv;
+    uniform float uAlpha;
+    varying vec2 vUv;
+    void main() {
+      // procedural gradient-scape, one of four muted moods
+      vec2 p2 = vUv * vec2(1.5, 1.0);
+      float n = snoise(vec3(p2 * 2.2, uSeed)) * 0.5 + snoise(vec3(p2 * 4.7, uSeed + 7.0)) * 0.25;
+      float g = vUv.y + n * 0.28;
+      vec3 A; vec3 B; vec3 C; vec3 Dp;
+      if (uMood < 0.5) {        // dawn
+        A = vec3(0.34, 0.20, 0.28); B = vec3(0.30, 0.18, 0.12);
+        C = vec3(0.75, 0.60, 0.45); Dp = vec3(0.05, 0.15, 0.30);
+      } else if (uMood < 1.5) { // sea
+        A = vec3(0.14, 0.22, 0.30); B = vec3(0.10, 0.16, 0.18);
+        C = vec3(0.55, 0.65, 0.60); Dp = vec3(0.40, 0.55, 0.62);
+      } else if (uMood < 2.5) { // dune
+        A = vec3(0.36, 0.28, 0.20); B = vec3(0.22, 0.16, 0.10);
+        C = vec3(0.50, 0.55, 0.50); Dp = vec3(0.10, 0.18, 0.28);
+      } else {                  // forest
+        A = vec3(0.12, 0.20, 0.16); B = vec3(0.10, 0.14, 0.10);
+        C = vec3(0.50, 0.60, 0.45); Dp = vec3(0.30, 0.42, 0.35);
+      }
+      vec3 col = A + B * cos(6.28318 * (C * g + Dp));
+      col += n * 0.05;
+
+      // ripple front brightening while the stamp crosses
+      float r = length((vUv - 0.5) * vec2(1.5, 1.0));
+      float rippleOn = step(0.001, uStampAge) * step(uStampAge, ${RIPPLE_DUR.toFixed(2)});
+      float k = clamp(uStampAge / ${RIPPLE_DUR.toFixed(2)}, 0.0, 1.0);
+      float front = k * 1.1;
+      float w = exp(-pow((r - front) * 9.0, 2.0)) * rippleOn * (1.0 - k * 0.6);
+      col += vec3(0.56, 0.48, 0.85) * w * 0.55;
+
+      // watermark lattice, revealed in the ripple's wake, then persistent
+      float reveal = uMarked * mix(1.0, smoothstep(front, front - 0.18, r), rippleOn);
+      float cs = 0.70710678;
+      vec2 q = mat2(cs, -cs, cs, cs) * (vUv - 0.5);
+      vec2 cell = fract(q * 9.0) - 0.5;
+      float mk = (1.0 - smoothstep(0.05, 0.10, abs(cell.x))) * (1.0 - smoothstep(0.16, 0.24, abs(cell.y)));
+      float supp = mix(1.0, step(uDivider, vUv.x), uSplitEnv);
+      col = mix(col, vec3(0.86, 0.89, 0.92), mk * 0.13 * reveal * supp);
+
+      // divider glow line during the before/after sweep
+      float dl = exp(-pow((vUv.x - uDivider) * 60.0, 2.0)) * uSplitEnv;
+      col += vec3(0.56, 0.48, 0.85) * dl * 0.8;
+
+      // thin dark border so each plane reads as a print
+      float ed = min(min(vUv.x, 1.0 - vUv.x), min(vUv.y, 1.0 - vUv.y));
+      col *= mix(0.25, 1.0, smoothstep(0.0, 0.025, ed));
+
+      gl_FragColor = vec4(col, uAlpha);
+    }
+  `;
+
+  // belt path: slots left to right with a gentle S curve
+  function slotPos(s, out) {
+    const u = THREE.MathUtils.clamp(s, 0, SLOTS - 1) / (SLOTS - 1);
+    out.set(-13.5 + u * 27, -0.45, Math.sin(u * Math.PI * 2) * 0.9);
+    return out;
+  }
+  const _v = new THREE.Vector3();
+
+  // ---- photo meshes ----
+  const photoGeo = new THREE.PlaneGeometry(PHOTO_W, PHOTO_H, SEG_X, SEG_Y);
+  const photos = [];
+  for (let k = 0; k < PHOTOS; k++) {
+    const uniforms = {
+      uSeed: { value: Math.random() * 100 },
+      uMood: { value: k % 4 },
+      uStampAge: { value: -1 },
+      uMarked: { value: 0 },
+      uDivider: { value: 1.2 },
+      uSplitEnv: { value: 0 },
+      uAlpha: { value: 0 },
+    };
+    const mat = new THREE.ShaderMaterial({
+      vertexShader: photoVert,
+      fragmentShader: photoFrag,
+      uniforms: uniforms,
+      transparent: true,
+      side: THREE.DoubleSide,
+    });
+    const mesh = new THREE.Mesh(photoGeo, mat);
+    mesh.rotation.x = -Math.PI / 2;
+    mesh.frustumCulled = false;
+    ctx.scene.add(mesh);
+    photos.push({
+      mesh: mesh, u: uniforms, base: k, prevS: -1,
+      stampT: -1e3, marked: false, mood: k % 4,
+    });
+  }
+
+  // ---- belt ribbon under the photos ----
+  const beltGeo = new THREE.PlaneGeometry(29, 3.4, 60, 1);
+  {
+    const pos = beltGeo.attributes.position;
+    for (let i = 0; i < pos.count; i++) {
+      const x = pos.getX(i);
+      const u = (x + 14.5) / 29;
+      pos.setZ(i, 0);
+      // local +y maps to world -z after the -90 degree tilt, so subtract the curve
+      pos.setY(i, pos.getY(i) - Math.sin(u * Math.PI * 2) * 0.9);
+    }
+    pos.needsUpdate = true;
+  }
+  const beltMat = new THREE.ShaderMaterial({
+    vertexShader: `
+      varying vec2 vUv;
+      void main() {
+        vUv = uv;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }
+    `,
+    fragmentShader: `
+      uniform float uTime;
+      varying vec2 vUv;
+      void main() {
+        vec3 col = vec3(0.165, 0.165, 0.204);
+        float ch = smoothstep(0.9, 1.0, fract(vUv.x * 34.0 - uTime * 0.22));
+        col += ch * 0.03;
+        float ed = smoothstep(0.0, 0.08, min(vUv.y, 1.0 - vUv.y));
+        col *= mix(0.4, 1.0, ed);
+        gl_FragColor = vec4(col, 1.0);
+      }
+    `,
+    uniforms: { uTime: { value: 0 } },
+  });
+  const belt = new THREE.Mesh(beltGeo, beltMat);
+  belt.rotation.x = -Math.PI / 2;
+  belt.position.y = BELT_Y;
+  ctx.scene.add(belt);
+
+  // ---- the silver seal ----
+  const seal = new THREE.Group();
+  const discMat = new THREE.MeshBasicMaterial({ color: 0x9AA6B2 });
+  const disc = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.55, 0.16, 40), discMat);
+  seal.add(disc);
+  const rod = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 2.2, 12),
+    new THREE.MeshBasicMaterial({ color: 0x3A3A44 }));
+  rod.position.y = 1.18;
+  seal.add(rod);
+  {
+    const cv = document.createElement('canvas');
+    cv.width = 128; cv.height = 128;
+    const g = cv.getContext('2d');
+    const grad = g.createRadialGradient(64, 64, 6, 64, 64, 62);
+    grad.addColorStop(0, '#E2E8EE');
+    grad.addColorStop(0.7, '#C9D2DA');
+    grad.addColorStop(1, '#8F99A4');
+    g.fillStyle = grad;
+    g.beginPath(); g.arc(64, 64, 62, 0, Math.PI * 2); g.fill();
+    g.strokeStyle = '#7C8792';
+    g.lineWidth = 5;
+    g.beginPath(); g.arc(64, 64, 46, 0, Math.PI * 2); g.stroke();
+    g.save();
+    g.translate(64, 64); g.rotate(Math.PI / 4);
+    g.fillStyle = '#828D98';
+    g.fillRect(-18, -18, 36, 36);
+    g.restore();
+    const face = new THREE.Mesh(
+      new THREE.CircleGeometry(0.53, 40),
+      new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(cv) })
+    );
+    face.rotation.x = -Math.PI / 2;
+    face.position.y = -0.085;
+    seal.add(face);
+  }
+  slotPos(STAMP_SLOT, _v);
+  seal.position.set(_v.x, 2.3, _v.z);
+  const SEAL_HI = 2.3;
+  const SEAL_LO = -0.33;
+  ctx.scene.add(seal);
+
+  // ---- darkroom dust motes ----
+  {
+    const pos = new Float32Array(DUST * 3);
+    const sd = new Float32Array(DUST);
+    for (let i = 0; i < DUST; i++) {
+      pos[i * 3] = (Math.random() - 0.5) * 30;
+      pos[i * 3 + 1] = Math.random() * 7 - 1;
+      pos[i * 3 + 2] = (Math.random() - 0.5) * 12 - 2;
+      sd[i] = Math.random() * 100;
+    }
+    const dg = new THREE.BufferGeometry();
+    dg.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    dg.setAttribute('aSeed', new THREE.Float32BufferAttribute(sd, 1));
+    const dm = new THREE.ShaderMaterial({
+      vertexShader: `
+        attribute float aSeed;
+        uniform float uTime;
+        varying float vA;
+        void main() {
+          vec3 p = position;
+          p.x += sin(uTime * 0.11 + aSeed * 17.0) * 1.4;
+          p.y += sin(uTime * 0.07 + aSeed * 29.0) * 0.8;
+          p.z += cos(uTime * 0.09 + aSeed * 23.0) * 1.0;
+          vA = 0.10 + 0.08 * sin(uTime * 0.5 + aSeed * 43.0);
+          vec4 mv = modelViewMatrix * vec4(p, 1.0);
+          gl_PointSize = 2.0 * (40.0 / -mv.z);
+          gl_Position = projectionMatrix * mv;
+        }
+      `,
+      fragmentShader: `
+        varying float vA;
+        void main() {
+          float d = length(gl_PointCoord - 0.5);
+          float a = smoothstep(0.5, 0.1, d);
+          gl_FragColor = vec4(vec3(0.56, 0.48, 0.66) * vA, a * vA);
+        }
+      `,
+      uniforms: { uTime: beltMat.uniforms.uTime },
+      blending: THREE.AdditiveBlending,
+      transparent: true,
+      depthWrite: false,
+    });
+    const dust = new THREE.Points(dg, dm);
+    dust.frustumCulled = false;
+    ctx.scene.add(dust);
+  }
+
+  const smooth01 = (x) => {
+    const c = THREE.MathUtils.clamp(x, 0, 1);
+    return c * c * (3 - 2 * c);
+  };
+
+  let stampedThisCycle = -1;
+  ctx.camera.position.set(0, 6.5, 11.5);
+  ctx.camera.lookAt(0, -0.5, 0);
+
+  return {
+    update(t) {
+      beltMat.uniforms.uTime.value = t;
+
+      const cycle = Math.floor(t / CYCLE);
+      const phase = t - cycle * CYCLE;
+      const prog = cycle + smooth01(Math.min(phase / MOVE, 1));
+      if (phase < MOVE) stampedThisCycle = -1;
+
+      // seal descent and rise, timed inside the dwell
+      let sealY = SEAL_HI;
+      if (phase > MOVE + 0.3 && phase < MOVE + 2.9) {
+        const down = smooth01((phase - (MOVE + 0.3)) / 0.5);
+        const up = smooth01((phase - (MOVE + 2.2)) / 0.6);
+        sealY = THREE.MathUtils.lerp(SEAL_HI, SEAL_LO, down) + (SEAL_HI - SEAL_LO) * up;
+        sealY = Math.min(sealY, SEAL_HI);
+      }
+      seal.position.y = sealY;
+
+      for (let k = 0; k < PHOTOS; k++) {
+        const ph = photos[k];
+        let s = (ph.base + prog) % SLOTS;
+
+        // wrap: respawn as a fresh photo with a new scape
+        if (ph.prevS >= 0 && s < ph.prevS - 1) {
+          ph.u.uSeed.value = Math.random() * 100;
+          ph.mood = (ph.mood + 1 + Math.floor(Math.random() * 2)) % 4;
+          ph.u.uMood.value = ph.mood;
+          ph.marked = false;
+          ph.stampT = -1e3;
+          ph.u.uMarked.value = 0;
+          ph.u.uSplitEnv.value = 0;
+        }
+        ph.prevS = s;
+
+        slotPos(s, _v);
+        ph.mesh.position.copy(_v);
+        ph.mesh.rotation.set(-Math.PI / 2, 0, 0);
+        ph.u.uAlpha.value = smooth01((s - 0.1) / 0.7) * (1 - smooth01((s - (SLOTS - 1.7)) / 0.65));
+
+        const settled = Math.round(s);
+        const isSettled = phase >= MOVE && Math.abs(s - settled) < 0.02;
+
+        // the stamp: seal touches at MOVE + 0.8
+        if (isSettled && settled === STAMP_SLOT && phase >= MOVE + 0.8 && stampedThisCycle < 0) {
+          stampedThisCycle = k;
+          ph.stampT = t;
+          ph.marked = true;
+          ph.u.uMarked.value = 1;
+        }
+        ph.u.uStampAge.value = ph.stampT > 0 ? t - ph.stampT : -1;
+
+        // the before/after split, one slot after the seal
+        if (isSettled && settled === SPLIT_SLOT && ph.marked) {
+          const ph2 = phase - (MOVE + 0.2);
+          const env = smooth01(ph2 / 0.4) * (1 - smooth01((ph2 - 2.3) / 0.45));
+          ph.u.uSplitEnv.value = env;
+          ph.u.uDivider.value = 1.15 - 1.35 * smooth01((ph2 - 0.3) / 1.7);
+          ph.mesh.rotation.x = -Math.PI / 2 + 0.5 * env;
+        } else if (ph.u.uSplitEnv.value > 0.001) {
+          ph.u.uSplitEnv.value *= 0.9;
+        }
+      }
+
+      const px = ctx.pointer.x;
+      const py = ctx.pointer.y;
+      ctx.camera.position.set(px * 1.6, 6.5 + py * 1.2, 11.5);
+      ctx.camera.lookAt(px * 0.5, -0.5, 0);
+    },
+  };
+}
+
+/* ================= shared runtime ================= */
+
+const canvas = document.getElementById('c');
+const btnPlay = document.getElementById('btnPlay');
+const speedEl = document.getElementById('speed');
+const btnPng = document.getElementById('btnPng');
+const note = document.getElementById('note');
+
+let renderer;
+try {
+  renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
+} catch (e) {
+  document.getElementById('err').style.display = 'grid';
+  document.getElementById('hud').hidden = true;
+  throw e;
+}
+
+/* Quality tier: 1 on desktop, lower on small screens or few cores.
+   Scenes scale particle counts by ctx.quality. */
+const small = Math.min(window.innerWidth, window.innerHeight) < 700;
+const weak = (navigator.hardwareConcurrency || 8) <= 4;
+const quality = small ? 0.5 : (weak ? 0.7 : 1);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, quality < 1 ? 1.5 : 2));
+
+const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 500);
+camera.position.set(0, 0, 12);
+
+const ctx = {
+  scene: new THREE.Scene(),
+  camera,
+  renderer,
+  quality,
+  pointer: { x: 0, y: 0 },  /* smoothed, -1..1, y up */
+};
+
+let piece;
+try {
+  piece = createScene(THREE, ctx);
+} catch (e) {
+  document.getElementById('err').style.display = 'grid';
+  document.getElementById('hud').hidden = true;
+  console.error(e);
+  throw e;
+}
+
+function resize() {
+  const w = window.innerWidth, h = window.innerHeight;
+  renderer.setSize(w, h, false);
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+  if (piece.resize) piece.resize(w, h);
+}
+window.addEventListener('resize', resize);
+resize();
+
+/* Pointer parallax target, lerped each frame for weight. */
+const target = { x: 0, y: 0 };
+window.addEventListener('pointermove', (e) => {
+  target.x = (e.clientX / window.innerWidth) * 2 - 1;
+  target.y = -((e.clientY / window.innerHeight) * 2 - 1);
+}, { passive: true });
+
+let userPaused = false;
+let hidden = false;
+let speed = 1;
+let t = 0;
+let last = performance.now();
+
+const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+function setPlayUi() {
+  btnPlay.textContent = userPaused ? 'Play' : 'Pause';
+  btnPlay.setAttribute('aria-pressed', String(userPaused));
+}
+btnPlay.addEventListener('click', () => {
+  userPaused = !userPaused;
+  note.hidden = true;
+  setPlayUi();
+  if (!userPaused) { last = performance.now(); loop(last); }
+});
+canvas.addEventListener('keydown', (e) => {
+  if (e.code === 'Space') { e.preventDefault(); btnPlay.click(); }
+});
+speedEl.addEventListener('input', () => { speed = parseFloat(speedEl.value) || 1; });
+
+btnPng.addEventListener('click', () => {
+  renderer.render(ctx.scene, camera);
+  canvas.toBlob((blob) => {
+    if (!blob) return;
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'image-watermarking-tool-3d.png';
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+  });
+});
+
+document.addEventListener('visibilitychange', () => {
+  hidden = document.hidden;
+  if (!hidden && !userPaused) { last = performance.now(); loop(last); }
+});
+
+let raf = 0;
+function frame(now) {
+  const dt = Math.min((now - last) / 1000, 0.1);
+  last = now;
+  t += dt * speed;
+  ctx.pointer.x += (target.x - ctx.pointer.x) * 0.06;
+  ctx.pointer.y += (target.y - ctx.pointer.y) * 0.06;
+  piece.update(t, dt * speed);
+  renderer.render(ctx.scene, camera);
+}
+function loop(now) {
+  if (userPaused || hidden) return;
+  frame(now);
+  raf = requestAnimationFrame(loop);
+}
+
+if (reduceMotion) {
+  /* Advance to a composed moment, render one still frame, and wait. */
+  for (let i = 0; i < 240; i++) { t += 1 / 60; piece.update(t, 1 / 60); }
+  renderer.render(ctx.scene, camera);
+  userPaused = true;
+  note.hidden = false;
+  setPlayUi();
+} else {
+  loop(performance.now());
+}
+</script>
+</body>
+</html>

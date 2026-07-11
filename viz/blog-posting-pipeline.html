@@ -1,0 +1,510 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <meta name="theme-color" content="#06141A">
+  <title>Blog Posting Pipeline in 3D · Salman Adnan</title>
+  <meta name="description" content="Seven Stations: an interactive 3D study of content flowing through a seven-step pipeline.">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="../assets/favicon.png" sizes="any">
+  <style>
+    :root { color-scheme: dark; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      background: #06141A;
+      overflow: hidden;
+      font: 12px/1.4 ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+      color: rgba(255, 255, 255, 0.85);
+    }
+    #stage { position: fixed; inset: 0; }
+    canvas { display: block; width: 100%; height: 100%; outline: none; }
+    canvas:focus-visible { box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.6); }
+    #hud {
+      position: absolute; right: 12px; bottom: 12px;
+      display: flex; align-items: center; gap: 10px;
+      padding: 7px 10px; border-radius: 999px;
+      background: rgba(8, 8, 14, 0.55);
+      backdrop-filter: blur(6px);
+      opacity: 0.55; transition: opacity 0.25s ease;
+    }
+    #hud:hover, #hud:focus-within { opacity: 1; }
+    #hud button {
+      appearance: none; border: 1px solid rgba(255, 255, 255, 0.25);
+      background: transparent; color: inherit; font: inherit;
+      padding: 3px 10px; border-radius: 999px; cursor: pointer;
+    }
+    #hud button:hover { border-color: rgba(255, 255, 255, 0.6); }
+    #hud button:focus-visible, #hud input:focus-visible {
+      outline: 2px solid #fff; outline-offset: 2px;
+    }
+    #hud label { display: flex; align-items: center; gap: 6px; }
+    #hud input[type="range"] { width: 72px; accent-color: #E88C5A; }
+    #note {
+      position: absolute; left: 12px; bottom: 12px; max-width: 46ch;
+      padding: 8px 12px; border-radius: 10px;
+      background: rgba(8, 8, 14, 0.65);
+    }
+    #err {
+      position: absolute; inset: 0; display: none;
+      place-items: center; text-align: center; padding: 24px;
+    }
+    @media (max-width: 560px) {
+      #hud label { display: none; }
+    }
+  </style>
+</head>
+<body>
+<div id="stage">
+  <canvas id="c" tabindex="0" aria-label="Animated particle stream winding through seven glowing gate rings, recolored and refined at each station."></canvas>
+  <div id="hud" role="group" aria-label="Visualization controls">
+    <button id="btnPlay" type="button" aria-pressed="false">Pause</button>
+    <label for="speed">speed
+      <input id="speed" type="range" min="0.25" max="2" step="0.25" value="1"
+             aria-label="Animation speed">
+    </label>
+    <button id="btnPng" type="button">Save PNG</button>
+  </div>
+  <p id="note" hidden>Motion is paused because your system prefers reduced motion.
+     Press Play to animate.</p>
+  <div id="err"><p>This visualization needs WebGL, which is unavailable here.<br>
+     A screenshot of it lives on the project page.</p></div>
+</div>
+
+<script type="importmap">
+{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js" } }
+</script>
+<script type="module">
+import * as THREE from 'three';
+
+/* ================= scene: blog-posting-pipeline ================= */
+// SEVEN STATIONS
+// A winding stream of raw content particles threads seven gate rings and leaves refined.
+// Palette: bg deep petrol #06141A, flow aqua #55C6D2, mid-station jade #66C89A,
+// late-station gold #E8B45C, final peach #E88C5A, particle pearl #EAF2F0.
+// Justification: a petrol depth with a warm ripening gradient, raw material to publishable piece.
+// Signature: visible refinement, the stream literally tightens and brightens step by step.
+
+function createScene(THREE, ctx) {
+  const Q = ctx.quality || 1;
+
+  // ---- tunables
+  const N = Math.floor(12000 * Q);   // flow particles
+  const RINGS = 7;                   // pipeline stations
+  const PACKETS = 9;                 // traveling density clumps in the stream
+  const PACKET_SHARE = 0.45;         // fraction of particles bound into packets
+  const FLOW = 1 / 30;               // full spline traversals per second
+  const RING_R = 0.95;               // gate ring radius
+  const THICK_IN = 0.95;             // stream radius at entry, raw and loose
+  const THICK_OUT = 0.22;            // stream radius at exit, refined and tight
+  const WOB_IN = 0.55;               // curl wobble amplitude at entry
+  const WOB_OUT = 0.05;              // curl wobble amplitude at exit
+  const BG = 0x06141A;
+
+  ctx.scene.background = new THREE.Color(BG);
+
+  let seed = 41007;
+  function rnd() { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; }
+
+  // the spline, defined identically in JS and GLSL
+  function curvePos(s, out) {
+    out.set(-11 + 22 * s, 1.5 * Math.sin(s * 4.4 + 0.6), 2.2 * Math.sin(s * 2.6 + 2.0));
+    return out;
+  }
+  const GLSL_CURVE = `
+    vec3 curvePos(float s) {
+      return vec3(-11.0 + 22.0 * s, 1.5 * sin(s * 4.4 + 0.6), 2.2 * sin(s * 2.6 + 2.0));
+    }
+  `;
+
+  const NOISE = `
+    vec3 mod289(vec3 x){return x - floor(x * (1.0/289.0)) * 289.0;}
+    vec4 mod289(vec4 x){return x - floor(x * (1.0/289.0)) * 289.0;}
+    vec4 permute(vec4 x){return mod289(((x*34.0)+1.0)*x);}
+    vec4 taylorInvSqrt(vec4 r){return 1.79284291400159 - 0.85373472095314 * r;}
+    float snoise(vec3 v){
+      const vec2 C = vec2(1.0/6.0, 1.0/3.0);
+      const vec4 D = vec4(0.0, 0.5, 1.0, 2.0);
+      vec3 i  = floor(v + dot(v, C.yyy));
+      vec3 x0 = v - i + dot(i, C.xxx);
+      vec3 g = step(x0.yzx, x0.xyz);
+      vec3 l = 1.0 - g;
+      vec3 i1 = min(g.xyz, l.zxy);
+      vec3 i2 = max(g.xyz, l.zxy);
+      vec3 x1 = x0 - i1 + C.xxx;
+      vec3 x2 = x0 - i2 + C.yyy;
+      vec3 x3 = x0 - D.yyy;
+      i = mod289(i);
+      vec4 p = permute(permute(permute(
+                i.z + vec4(0.0, i1.z, i2.z, 1.0))
+              + i.y + vec4(0.0, i1.y, i2.y, 1.0))
+              + i.x + vec4(0.0, i1.x, i2.x, 1.0));
+      float n_ = 0.142857142857;
+      vec3 ns = n_ * D.wyz - D.xzx;
+      vec4 j = p - 49.0 * floor(p * ns.z * ns.z);
+      vec4 x_ = floor(j * ns.z);
+      vec4 y_ = floor(j - 7.0 * x_);
+      vec4 x = x_ * ns.x + ns.yyyy;
+      vec4 y = y_ * ns.x + ns.yyyy;
+      vec4 h = 1.0 - abs(x) - abs(y);
+      vec4 b0 = vec4(x.xy, y.xy);
+      vec4 b1 = vec4(x.zw, y.zw);
+      vec4 s0 = floor(b0) * 2.0 + 1.0;
+      vec4 s1 = floor(b1) * 2.0 + 1.0;
+      vec4 sh = -step(h, vec4(0.0));
+      vec4 a0 = b0.xzyw + s0.xzyw * sh.xxyy;
+      vec4 a1 = b1.xzyw + s1.xzyw * sh.zzww;
+      vec3 p0 = vec3(a0.xy, h.x);
+      vec3 p1 = vec3(a0.zw, h.y);
+      vec3 p2 = vec3(a1.xy, h.z);
+      vec3 p3 = vec3(a1.zw, h.w);
+      vec4 norm = taylorInvSqrt(vec4(dot(p0,p0), dot(p1,p1), dot(p2,p2), dot(p3,p3)));
+      p0 *= norm.x; p1 *= norm.y; p2 *= norm.z; p3 *= norm.w;
+      vec4 m = max(0.6 - vec4(dot(x0,x0), dot(x1,x1), dot(x2,x2), dot(x3,x3)), 0.0);
+      m = m * m;
+      return 42.0 * dot(m*m, vec4(dot(p0,x0), dot(p1,x1), dot(p2,x2), dot(p3,x3)));
+    }
+    vec3 curl(vec3 p){
+      const float e = 0.1;
+      float n1 = snoise(vec3(p.x, p.y + e, p.z));
+      float n2 = snoise(vec3(p.x, p.y - e, p.z));
+      float n3 = snoise(vec3(p.x, p.y, p.z + e));
+      float n4 = snoise(vec3(p.x, p.y, p.z - e));
+      float n5 = snoise(vec3(p.x + e, p.y, p.z));
+      float n6 = snoise(vec3(p.x - e, p.y, p.z));
+      float x = n2 - n1 - n4 + n3;
+      float y = n4 - n3 - n6 + n5;
+      float z = n6 - n5 - n2 + n1;
+      return normalize(vec3(x, y, z));
+    }
+  `;
+
+  // station hue ramp, aqua to jade to gold to peach, matching the ring hexes
+  const STATION_COLOR = `
+    vec3 stationColor(float u) {
+      vec3 c0 = vec3(0.333, 0.776, 0.824);
+      vec3 c1 = vec3(0.400, 0.784, 0.604);
+      vec3 c2 = vec3(0.910, 0.706, 0.361);
+      vec3 c3 = vec3(0.910, 0.549, 0.353);
+      float v = clamp(u, 0.0, 1.0) * 3.0;
+      vec3 col = mix(c0, c1, clamp(v, 0.0, 1.0));
+      col = mix(col, c2, clamp(v - 1.0, 0.0, 1.0));
+      col = mix(col, c3, clamp(v - 2.0, 0.0, 1.0));
+      return col;
+    }
+  `;
+  function stationColorJS(u) {
+    const cols = [
+      new THREE.Color(0x55C6D2), new THREE.Color(0x66C89A),
+      new THREE.Color(0xE8B45C), new THREE.Color(0xE88C5A)
+    ];
+    const v = THREE.MathUtils.clamp(u, 0, 1) * 3;
+    const i = Math.min(2, Math.floor(v));
+    return cols[i].clone().lerp(cols[i + 1], v - i);
+  }
+
+  const uTime = { value: 0 };
+  const uPx = { value: ctx.renderer.domElement.height };
+
+  // ---- flow particles
+  {
+    const pos = new Float32Array(N * 3); // unused placeholder, real position comes from aT
+    const aT = new Float32Array(N);
+    const aOff = new Float32Array(N * 2);
+    const aSize = new Float32Array(N);
+    const aSeed = new Float32Array(N);
+    for (let i = 0; i < N; i++) {
+      if (rnd() < PACKET_SHARE) {
+        // clumped particle: gaussian-ish spread around a packet center
+        const j = Math.floor(rnd() * PACKETS);
+        const spread = (rnd() + rnd() - 1) * 0.045;
+        aT[i] = (j / PACKETS + spread + 1) % 1;
+      } else {
+        aT[i] = rnd();
+      }
+      const ang = rnd() * Math.PI * 2;
+      const rr = Math.sqrt(rnd());
+      aOff[i * 2] = Math.cos(ang) * rr;
+      aOff[i * 2 + 1] = Math.sin(ang) * rr;
+      aSize[i] = 1.6 + rnd() * 1.8;
+      aSeed[i] = rnd();
+    }
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    g.setAttribute('aT', new THREE.Float32BufferAttribute(aT, 1));
+    g.setAttribute('aOff', new THREE.Float32BufferAttribute(aOff, 2));
+    g.setAttribute('aSize', new THREE.Float32BufferAttribute(aSize, 1));
+    g.setAttribute('aSeed', new THREE.Float32BufferAttribute(aSeed, 1));
+    const m = new THREE.ShaderMaterial({
+      uniforms: {
+        uTime: uTime, uPx: uPx,
+        uFlow: { value: FLOW },
+        uThickIn: { value: THICK_IN }, uThickOut: { value: THICK_OUT },
+        uWobIn: { value: WOB_IN }, uWobOut: { value: WOB_OUT }
+      },
+      vertexShader: NOISE + GLSL_CURVE + STATION_COLOR + `
+        attribute float aT;
+        attribute vec2 aOff;
+        attribute float aSize;
+        attribute float aSeed;
+        uniform float uTime;
+        uniform float uPx;
+        uniform float uFlow;
+        uniform float uThickIn;
+        uniform float uThickOut;
+        uniform float uWobIn;
+        uniform float uWobOut;
+        varying vec3 vCol;
+        varying float vA;
+        varying float vSharp;
+        void main() {
+          float s = fract(aT + uTime * uFlow);
+          vec3 base = curvePos(s);
+          vec3 T = normalize(curvePos(s + 0.012) - curvePos(s - 0.012));
+          vec3 B = normalize(cross(T, vec3(0.0, 1.0, 0.0)));
+          vec3 Nn = normalize(cross(B, T));
+          float tight = smoothstep(0.0, 1.0, s);
+          float thick = mix(uThickIn, uThickOut, tight);
+          vec3 p = base + (B * aOff.x + Nn * aOff.y) * thick;
+          float wamp = mix(uWobIn, uWobOut, tight);
+          p += curl(base * 0.45 + vec3(0.0, uTime * 0.16, aSeed * 0.8)) * wamp;
+          // station hue: shifts as the particle crosses each ring
+          float gpos = s * 7.0 - 0.5;
+          float idx = floor(gpos);
+          float fr = fract(gpos);
+          float u = (idx + smoothstep(0.0, 0.2, fr)) / 6.0;
+          vec3 col = stationColor(u);
+          // late particles gain a pearl core
+          col = mix(col, vec3(0.918, 0.949, 0.941), tight * 0.25);
+          vCol = col;
+          float endFade = smoothstep(0.0, 0.035, s) * (1.0 - smoothstep(0.965, 1.0, s));
+          vA = mix(0.28, 0.85, tight) * endFade;
+          vSharp = mix(0.34, 0.10, tight);
+          vec4 mv = modelViewMatrix * vec4(p, 1.0);
+          gl_PointSize = aSize * mix(1.5, 1.0, tight) * uPx / (-mv.z * 55.0);
+          gl_Position = projectionMatrix * mv;
+        }
+      `,
+      fragmentShader: `
+        varying vec3 vCol;
+        varying float vA;
+        varying float vSharp;
+        void main() {
+          float d = length(gl_PointCoord - 0.5);
+          float a = smoothstep(0.5, vSharp, d);
+          gl_FragColor = vec4(vCol, a * vA);
+        }
+      `,
+      transparent: true,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending
+    });
+    const pts = new THREE.Points(g, m);
+    pts.frustumCulled = false;
+    ctx.scene.add(pts);
+  }
+
+  // ---- the seven gate rings
+  const ringMeshes = [];
+  const ringS = [];
+  {
+    const tmpA = new THREE.Vector3();
+    const tmpB = new THREE.Vector3();
+    const zAxis = new THREE.Vector3(0, 0, 1);
+    for (let k = 0; k < RINGS; k++) {
+      const sk = (k + 0.5) / RINGS;
+      ringS.push(sk);
+      const col = stationColorJS(k / (RINGS - 1));
+      const geo = new THREE.TorusGeometry(RING_R, 0.032, 8, 56);
+      const mat = new THREE.MeshBasicMaterial({
+        color: col, transparent: true, opacity: 0.3,
+        blending: THREE.AdditiveBlending, depthWrite: false
+      });
+      const mesh = new THREE.Mesh(geo, mat);
+      curvePos(sk, tmpA);
+      mesh.position.copy(tmpA);
+      const tan = curvePos(sk + 0.012, tmpB).clone()
+        .sub(curvePos(sk - 0.012, tmpA)).normalize();
+      mesh.position.copy(curvePos(sk, tmpA));
+      mesh.quaternion.setFromUnitVectors(zAxis, tan);
+      ctx.scene.add(mesh);
+      ringMeshes.push(mesh);
+    }
+  }
+
+  // camera state, reused vectors to avoid per frame garbage
+  const camEye = new THREE.Vector3();
+  const camLook = new THREE.Vector3();
+
+  ctx.camera.position.set(0, 2.6, 11);
+  ctx.camera.lookAt(0, 0, 0);
+
+  return {
+    update(t, dt) {
+      uTime.value = t;
+
+      // rings pulse when a packet center passes through them
+      for (let k = 0; k < RINGS; k++) {
+        let best = 1;
+        for (let j = 0; j < PACKETS; j++) {
+          const hj = (j / PACKETS + t * FLOW) % 1;
+          let d = Math.abs(hj - ringS[k]);
+          if (d > 0.5) d = 1 - d;
+          if (d < best) best = d;
+        }
+        const pulse = Math.exp(-best * best * 900);
+        const m = ringMeshes[k];
+        m.material.opacity = 0.24 + 0.62 * pulse;
+        const sc = 1 + 0.20 * pulse;
+        m.scale.set(sc, sc, sc);
+      }
+
+      // slow dolly along the side of the spline
+      const cp = 0.5 + 0.30 * Math.sin(t * 0.04);
+      curvePos(cp, camEye);
+      camEye.x += ctx.pointer.x * 1.4;
+      camEye.y += 2.6 + ctx.pointer.y * 1.1;
+      camEye.z += 9.2;
+      curvePos(Math.min(1, cp + 0.10), camLook);
+      ctx.camera.position.copy(camEye);
+      ctx.camera.lookAt(camLook.x, camLook.y, camLook.z);
+    },
+    resize() {
+      uPx.value = ctx.renderer.domElement.height;
+    }
+  };
+}
+
+/* ================= shared runtime ================= */
+
+const canvas = document.getElementById('c');
+const btnPlay = document.getElementById('btnPlay');
+const speedEl = document.getElementById('speed');
+const btnPng = document.getElementById('btnPng');
+const note = document.getElementById('note');
+
+let renderer;
+try {
+  renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
+} catch (e) {
+  document.getElementById('err').style.display = 'grid';
+  document.getElementById('hud').hidden = true;
+  throw e;
+}
+
+/* Quality tier: 1 on desktop, lower on small screens or few cores.
+   Scenes scale particle counts by ctx.quality. */
+const small = Math.min(window.innerWidth, window.innerHeight) < 700;
+const weak = (navigator.hardwareConcurrency || 8) <= 4;
+const quality = small ? 0.5 : (weak ? 0.7 : 1);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, quality < 1 ? 1.5 : 2));
+
+const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 500);
+camera.position.set(0, 0, 12);
+
+const ctx = {
+  scene: new THREE.Scene(),
+  camera,
+  renderer,
+  quality,
+  pointer: { x: 0, y: 0 },  /* smoothed, -1..1, y up */
+};
+
+let piece;
+try {
+  piece = createScene(THREE, ctx);
+} catch (e) {
+  document.getElementById('err').style.display = 'grid';
+  document.getElementById('hud').hidden = true;
+  console.error(e);
+  throw e;
+}
+
+function resize() {
+  const w = window.innerWidth, h = window.innerHeight;
+  renderer.setSize(w, h, false);
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+  if (piece.resize) piece.resize(w, h);
+}
+window.addEventListener('resize', resize);
+resize();
+
+/* Pointer parallax target, lerped each frame for weight. */
+const target = { x: 0, y: 0 };
+window.addEventListener('pointermove', (e) => {
+  target.x = (e.clientX / window.innerWidth) * 2 - 1;
+  target.y = -((e.clientY / window.innerHeight) * 2 - 1);
+}, { passive: true });
+
+let userPaused = false;
+let hidden = false;
+let speed = 1;
+let t = 0;
+let last = performance.now();
+
+const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+function setPlayUi() {
+  btnPlay.textContent = userPaused ? 'Play' : 'Pause';
+  btnPlay.setAttribute('aria-pressed', String(userPaused));
+}
+btnPlay.addEventListener('click', () => {
+  userPaused = !userPaused;
+  note.hidden = true;
+  setPlayUi();
+  if (!userPaused) { last = performance.now(); loop(last); }
+});
+canvas.addEventListener('keydown', (e) => {
+  if (e.code === 'Space') { e.preventDefault(); btnPlay.click(); }
+});
+speedEl.addEventListener('input', () => { speed = parseFloat(speedEl.value) || 1; });
+
+btnPng.addEventListener('click', () => {
+  renderer.render(ctx.scene, camera);
+  canvas.toBlob((blob) => {
+    if (!blob) return;
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'blog-posting-pipeline-3d.png';
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+  });
+});
+
+document.addEventListener('visibilitychange', () => {
+  hidden = document.hidden;
+  if (!hidden && !userPaused) { last = performance.now(); loop(last); }
+});
+
+let raf = 0;
+function frame(now) {
+  const dt = Math.min((now - last) / 1000, 0.1);
+  last = now;
+  t += dt * speed;
+  ctx.pointer.x += (target.x - ctx.pointer.x) * 0.06;
+  ctx.pointer.y += (target.y - ctx.pointer.y) * 0.06;
+  piece.update(t, dt * speed);
+  renderer.render(ctx.scene, camera);
+}
+function loop(now) {
+  if (userPaused || hidden) return;
+  frame(now);
+  raf = requestAnimationFrame(loop);
+}
+
+if (reduceMotion) {
+  /* Advance to a composed moment, render one still frame, and wait. */
+  for (let i = 0; i < 240; i++) { t += 1 / 60; piece.update(t, 1 / 60); }
+  renderer.render(ctx.scene, camera);
+  userPaused = true;
+  note.hidden = false;
+  setPlayUi();
+} else {
+  loop(performance.now());
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,631 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <meta name="theme-color" content="#0D0F12">
+  <title>N8N Automations in 3D · Salman Adnan</title>
+  <meta name="description" content="The Automation Web: an interactive 3D study of workflows firing across a sprawling node graph.">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="../assets/favicon.png" sizes="any">
+  <style>
+    :root { color-scheme: dark; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      background: #0D0F12;
+      overflow: hidden;
+      font: 12px/1.4 ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+      color: rgba(255, 255, 255, 0.85);
+    }
+    #stage { position: fixed; inset: 0; }
+    canvas { display: block; width: 100%; height: 100%; outline: none; }
+    canvas:focus-visible { box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.6); }
+    #hud {
+      position: absolute; right: 12px; bottom: 12px;
+      display: flex; align-items: center; gap: 10px;
+      padding: 7px 10px; border-radius: 999px;
+      background: rgba(8, 8, 14, 0.55);
+      backdrop-filter: blur(6px);
+      opacity: 0.55; transition: opacity 0.25s ease;
+    }
+    #hud:hover, #hud:focus-within { opacity: 1; }
+    #hud button {
+      appearance: none; border: 1px solid rgba(255, 255, 255, 0.25);
+      background: transparent; color: inherit; font: inherit;
+      padding: 3px 10px; border-radius: 999px; cursor: pointer;
+    }
+    #hud button:hover { border-color: rgba(255, 255, 255, 0.6); }
+    #hud button:focus-visible, #hud input:focus-visible {
+      outline: 2px solid #fff; outline-offset: 2px;
+    }
+    #hud label { display: flex; align-items: center; gap: 6px; }
+    #hud input[type="range"] { width: 72px; accent-color: #EA8A4A; }
+    #note {
+      position: absolute; left: 12px; bottom: 12px; max-width: 46ch;
+      padding: 8px 12px; border-radius: 10px;
+      background: rgba(8, 8, 14, 0.65);
+    }
+    #err {
+      position: absolute; inset: 0; display: none;
+      place-items: center; text-align: center; padding: 24px;
+    }
+    @media (max-width: 560px) {
+      #hud label { display: none; }
+    }
+  </style>
+</head>
+<body>
+<div id="stage">
+  <canvas id="c" tabindex="0" aria-label="Animated sprawling 3D node graph with execution packets racing along edges, nodes flashing as they trigger, and periodic waves sweeping the whole web."></canvas>
+  <div id="hud" role="group" aria-label="Visualization controls">
+    <button id="btnPlay" type="button" aria-pressed="false">Pause</button>
+    <label for="speed">speed
+      <input id="speed" type="range" min="0.25" max="2" step="0.25" value="1"
+             aria-label="Animation speed">
+    </label>
+    <button id="btnPng" type="button">Save PNG</button>
+  </div>
+  <p id="note" hidden>Motion is paused because your system prefers reduced motion.
+     Press Play to animate.</p>
+  <div id="err"><p>This visualization needs WebGL, which is unavailable here.<br>
+     A screenshot of it lives on the project page.</p></div>
+</div>
+
+<script type="importmap">
+{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js" } }
+</script>
+<script type="module">
+import * as THREE from 'three';
+
+/* ================= scene: n8n-automations ================= */
+// Piece: The Automation Web. A sprawling clustered node graph where execution packets
+// spawn at trigger nodes, race the edges, branch, and terminate in green success ticks,
+// periodically flooded all at once by an expanding cron wave.
+// Palette: bg carbon #0D0F12, node slate #3A4148, edge steel #59636E, packet orange
+// #EA8A4A, success green #57B87A. Orange on graphite is n8n's own working color, so
+// packets in that hue feel native to the tool.
+// Signature: the cron wave, a spherical front that fires every trigger it crosses at once.
+
+function createScene(THREE, ctx) {
+  const q = ctx.quality;
+
+  // ---------- tunables ----------
+  const BG = 0x0D0F12;              // carbon background
+  const SLATE = new THREE.Color(0x3A4148);   // resting node hue
+  const ORANGE = new THREE.Color(0xEA8A4A);  // packet and touch flash hue
+  const GREEN = new THREE.Color(0x57B87A);   // leaf success hue
+  const STEEL = 0x59636E;           // edge hue
+  const CLUSTERS = 8;               // loose workflow clusters
+  const NODE_COUNT = Math.max(60, Math.floor(180 * q)); // graph nodes
+  const CLUSTER_R = 4.3;            // cluster centers sit near this radius
+  const CLUSTER_SPREAD = 1.45;      // gaussian-ish spread of a cluster
+  const EXTRA_EDGES = Math.floor(110 * q); // intra-cluster shortcut edges beyond the trees
+  const CROSS_EDGES = 14;           // cluster-to-cluster links
+  const EDGE_SAMPLES = 10;          // curve segments per edge
+  const PACKET_POOL = Math.max(60, Math.floor(150 * q)); // simultaneous packets
+  const PACKET_SPEED = 3.4;         // world units per second along edges
+  const WAVE_PERIOD = 20;           // seconds between cron waves
+  const WAVE_DUR = 2.6;             // wave expansion time
+  const WAVE_MAX_R = 8.5;           // final wavefront radius
+  const FLASH_DECAY = 3.8;          // 1/s decay of node touch flashes
+
+  ctx.scene.background = new THREE.Color(BG);
+  ctx.scene.fog = new THREE.FogExp2(BG, 0.02);
+
+  const root = new THREE.Group();
+  ctx.scene.add(root);
+
+  function rand(a, b) { return a + Math.random() * (b - a); }
+  function ease(u) { return u * u * (3.0 - 2.0 * u); }
+
+  // ---------- graph layout: clusters around a loose shell ----------
+  const centers = [];
+  for (let c = 0; c < CLUSTERS; c++) {
+    const th = (c / CLUSTERS) * Math.PI * 2 + rand(-0.3, 0.3);
+    const ph = rand(-0.5, 0.5);
+    const r = CLUSTER_R + rand(-0.7, 0.7);
+    centers.push(new THREE.Vector3(
+      Math.cos(th) * Math.cos(ph) * r,
+      Math.sin(ph) * r * 0.85,
+      Math.sin(th) * Math.cos(ph) * r
+    ));
+  }
+  const nodes = [];
+  for (let i = 0; i < NODE_COUNT; i++) {
+    const c = i % CLUSTERS;
+    const p = centers[c].clone().add(new THREE.Vector3(
+      (rand(-1, 1) + rand(-1, 1)) * 0.5 * CLUSTER_SPREAD,
+      (rand(-1, 1) + rand(-1, 1)) * 0.5 * CLUSTER_SPREAD * 0.8,
+      (rand(-1, 1) + rand(-1, 1)) * 0.5 * CLUSTER_SPREAD
+    ));
+    nodes.push({ p: p, cluster: c });
+  }
+
+  // per-cluster flow trees rooted at a trigger node
+  const clusterMembers = [];
+  for (let c = 0; c < CLUSTERS; c++) clusterMembers.push([]);
+  nodes.forEach(function (nd, i) { clusterMembers[nd.cluster].push(i); });
+
+  const triggers = [];
+  const edges = []; // {a, b, pts(Float32Array), len}
+  const outAdj = [];
+  for (let i = 0; i < NODE_COUNT; i++) outAdj.push([]);
+
+  function addEdge(a, b) {
+    const pa = nodes[a].p, pb = nodes[b].p;
+    const len = pa.distanceTo(pb);
+    const mid = pa.clone().add(pb).multiplyScalar(0.5);
+    // bow the edge gently outward from the graph center plus a random lift
+    const away = mid.clone().normalize().multiplyScalar(len * 0.12);
+    const lift = new THREE.Vector3(rand(-1, 1), rand(-1, 1), rand(-1, 1)).multiplyScalar(len * 0.10);
+    mid.add(away).add(lift);
+    const pts = new Float32Array((EDGE_SAMPLES + 1) * 3);
+    for (let s = 0; s <= EDGE_SAMPLES; s++) {
+      const u = s / EDGE_SAMPLES;
+      const w0 = (1 - u) * (1 - u), w1 = 2 * u * (1 - u), w2 = u * u;
+      pts[s * 3] = pa.x * w0 + mid.x * w1 + pb.x * w2;
+      pts[s * 3 + 1] = pa.y * w0 + mid.y * w1 + pb.y * w2;
+      pts[s * 3 + 2] = pa.z * w0 + mid.z * w1 + pb.z * w2;
+    }
+    const idx = edges.length;
+    edges.push({ a: a, b: b, pts: pts, len: len });
+    outAdj[a].push(idx);
+    return idx;
+  }
+
+  for (let c = 0; c < CLUSTERS; c++) {
+    const mem = clusterMembers[c];
+    if (mem.length === 0) continue;
+    // trigger = member closest to the cluster center
+    mem.sort(function (a, b) {
+      return nodes[a].p.distanceToSquared(centers[c]) - nodes[b].p.distanceToSquared(centers[c]);
+    });
+    const trig = mem[0];
+    triggers.push(trig);
+    // order the rest by distance from the trigger, parent = nearest earlier member
+    const rest = mem.slice(1).sort(function (a, b) {
+      return nodes[a].p.distanceToSquared(nodes[trig].p) - nodes[b].p.distanceToSquared(nodes[trig].p);
+    });
+    const placed = [trig];
+    for (let i = 0; i < rest.length; i++) {
+      let best = placed[0], bd = Infinity;
+      for (let j = 0; j < placed.length; j++) {
+        const d = nodes[rest[i]].p.distanceToSquared(nodes[placed[j]].p);
+        if (d < bd) { bd = d; best = placed[j]; }
+      }
+      addEdge(best, rest[i]);
+      placed.push(rest[i]);
+    }
+  }
+  // shortcut edges inside clusters, directed away from the trigger
+  for (let e = 0; e < EXTRA_EDGES; e++) {
+    const c = Math.floor(Math.random() * CLUSTERS);
+    const mem = clusterMembers[c];
+    if (mem.length < 4) continue;
+    let a = mem[Math.floor(Math.random() * mem.length)];
+    let b = mem[Math.floor(Math.random() * mem.length)];
+    if (a === b) continue;
+    // direct the shortcut from the node nearer its trigger to the farther one
+    const trig = triggers[c];
+    if (trig !== undefined &&
+        nodes[b].p.distanceToSquared(nodes[trig].p) < nodes[a].p.distanceToSquared(nodes[trig].p)) {
+      const tmp = a; a = b; b = tmp;
+    }
+    addEdge(a, b);
+  }
+  // a few cross-cluster links
+  for (let e = 0; e < CROSS_EDGES; e++) {
+    const c1 = e % CLUSTERS;
+    const c2 = (c1 + 1 + Math.floor(Math.random() * (CLUSTERS - 1))) % CLUSTERS;
+    const m1 = clusterMembers[c1], m2 = clusterMembers[c2];
+    if (!m1.length || !m2.length) continue;
+    addEdge(m1[Math.floor(Math.random() * m1.length)], m2[Math.floor(Math.random() * m2.length)]);
+  }
+
+  // ---------- edge lines ----------
+  const linePos = new Float32Array(edges.length * EDGE_SAMPLES * 2 * 3);
+  let lo = 0;
+  edges.forEach(function (E) {
+    for (let s = 0; s < EDGE_SAMPLES; s++) {
+      linePos[lo++] = E.pts[s * 3]; linePos[lo++] = E.pts[s * 3 + 1]; linePos[lo++] = E.pts[s * 3 + 2];
+      linePos[lo++] = E.pts[(s + 1) * 3]; linePos[lo++] = E.pts[(s + 1) * 3 + 1]; linePos[lo++] = E.pts[(s + 1) * 3 + 2];
+    }
+  });
+  const lineGeo = new THREE.BufferGeometry();
+  lineGeo.setAttribute('position', new THREE.Float32BufferAttribute(linePos, 3));
+  root.add(new THREE.LineSegments(lineGeo, new THREE.LineBasicMaterial({
+    color: STEEL, transparent: true, opacity: 0.30, blending: THREE.AdditiveBlending, depthWrite: false
+  })));
+
+  // ---------- node instances ----------
+  const nodeGeo = new THREE.SphereGeometry(0.085, 10, 8);
+  const nodeMat = new THREE.MeshBasicMaterial({ color: 0xFFFFFF });
+  const nodeMesh = new THREE.InstancedMesh(nodeGeo, nodeMat, NODE_COUNT);
+  const flashO = new Float32Array(NODE_COUNT); // orange touch flash
+  const flashG = new Float32Array(NODE_COUNT); // green success flash
+  const m4 = new THREE.Matrix4();
+  const qt = new THREE.Quaternion();
+  const sc = new THREE.Vector3();
+  const col = new THREE.Color();
+  for (let i = 0; i < NODE_COUNT; i++) {
+    m4.compose(nodes[i].p, qt, sc.set(1, 1, 1));
+    nodeMesh.setMatrixAt(i, m4);
+    nodeMesh.setColorAt(i, col.copy(SLATE));
+  }
+  nodeMesh.instanceColor.needsUpdate = true;
+  root.add(nodeMesh);
+
+  // slightly larger soft halo on trigger nodes so the wave has visible sources
+  const trigGeo = new THREE.BufferGeometry();
+  const trigPos = new Float32Array(triggers.length * 3);
+  triggers.forEach(function (ti, i) {
+    trigPos[i * 3] = nodes[ti].p.x; trigPos[i * 3 + 1] = nodes[ti].p.y; trigPos[i * 3 + 2] = nodes[ti].p.z;
+  });
+  trigGeo.setAttribute('position', new THREE.Float32BufferAttribute(trigPos, 3));
+  const trigMat = new THREE.ShaderMaterial({
+    uniforms: { uTime: { value: 0 }, uColor: { value: ORANGE.clone() } },
+    vertexShader: `
+      uniform float uTime;
+      void main() {
+        vec4 mv = modelViewMatrix * vec4(position, 1.0);
+        gl_PointSize = (0.55 + 0.1 * sin(uTime * 2.0 + position.x * 3.0)) * (300.0 / -mv.z);
+        gl_Position = projectionMatrix * mv;
+      }
+    `,
+    fragmentShader: `
+      uniform vec3 uColor;
+      void main() {
+        float d = length(gl_PointCoord - 0.5);
+        float a = smoothstep(0.5, 0.05, d) * 0.35;
+        gl_FragColor = vec4(uColor, a);
+      }
+    `,
+    transparent: true, depthWrite: false, depthTest: false, blending: THREE.AdditiveBlending
+  });
+  root.add(new THREE.Points(trigGeo, trigMat));
+
+  // ---------- packet pool ----------
+  const pPos = new Float32Array(PACKET_POOL * 3);
+  const pAlpha = new Float32Array(PACKET_POOL);
+  const pSize = new Float32Array(PACKET_POOL);
+  const pktGeo = new THREE.BufferGeometry();
+  const pPosAttr = new THREE.Float32BufferAttribute(pPos, 3);
+  const pAlphaAttr = new THREE.Float32BufferAttribute(pAlpha, 1);
+  const pSizeAttr = new THREE.Float32BufferAttribute(pSize, 1);
+  pktGeo.setAttribute('position', pPosAttr);
+  pktGeo.setAttribute('aAlpha', pAlphaAttr);
+  pktGeo.setAttribute('aSize', pSizeAttr);
+  const pktMat = new THREE.ShaderMaterial({
+    uniforms: { uColor: { value: ORANGE.clone() } },
+    vertexShader: `
+      attribute float aAlpha;
+      attribute float aSize;
+      varying float vA;
+      void main() {
+        vA = aAlpha;
+        vec4 mv = modelViewMatrix * vec4(position, 1.0);
+        gl_PointSize = aSize * (300.0 / -mv.z);
+        gl_Position = projectionMatrix * mv;
+      }
+    `,
+    fragmentShader: `
+      uniform vec3 uColor;
+      varying float vA;
+      void main() {
+        float d = length(gl_PointCoord - 0.5);
+        float a = smoothstep(0.5, 0.05, d);
+        float core = smoothstep(0.15, 0.0, d);
+        gl_FragColor = vec4(uColor * (1.0 + core), a * vA);
+      }
+    `,
+    transparent: true, depthWrite: false, blending: THREE.AdditiveBlending
+  });
+  root.add(new THREE.Points(pktGeo, pktMat));
+
+  const pkt = [];
+  const freeList = [];
+  for (let i = 0; i < PACKET_POOL; i++) {
+    pkt.push({ live: false, edge: 0, t: 0, dur: 1 });
+    freeList.push(i);
+  }
+
+  function spawnPacket(edgeIdx) {
+    if (!freeList.length) return;
+    const i = freeList.pop();
+    const P = pkt[i];
+    P.live = true;
+    P.edge = edgeIdx;
+    P.t = 0;
+    P.dur = Math.max(0.25, edges[edgeIdx].len / PACKET_SPEED) * rand(0.85, 1.2);
+  }
+
+  function fireNode(n) {
+    flashO[n] = 1;
+    const out = outAdj[n];
+    if (out.length === 0) {
+      flashG[n] = 1;
+      flashO[n] = Math.min(flashO[n], 0.2); // keep the success tick clean green
+      return;
+    }
+    // branch into up to 3 children
+    if (out.length <= 3) {
+      for (let i = 0; i < out.length; i++) spawnPacket(out[i]);
+    } else {
+      const picked = [];
+      while (picked.length < 3) {
+        const e = out[Math.floor(Math.random() * out.length)];
+        if (picked.indexOf(e) < 0) picked.push(e);
+      }
+      for (let i = 0; i < 3; i++) spawnPacket(picked[i]);
+    }
+  }
+
+  // trigger rhythms: each workflow fires on its own cadence
+  const trigTimers = triggers.map(function () { return rand(0.5, 5.0); });
+  const trigPeriods = triggers.map(function () { return rand(3.0, 8.0); });
+
+  // ---------- cron wave ----------
+  const wave = new THREE.Mesh(
+    new THREE.SphereGeometry(1, 32, 20),
+    new THREE.MeshBasicMaterial({
+      color: 0xEA8A4A, transparent: true, opacity: 0,
+      side: THREE.BackSide, blending: THREE.AdditiveBlending, depthWrite: false
+    })
+  );
+  wave.visible = false; // drawn only while a wave is expanding
+  root.add(wave);
+  let waveT = WAVE_PERIOD * 0.55; // first wave arrives sooner
+  let waveActive = false;
+  let waveAge = 0;
+  const waveFired = triggers.map(function () { return false; });
+  const trigDist = triggers.map(function (ti) { return nodes[ti].p.length(); });
+
+  // ---------- update ----------
+  const look = new THREE.Vector3(0, 0, 0);
+  const ep = new THREE.Vector3();
+  function edgePoint(E, u, out) {
+    const f = u * EDGE_SAMPLES;
+    const s = Math.min(EDGE_SAMPLES - 1, Math.floor(f));
+    const fr = f - s;
+    out.set(
+      E.pts[s * 3] * (1 - fr) + E.pts[(s + 1) * 3] * fr,
+      E.pts[s * 3 + 1] * (1 - fr) + E.pts[(s + 1) * 3 + 1] * fr,
+      E.pts[s * 3 + 2] * (1 - fr) + E.pts[(s + 1) * 3 + 2] * fr
+    );
+  }
+
+  return {
+    update: function (t, dt) {
+      const d = Math.min(dt, 0.05);
+
+      // workflow trigger cadences
+      for (let i = 0; i < triggers.length; i++) {
+        trigTimers[i] -= d;
+        if (trigTimers[i] <= 0) {
+          trigTimers[i] = trigPeriods[i] * rand(0.8, 1.25);
+          fireNode(triggers[i]);
+        }
+      }
+
+      // cron wave
+      waveT += d;
+      if (!waveActive && waveT >= WAVE_PERIOD) {
+        waveActive = true;
+        wave.visible = true;
+        waveAge = 0;
+        waveT = 0;
+        for (let i = 0; i < waveFired.length; i++) waveFired[i] = false;
+      }
+      if (waveActive) {
+        waveAge += d;
+        const u = Math.min(waveAge / WAVE_DUR, 1);
+        const r = 0.2 + ease(u) * WAVE_MAX_R;
+        wave.scale.set(r, r, r);
+        wave.material.opacity = 0.07 * (1 - u);
+        for (let i = 0; i < triggers.length; i++) {
+          if (!waveFired[i] && trigDist[i] <= r) {
+            waveFired[i] = true;
+            fireNode(triggers[i]);
+          }
+        }
+        if (u >= 1) {
+          waveActive = false;
+          wave.visible = false;
+          wave.material.opacity = 0;
+        }
+      }
+
+      // packets along edges
+      for (let i = 0; i < PACKET_POOL; i++) {
+        const P = pkt[i];
+        if (!P.live) {
+          pAlpha[i] = 0;
+          continue;
+        }
+        P.t += d;
+        const u = P.t / P.dur;
+        if (u >= 1) {
+          P.live = false;
+          freeList.push(i);
+          pAlpha[i] = 0;
+          fireNode(edges[P.edge].b);
+          continue;
+        }
+        edgePoint(edges[P.edge], ease(u), ep);
+        pPos[i * 3] = ep.x; pPos[i * 3 + 1] = ep.y; pPos[i * 3 + 2] = ep.z;
+        // fade in and out at the ends of each edge so hops never pop
+        pAlpha[i] = Math.min(1, u * 6) * Math.min(1, (1 - u) * 6);
+        pSize[i] = 0.34;
+      }
+      pPosAttr.needsUpdate = true;
+      pAlphaAttr.needsUpdate = true;
+      pSizeAttr.needsUpdate = true;
+
+      // node flashes: color and scale ease back down
+      const decay = Math.exp(-FLASH_DECAY * d);
+      for (let i = 0; i < NODE_COUNT; i++) {
+        flashO[i] *= decay;
+        flashG[i] *= decay;
+        const fo = flashO[i], fg = flashG[i];
+        if (fo + fg > 0.003) {
+          col.copy(SLATE).lerp(ORANGE, Math.min(1, fo)).lerp(GREEN, Math.min(1, fg));
+          const s = 1 + fo * 0.55 + fg * 0.5;
+          m4.compose(nodes[i].p, qt, sc.set(s, s, s));
+        } else {
+          col.copy(SLATE);
+          m4.compose(nodes[i].p, qt, sc.set(1, 1, 1));
+        }
+        nodeMesh.setColorAt(i, col);
+        nodeMesh.setMatrixAt(i, m4);
+      }
+      nodeMesh.instanceColor.needsUpdate = true;
+      nodeMesh.instanceMatrix.needsUpdate = true;
+
+      trigMat.uniforms.uTime.value = t;
+
+      // slow orbit with pointer nudge
+      const a = t * 0.06 + ctx.pointer.x * 0.5;
+      const rr = 12.5 + Math.sin(t * 0.11) * 0.7;
+      ctx.camera.position.set(
+        Math.sin(a) * rr,
+        2.0 + ctx.pointer.y * 2.0 + Math.sin(t * 0.07) * 0.6,
+        Math.cos(a) * rr
+      );
+      ctx.camera.lookAt(look);
+    }
+  };
+}
+
+/* ================= shared runtime ================= */
+
+const canvas = document.getElementById('c');
+const btnPlay = document.getElementById('btnPlay');
+const speedEl = document.getElementById('speed');
+const btnPng = document.getElementById('btnPng');
+const note = document.getElementById('note');
+
+let renderer;
+try {
+  renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
+} catch (e) {
+  document.getElementById('err').style.display = 'grid';
+  document.getElementById('hud').hidden = true;
+  throw e;
+}
+
+/* Quality tier: 1 on desktop, lower on small screens or few cores.
+   Scenes scale particle counts by ctx.quality. */
+const small = Math.min(window.innerWidth, window.innerHeight) < 700;
+const weak = (navigator.hardwareConcurrency || 8) <= 4;
+const quality = small ? 0.5 : (weak ? 0.7 : 1);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, quality < 1 ? 1.5 : 2));
+
+const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 500);
+camera.position.set(0, 0, 12);
+
+const ctx = {
+  scene: new THREE.Scene(),
+  camera,
+  renderer,
+  quality,
+  pointer: { x: 0, y: 0 },  /* smoothed, -1..1, y up */
+};
+
+let piece;
+try {
+  piece = createScene(THREE, ctx);
+} catch (e) {
+  document.getElementById('err').style.display = 'grid';
+  document.getElementById('hud').hidden = true;
+  console.error(e);
+  throw e;
+}
+
+function resize() {
+  const w = window.innerWidth, h = window.innerHeight;
+  renderer.setSize(w, h, false);
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+  if (piece.resize) piece.resize(w, h);
+}
+window.addEventListener('resize', resize);
+resize();
+
+/* Pointer parallax target, lerped each frame for weight. */
+const target = { x: 0, y: 0 };
+window.addEventListener('pointermove', (e) => {
+  target.x = (e.clientX / window.innerWidth) * 2 - 1;
+  target.y = -((e.clientY / window.innerHeight) * 2 - 1);
+}, { passive: true });
+
+let userPaused = false;
+let hidden = false;
+let speed = 1;
+let t = 0;
+let last = performance.now();
+
+const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+function setPlayUi() {
+  btnPlay.textContent = userPaused ? 'Play' : 'Pause';
+  btnPlay.setAttribute('aria-pressed', String(userPaused));
+}
+btnPlay.addEventListener('click', () => {
+  userPaused = !userPaused;
+  note.hidden = true;
+  setPlayUi();
+  if (!userPaused) { last = performance.now(); loop(last); }
+});
+canvas.addEventListener('keydown', (e) => {
+  if (e.code === 'Space') { e.preventDefault(); btnPlay.click(); }
+});
+speedEl.addEventListener('input', () => { speed = parseFloat(speedEl.value) || 1; });
+
+btnPng.addEventListener('click', () => {
+  renderer.render(ctx.scene, camera);
+  canvas.toBlob((blob) => {
+    if (!blob) return;
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'n8n-automations-3d.png';
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+  });
+});
+
+document.addEventListener('visibilitychange', () => {
+  hidden = document.hidden;
+  if (!hidden && !userPaused) { last = performance.now(); loop(last); }
+});
+
+let raf = 0;
+function frame(now) {
+  const dt = Math.min((now - last) / 1000, 0.1);
+  last = now;
+  t += dt * speed;
+  ctx.pointer.x += (target.x - ctx.pointer.x) * 0.06;
+  ctx.pointer.y += (target.y - ctx.pointer.y) * 0.06;
+  piece.update(t, dt * speed);
+  renderer.render(ctx.scene, camera);
+}
+function loop(now) {
+  if (userPaused || hidden) return;
+  frame(now);
+  raf = requestAnimationFrame(loop);
+}
+
+if (reduceMotion) {
+  /* Advance to a composed moment, render one still frame, and wait. */
+  for (let i = 0; i < 240; i++) { t += 1 / 60; piece.update(t, 1 / 60); }
+  renderer.render(ctx.scene, camera);
+  userPaused = true;
+  note.hidden = false;
+  setPlayUi();
+} else {
+  loop(performance.now());
+}
+</script>
+</body>
+</html>

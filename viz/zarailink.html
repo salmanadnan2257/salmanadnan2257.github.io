@@ -1,0 +1,609 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <meta name="theme-color" content="#08120A">
+  <title>ZaraiLink in 3D · Salman Adnan</title>
+  <meta name="description" content="Field of Trade: an interactive 3D study of an agricultural marketplace, wind over wheat under trade routes.">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="../assets/favicon.png" sizes="any">
+  <style>
+    :root { color-scheme: dark; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      background: #08120A;
+      overflow: hidden;
+      font: 12px/1.4 ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+      color: rgba(255, 255, 255, 0.85);
+    }
+    #stage { position: fixed; inset: 0; }
+    canvas { display: block; width: 100%; height: 100%; outline: none; }
+    canvas:focus-visible { box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.6); }
+    #hud {
+      position: absolute; right: 12px; bottom: 12px;
+      display: flex; align-items: center; gap: 10px;
+      padding: 7px 10px; border-radius: 999px;
+      background: rgba(8, 8, 14, 0.55);
+      backdrop-filter: blur(6px);
+      opacity: 0.55; transition: opacity 0.25s ease;
+    }
+    #hud:hover, #hud:focus-within { opacity: 1; }
+    #hud button {
+      appearance: none; border: 1px solid rgba(255, 255, 255, 0.25);
+      background: transparent; color: inherit; font: inherit;
+      padding: 3px 10px; border-radius: 999px; cursor: pointer;
+    }
+    #hud button:hover { border-color: rgba(255, 255, 255, 0.6); }
+    #hud button:focus-visible, #hud input:focus-visible {
+      outline: 2px solid #fff; outline-offset: 2px;
+    }
+    #hud label { display: flex; align-items: center; gap: 6px; }
+    #hud input[type="range"] { width: 72px; accent-color: #D9A441; }
+    #note {
+      position: absolute; left: 12px; bottom: 12px; max-width: 46ch;
+      padding: 8px 12px; border-radius: 10px;
+      background: rgba(8, 8, 14, 0.65);
+    }
+    #err {
+      position: absolute; inset: 0; display: none;
+      place-items: center; text-align: center; padding: 24px;
+    }
+    @media (max-width: 560px) {
+      #hud label { display: none; }
+    }
+  </style>
+</head>
+<body>
+<div id="stage">
+  <canvas id="c" tabindex="0" aria-label="Animated field of swaying shader-driven wheat under floating commodity nodes linked by pulsing trade arcs."></canvas>
+  <div id="hud" role="group" aria-label="Visualization controls">
+    <button id="btnPlay" type="button" aria-pressed="false">Pause</button>
+    <label for="speed">speed
+      <input id="speed" type="range" min="0.25" max="2" step="0.25" value="1"
+             aria-label="Animation speed">
+    </label>
+    <button id="btnPng" type="button">Save PNG</button>
+  </div>
+  <p id="note" hidden>Motion is paused because your system prefers reduced motion.
+     Press Play to animate.</p>
+  <div id="err"><p>This visualization needs WebGL, which is unavailable here.<br>
+     A screenshot of it lives on the project page.</p></div>
+</div>
+
+<script type="importmap">
+{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js" } }
+</script>
+<script type="module">
+import * as THREE from 'three';
+
+/* ================= scene: zarailink ================= */
+// FIELD OF TRADE
+// Wind moves a shader driven wheat field while commodity trade pulses cross the sky above it,
+// and every deal that lands sends a ring down that physically stirs the crop.
+// Palette: bg pre-dawn green-black #08120A, wheat gold #D9A441, leaf green #5FA85F,
+// arc sky #7FC4D8, node cream #F0E6C8.
+// Justification: literal crop golds and dawn greens ground the platform in agriculture,
+// sky cyan carries the digital layer.
+// Signature: the market pulse that physically stirs the wheat.
+
+function createScene(THREE, ctx) {
+  const Q = ctx.quality || 1;
+
+  // ---- tunables
+  const STALKS = Math.floor(9500 * Q);  // wheat stalks, 3 points each (base, mid, tip)
+  const PTS_PER_STALK = 3;              // vertical samples per stalk
+  const FIELD_X = 15;                   // half width of the field
+  const FIELD_Z0 = -18;                 // far edge of the field
+  const FIELD_Z1 = 3;                   // near edge of the field
+  const NODES = 8;                      // floating commodity nodes
+  const ARC_SAMPLES = Math.max(28, Math.floor(44 * Q)); // points per trade arc
+  const PULSE_SPEED = 0.16;             // arc traversals per second
+  const RING_EVERY = 4.5;               // seconds between market landings
+  const RING_DUR = 3.2;                 // seconds a ground ring lives
+  const RING_MAX_R = 7.5;               // final ground ring radius
+  const RING_PUSH = 0.9;                // how hard the ring bends the wheat
+  const BG = 0x08120A;
+
+  ctx.scene.background = new THREE.Color(BG);
+
+  let seed = 88231;
+  function rnd() { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; }
+
+  const uTime = { value: 0 };
+  const uPx = { value: ctx.renderer.domElement.height };
+  const uWind = { value: new THREE.Vector2(0.8, 0.2) };
+  const uRingC = { value: new THREE.Vector2(0, -6) }; // ring center on the field
+  const uRingR = { value: 0 };                        // ring radius
+  const uRingAmp = { value: 0 };                      // ring push strength
+  const uFlash = { value: new THREE.Vector2(-1, 0) };      // node index, envelope
+
+  const NOISE = `
+    vec3 mod289(vec3 x){return x - floor(x * (1.0/289.0)) * 289.0;}
+    vec4 mod289(vec4 x){return x - floor(x * (1.0/289.0)) * 289.0;}
+    vec4 permute(vec4 x){return mod289(((x*34.0)+1.0)*x);}
+    vec4 taylorInvSqrt(vec4 r){return 1.79284291400159 - 0.85373472095314 * r;}
+    float snoise(vec3 v){
+      const vec2 C = vec2(1.0/6.0, 1.0/3.0);
+      const vec4 D = vec4(0.0, 0.5, 1.0, 2.0);
+      vec3 i  = floor(v + dot(v, C.yyy));
+      vec3 x0 = v - i + dot(i, C.xxx);
+      vec3 g = step(x0.yzx, x0.xyz);
+      vec3 l = 1.0 - g;
+      vec3 i1 = min(g.xyz, l.zxy);
+      vec3 i2 = max(g.xyz, l.zxy);
+      vec3 x1 = x0 - i1 + C.xxx;
+      vec3 x2 = x0 - i2 + C.yyy;
+      vec3 x3 = x0 - D.yyy;
+      i = mod289(i);
+      vec4 p = permute(permute(permute(
+                i.z + vec4(0.0, i1.z, i2.z, 1.0))
+              + i.y + vec4(0.0, i1.y, i2.y, 1.0))
+              + i.x + vec4(0.0, i1.x, i2.x, 1.0));
+      float n_ = 0.142857142857;
+      vec3 ns = n_ * D.wyz - D.xzx;
+      vec4 j = p - 49.0 * floor(p * ns.z * ns.z);
+      vec4 x_ = floor(j * ns.z);
+      vec4 y_ = floor(j - 7.0 * x_);
+      vec4 x = x_ * ns.x + ns.yyyy;
+      vec4 y = y_ * ns.x + ns.yyyy;
+      vec4 h = 1.0 - abs(x) - abs(y);
+      vec4 b0 = vec4(x.xy, y.xy);
+      vec4 b1 = vec4(x.zw, y.zw);
+      vec4 s0 = floor(b0) * 2.0 + 1.0;
+      vec4 s1 = floor(b1) * 2.0 + 1.0;
+      vec4 sh = -step(h, vec4(0.0));
+      vec4 a0 = b0.xzyw + s0.xzyw * sh.xxyy;
+      vec4 a1 = b1.xzyw + s1.xzyw * sh.zzww;
+      vec3 p0 = vec3(a0.xy, h.x);
+      vec3 p1 = vec3(a0.zw, h.y);
+      vec3 p2 = vec3(a1.xy, h.z);
+      vec3 p3 = vec3(a1.zw, h.w);
+      vec4 norm = taylorInvSqrt(vec4(dot(p0,p0), dot(p1,p1), dot(p2,p2), dot(p3,p3)));
+      p0 *= norm.x; p1 *= norm.y; p2 *= norm.z; p3 *= norm.w;
+      vec4 m = max(0.6 - vec4(dot(x0,x0), dot(x1,x1), dot(x2,x2), dot(x3,x3)), 0.0);
+      m = m * m;
+      return 42.0 * dot(m*m, vec4(dot(p0,x0), dot(p1,x1), dot(p2,x2), dot(p3,x3)));
+    }
+    vec3 curl(vec3 p){
+      const float e = 0.1;
+      float n1 = snoise(vec3(p.x, p.y + e, p.z));
+      float n2 = snoise(vec3(p.x, p.y - e, p.z));
+      float n3 = snoise(vec3(p.x, p.y, p.z + e));
+      float n4 = snoise(vec3(p.x, p.y, p.z - e));
+      float n5 = snoise(vec3(p.x + e, p.y, p.z));
+      float n6 = snoise(vec3(p.x - e, p.y, p.z));
+      float x = n2 - n1 - n4 + n3;
+      float y = n4 - n3 - n6 + n5;
+      float z = n6 - n5 - n2 + n1;
+      return normalize(vec3(x, y, z));
+    }
+  `;
+
+  const softFrag = `
+    varying vec3 vCol;
+    varying float vA;
+    void main() {
+      float d = length(gl_PointCoord - 0.5);
+      float a = smoothstep(0.5, 0.08, d);
+      gl_FragColor = vec4(vCol, a * vA);
+    }
+  `;
+
+  // ---- the wheat field
+  {
+    const count = STALKS * PTS_PER_STALK;
+    const pos = new Float32Array(count * 3);
+    const aH = new Float32Array(count);
+    const aYF = new Float32Array(count);
+    const aShade = new Float32Array(count);
+    let w = 0;
+    for (let i = 0; i < STALKS; i++) {
+      const x = (rnd() * 2 - 1) * FIELD_X;
+      const z = FIELD_Z0 + rnd() * (FIELD_Z1 - FIELD_Z0);
+      const h = 0.55 + rnd() * 0.95;
+      const shade = rnd();
+      for (let k = 0; k < PTS_PER_STALK; k++) {
+        pos[w * 3] = x;
+        pos[w * 3 + 1] = 0;
+        pos[w * 3 + 2] = z;
+        aH[w] = h;
+        aYF[w] = (k + 1) / PTS_PER_STALK;
+        aShade[w] = shade;
+        w++;
+      }
+    }
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    g.setAttribute('aH', new THREE.Float32BufferAttribute(aH, 1));
+    g.setAttribute('aYF', new THREE.Float32BufferAttribute(aYF, 1));
+    g.setAttribute('aShade', new THREE.Float32BufferAttribute(aShade, 1));
+    const m = new THREE.ShaderMaterial({
+      uniforms: {
+        uTime: uTime, uPx: uPx, uWind: uWind,
+        uRingC: uRingC, uRingR: uRingR, uRingAmp: uRingAmp
+      },
+      vertexShader: NOISE + `
+        attribute float aH;
+        attribute float aYF;
+        attribute float aShade;
+        uniform float uTime;
+        uniform float uPx;
+        uniform vec2 uWind;
+        uniform vec2 uRingC;
+        uniform float uRingR;
+        uniform float uRingAmp;
+        varying vec3 vCol;
+        varying float vA;
+        void main() {
+          vec3 p = position;
+          // coherent gusts: one large slow noise field advected along the wind
+          float g1 = snoise(vec3(
+            p.x * 0.055 - uWind.x * uTime * 0.28,
+            p.z * 0.055 - uWind.y * uTime * 0.28,
+            uTime * 0.05));
+          float gust = 0.5 + 0.5 * g1;
+          float bendW = pow(aYF, 1.5);
+          vec2 lean = uWind * aH * bendW * (0.16 + 0.55 * gust);
+          vec3 cw = curl(vec3(p.x * 0.09, uTime * 0.12, p.z * 0.09));
+          lean += cw.xz * 0.10 * aH * bendW;
+          p.y = aH * aYF;
+          p.xz += lean;
+          // market ring bending the wheat outward
+          vec2 dR = p.xz - uRingC;
+          float r = length(dR) + 0.0001;
+          float band = exp(-pow((r - uRingR) * 1.1, 2.0)) * uRingAmp;
+          p.xz += (dR / r) * band * aH * bendW;
+          p.y += band * 0.16;
+          // gold at the head, green at the base
+          float hn = clamp(aH * aYF / 1.5, 0.0, 1.0);
+          vec3 col = mix(vec3(0.24, 0.44, 0.24), vec3(0.90, 0.60, 0.20),
+                         smoothstep(0.12, 0.95, hn));
+          col *= 1.0 + 0.55 * gust + 0.15 * aShade;
+          col += vec3(0.45, 0.55, 0.5) * band * 0.6;
+          vCol = col;
+          vec4 mv = modelViewMatrix * vec4(p, 1.0);
+          // pre-dawn fog: fade with view depth
+          float fog = smoothstep(9.0, 30.0, -mv.z);
+          vA = (0.50 + 0.42 * aYF) * (1.0 - 0.62 * fog) + band * 0.35;
+          gl_PointSize = (1.5 + 1.5 * aYF) * uPx / (-mv.z * 30.0);
+          gl_Position = projectionMatrix * mv;
+        }
+      `,
+      fragmentShader: softFrag,
+      transparent: true,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending
+    });
+    ctx.scene.add(new THREE.Points(g, m));
+  }
+
+  // ---- commodity nodes floating above the field
+  const nodePos = [];
+  for (let i = 0; i < NODES; i++) {
+    const a = (i / NODES) * Math.PI * 2 + rnd() * 0.5;
+    nodePos.push(new THREE.Vector3(
+      Math.cos(a) * (4.5 + rnd() * 4.5),
+      3.6 + rnd() * 1.8,
+      -6.5 + Math.sin(a) * 3.2
+    ));
+  }
+
+  {
+    const pos = new Float32Array(NODES * 3);
+    const aPhase = new Float32Array(NODES);
+    const aIdx = new Float32Array(NODES);
+    for (let i = 0; i < NODES; i++) {
+      pos[i * 3] = nodePos[i].x;
+      pos[i * 3 + 1] = nodePos[i].y;
+      pos[i * 3 + 2] = nodePos[i].z;
+      aPhase[i] = rnd() * Math.PI * 2;
+      aIdx[i] = i;
+    }
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    g.setAttribute('aPhase', new THREE.Float32BufferAttribute(aPhase, 1));
+    g.setAttribute('aIdx', new THREE.Float32BufferAttribute(aIdx, 1));
+    const m = new THREE.ShaderMaterial({
+      uniforms: { uTime: uTime, uPx: uPx, uFlash: uFlash },
+      vertexShader: `
+        attribute float aPhase;
+        attribute float aIdx;
+        uniform float uTime;
+        uniform float uPx;
+        uniform vec2 uFlash;
+        varying vec3 vCol;
+        varying float vA;
+        void main() {
+          vec3 p = position;
+          p.y += 0.16 * sin(uTime * 0.5 + aPhase);
+          float hit = step(abs(aIdx - uFlash.x), 0.5) * uFlash.y;
+          vCol = vec3(0.941, 0.882, 0.70) * (1.12 + hit * 1.2);
+          vA = 0.75 + 0.2 * sin(uTime * 0.8 + aPhase) + hit * 0.5;
+          vec4 mv = modelViewMatrix * vec4(p, 1.0);
+          gl_PointSize = (12.0 + hit * 7.0) * uPx / (-mv.z * 30.0);
+          gl_Position = projectionMatrix * mv;
+        }
+      `,
+      fragmentShader: softFrag,
+      transparent: true,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending
+    });
+    ctx.scene.add(new THREE.Points(g, m));
+  }
+
+  // ---- trade arcs between nodes, with traveling bid pulses
+  {
+    const pairs = [];
+    for (let i = 0; i < NODES; i++) pairs.push([i, (i + 1) % NODES]);
+    pairs.push([0, 3], [2, 5], [1, 6]);
+    const total = pairs.length * ARC_SAMPLES;
+    const pos = new Float32Array(total * 3);
+    const aT = new Float32Array(total);
+    const aPh = new Float32Array(total);
+    const aSpd = new Float32Array(total);
+    let w = 0;
+    const p0 = new THREE.Vector3(), p1 = new THREE.Vector3(), mid = new THREE.Vector3();
+    for (let a = 0; a < pairs.length; a++) {
+      p0.copy(nodePos[pairs[a][0]]);
+      p1.copy(nodePos[pairs[a][1]]);
+      mid.copy(p0).add(p1).multiplyScalar(0.5);
+      mid.y += 0.8 + p0.distanceTo(p1) * 0.14;
+      const ph = rnd();
+      const spd = 0.7 + rnd() * 0.6;
+      for (let k = 0; k < ARC_SAMPLES; k++) {
+        const t = k / (ARC_SAMPLES - 1);
+        const it = 1 - t;
+        pos[w * 3] = it * it * p0.x + 2 * it * t * mid.x + t * t * p1.x;
+        pos[w * 3 + 1] = it * it * p0.y + 2 * it * t * mid.y + t * t * p1.y;
+        pos[w * 3 + 2] = it * it * p0.z + 2 * it * t * mid.z + t * t * p1.z;
+        aT[w] = t;
+        aPh[w] = ph;
+        aSpd[w] = spd;
+        w++;
+      }
+    }
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    g.setAttribute('aT', new THREE.Float32BufferAttribute(aT, 1));
+    g.setAttribute('aPh', new THREE.Float32BufferAttribute(aPh, 1));
+    g.setAttribute('aSpd', new THREE.Float32BufferAttribute(aSpd, 1));
+    const m = new THREE.ShaderMaterial({
+      uniforms: { uTime: uTime, uPx: uPx, uSpeed: { value: PULSE_SPEED } },
+      vertexShader: `
+        attribute float aT;
+        attribute float aPh;
+        attribute float aSpd;
+        uniform float uTime;
+        uniform float uPx;
+        uniform float uSpeed;
+        varying vec3 vCol;
+        varying float vA;
+        void main() {
+          vec4 mv = modelViewMatrix * vec4(position, 1.0);
+          float d = fract(aT - uTime * uSpeed * aSpd + aPh);
+          float wv = smoothstep(0.14, 0.0, d);
+          vec3 sky = vec3(0.498, 0.769, 0.847);
+          vCol = sky * (0.55 + 1.6 * wv);
+          vA = 0.34 + 0.95 * wv;
+          gl_PointSize = (2.4 + 5.2 * wv) * uPx / (-mv.z * 30.0);
+          gl_Position = projectionMatrix * mv;
+        }
+      `,
+      fragmentShader: softFrag,
+      transparent: true,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending
+    });
+    ctx.scene.add(new THREE.Points(g, m));
+  }
+
+  // ---- horizon fog glow sprites
+  {
+    const pos = new Float32Array([-8, 0.7, -22, 0, 0.9, -24, 8, 0.7, -22]);
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    const m = new THREE.ShaderMaterial({
+      uniforms: { uTime: uTime, uPx: uPx },
+      vertexShader: `
+        uniform float uTime;
+        uniform float uPx;
+        varying vec3 vCol;
+        varying float vA;
+        void main() {
+          vec4 mv = modelViewMatrix * vec4(position, 1.0);
+          vCol = vec3(0.35, 0.45, 0.32);
+          vA = 0.10 + 0.03 * sin(uTime * 0.15 + position.x);
+          gl_PointSize = 220.0 * uPx / (-mv.z * 30.0);
+          gl_Position = projectionMatrix * mv;
+        }
+      `,
+      fragmentShader: softFrag,
+      transparent: true,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending
+    });
+    ctx.scene.add(new THREE.Points(g, m));
+  }
+
+  // fixed pre-dawn viewpoint over the field
+  ctx.camera.position.set(0, 3.6, 10.5);
+  ctx.camera.lookAt(0, 1.4, -4);
+
+  // deterministic node visit order for landings
+  const order = [];
+  {
+    const base = [0, 1, 2, 3, 4, 5, 6, 7];
+    for (let i = base.length - 1; i > 0; i--) {
+      const j = Math.floor(rnd() * (i + 1));
+      const tmp = base[i]; base[i] = base[j]; base[j] = tmp;
+    }
+    for (let i = 0; i < base.length; i++) order.push(base[i]);
+  }
+
+  return {
+    update(t, dt) {
+      uTime.value = t;
+
+      // pointer sways the wind direction; strength breathes slowly
+      const wa = t * 0.03 + ctx.pointer.x * 0.9;
+      const ws = 0.75 + 0.25 * Math.sin(t * 0.11);
+      uWind.value.set(Math.cos(wa) * ws, Math.sin(wa) * ws * 0.5);
+
+      // market landing rings on a steady schedule
+      const ev = Math.floor(t / RING_EVERY);
+      const lt = t - ev * RING_EVERY;
+      const node = nodePos[order[ev % NODES]];
+      if (lt < RING_DUR) {
+        const prog = lt / RING_DUR;
+        const eased = prog * prog * (3 - 2 * prog);
+        uRingC.value.set(node.x, node.z);
+        uRingR.value = eased * RING_MAX_R;
+        uRingAmp.value = Math.sin(Math.PI * prog) * RING_PUSH;
+      } else {
+        uRingAmp.value = 0;
+      }
+      // eased attack, then decay, so the node never blinks on at full amplitude
+      const atk = Math.min(1, lt / 0.3);
+      uFlash.value.set(order[ev % NODES], atk * atk * (3 - 2 * atk) * Math.exp(-lt * 1.6));
+    },
+    resize() {
+      uPx.value = ctx.renderer.domElement.height;
+    }
+  };
+}
+
+/* ================= shared runtime ================= */
+
+const canvas = document.getElementById('c');
+const btnPlay = document.getElementById('btnPlay');
+const speedEl = document.getElementById('speed');
+const btnPng = document.getElementById('btnPng');
+const note = document.getElementById('note');
+
+let renderer;
+try {
+  renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
+} catch (e) {
+  document.getElementById('err').style.display = 'grid';
+  document.getElementById('hud').hidden = true;
+  throw e;
+}
+
+/* Quality tier: 1 on desktop, lower on small screens or few cores.
+   Scenes scale particle counts by ctx.quality. */
+const small = Math.min(window.innerWidth, window.innerHeight) < 700;
+const weak = (navigator.hardwareConcurrency || 8) <= 4;
+const quality = small ? 0.5 : (weak ? 0.7 : 1);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, quality < 1 ? 1.5 : 2));
+
+const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 500);
+camera.position.set(0, 0, 12);
+
+const ctx = {
+  scene: new THREE.Scene(),
+  camera,
+  renderer,
+  quality,
+  pointer: { x: 0, y: 0 },  /* smoothed, -1..1, y up */
+};
+
+let piece;
+try {
+  piece = createScene(THREE, ctx);
+} catch (e) {
+  document.getElementById('err').style.display = 'grid';
+  document.getElementById('hud').hidden = true;
+  console.error(e);
+  throw e;
+}
+
+function resize() {
+  const w = window.innerWidth, h = window.innerHeight;
+  renderer.setSize(w, h, false);
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+  if (piece.resize) piece.resize(w, h);
+}
+window.addEventListener('resize', resize);
+resize();
+
+/* Pointer parallax target, lerped each frame for weight. */
+const target = { x: 0, y: 0 };
+window.addEventListener('pointermove', (e) => {
+  target.x = (e.clientX / window.innerWidth) * 2 - 1;
+  target.y = -((e.clientY / window.innerHeight) * 2 - 1);
+}, { passive: true });
+
+let userPaused = false;
+let hidden = false;
+let speed = 1;
+let t = 0;
+let last = performance.now();
+
+const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+function setPlayUi() {
+  btnPlay.textContent = userPaused ? 'Play' : 'Pause';
+  btnPlay.setAttribute('aria-pressed', String(userPaused));
+}
+btnPlay.addEventListener('click', () => {
+  userPaused = !userPaused;
+  note.hidden = true;
+  setPlayUi();
+  if (!userPaused) { last = performance.now(); loop(last); }
+});
+canvas.addEventListener('keydown', (e) => {
+  if (e.code === 'Space') { e.preventDefault(); btnPlay.click(); }
+});
+speedEl.addEventListener('input', () => { speed = parseFloat(speedEl.value) || 1; });
+
+btnPng.addEventListener('click', () => {
+  renderer.render(ctx.scene, camera);
+  canvas.toBlob((blob) => {
+    if (!blob) return;
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'zarailink-3d.png';
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+  });
+});
+
+document.addEventListener('visibilitychange', () => {
+  hidden = document.hidden;
+  if (!hidden && !userPaused) { last = performance.now(); loop(last); }
+});
+
+let raf = 0;
+function frame(now) {
+  const dt = Math.min((now - last) / 1000, 0.1);
+  last = now;
+  t += dt * speed;
+  ctx.pointer.x += (target.x - ctx.pointer.x) * 0.06;
+  ctx.pointer.y += (target.y - ctx.pointer.y) * 0.06;
+  piece.update(t, dt * speed);
+  renderer.render(ctx.scene, camera);
+}
+function loop(now) {
+  if (userPaused || hidden) return;
+  frame(now);
+  raf = requestAnimationFrame(loop);
+}
+
+if (reduceMotion) {
+  /* Advance to a composed moment, render one still frame, and wait. */
+  for (let i = 0; i < 240; i++) { t += 1 / 60; piece.update(t, 1 / 60); }
+  renderer.render(ctx.scene, camera);
+  userPaused = true;
+  note.hidden = false;
+  setPlayUi();
+} else {
+  loop(performance.now());
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,641 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <meta name="theme-color" content="#0C0A14">
+  <title>Breakout in 3D · Salman Adnan</title>
+  <meta name="description" content="The Perfect Run: an interactive 3D study of a breakout rally that never misses.">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="../assets/favicon.png" sizes="any">
+  <style>
+    :root { color-scheme: dark; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      background: #0C0A14;
+      overflow: hidden;
+      font: 12px/1.4 ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+      color: rgba(255, 255, 255, 0.85);
+    }
+    #stage { position: fixed; inset: 0; }
+    canvas { display: block; width: 100%; height: 100%; outline: none; }
+    canvas:focus-visible { box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.6); }
+    #hud {
+      position: absolute; right: 12px; bottom: 12px;
+      display: flex; align-items: center; gap: 10px;
+      padding: 7px 10px; border-radius: 999px;
+      background: rgba(8, 8, 14, 0.55);
+      backdrop-filter: blur(6px);
+      opacity: 0.55; transition: opacity 0.25s ease;
+    }
+    #hud:hover, #hud:focus-within { opacity: 1; }
+    #hud button {
+      appearance: none; border: 1px solid rgba(255, 255, 255, 0.25);
+      background: transparent; color: inherit; font: inherit;
+      padding: 3px 10px; border-radius: 999px; cursor: pointer;
+    }
+    #hud button:hover { border-color: rgba(255, 255, 255, 0.6); }
+    #hud button:focus-visible, #hud input:focus-visible {
+      outline: 2px solid #fff; outline-offset: 2px;
+    }
+    #hud label { display: flex; align-items: center; gap: 6px; }
+    #hud input[type="range"] { width: 72px; accent-color: #7FC8E0; }
+    #note {
+      position: absolute; left: 12px; bottom: 12px; max-width: 46ch;
+      padding: 8px 12px; border-radius: 10px;
+      background: rgba(8, 8, 14, 0.65);
+    }
+    #err {
+      position: absolute; inset: 0; display: none;
+      place-items: center; text-align: center; padding: 24px;
+    }
+    @media (max-width: 560px) {
+      #hud label { display: none; }
+    }
+  </style>
+</head>
+<body>
+<div id="stage">
+  <canvas id="c" tabindex="0" aria-label="Animated 3D breakout arena where a trailing ball carves through a dusk-gradient brick wall, shards falling with gravity, paddle gliding beneath."></canvas>
+  <div id="hud" role="group" aria-label="Visualization controls">
+    <button id="btnPlay" type="button" aria-pressed="false">Pause</button>
+    <label for="speed">speed
+      <input id="speed" type="range" min="0.25" max="2" step="0.25" value="1"
+             aria-label="Animation speed">
+    </label>
+    <button id="btnPng" type="button">Save PNG</button>
+  </div>
+  <p id="note" hidden>Motion is paused because your system prefers reduced motion.
+     Press Play to animate.</p>
+  <div id="err"><p>This visualization needs WebGL, which is unavailable here.<br>
+     A screenshot of it lives on the project page.</p></div>
+</div>
+
+<script type="importmap">
+{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js" } }
+</script>
+<script type="module">
+import * as THREE from 'three';
+
+/* ================= scene: breakout-game ================= */
+// THE PERFECT RUN, a breakout rally that never misses: a real reflection sim
+// carves a dusk-gradient wall, shards fall with gravity, and the wall rebuilds
+// itself brick by brick after every clear.
+// Palette: bg arcade dark #0C0A14, brick rose #D86A88 to gold #E8B45C gradient,
+//   paddle ice #7FC8E0, ball white #F2F0E8, shard violet #8A6AD0.
+//   Dusk arcade warmth instead of neon cliche; the ball's white keeps focus.
+// Signature: the wall rebuilding itself brick by brick after the clear.
+
+function createScene(THREE, ctx) {
+  const q = ctx.quality;
+
+  // ---- tunables -----------------------------------------------------------
+  const BG = 0x0C0A14;            // arcade dark background
+  const BRICK_TOP = 0xD86A88;     // rose, top rows of the wall
+  const BRICK_BOT = 0xE8B45C;     // gold, bottom rows of the wall
+  const PADDLE_COL = 0x7FC8E0;    // ice blue paddle
+  const BALL_COL = 0xF2F0E8;      // warm white ball
+  const SHARD_COL = 0x8A6AD0;     // violet shards
+  const COLS = 12;                            // bricks per row
+  const ROWS = Math.max(4, Math.floor(10 * q)); // brick rows, scaled by quality
+  const CELL_W = 0.95, CELL_H = 0.5;          // brick grid cell size
+  const BRICK_W = 0.86, BRICK_H = 0.4, BRICK_D = 0.5; // brick body size
+  const GRID_TOP = 5.1;           // y of top brick row center
+  const HALF_W = 5.8;             // arena half width (inner wall)
+  const TOP_Y = 6.1;              // ceiling y
+  const PADDLE_Y = -5.0;          // paddle center y
+  const PADDLE_W = 1.9;           // paddle width
+  const BALL_R = 0.16;            // ball radius
+  const SPEED_BASE = 6.4;         // rally start speed, units/s
+  const SPEED_RAMP = 0.65;        // fraction of extra speed as the wall thins
+  const SHARDS_PER_BRICK = Math.max(8, Math.floor(40 * q)); // pop debris count
+  const SHARD_POOL = Math.max(240, Math.floor(900 * q));    // live shard budget
+  const TRAIL_N = Math.max(20, Math.floor(56 * q));         // comet trail points
+  const GRAV = 9.5;               // shard gravity
+  const PHYS_STEP = 1 / 120;      // fixed physics substep (framerate independent)
+
+  // ---- small helpers ------------------------------------------------------
+  const clamp = (v, a, b) => v < a ? a : (v > b ? b : v);
+  const smooth = (a, b, v) => { const x = clamp((v - a) / (b - a), 0, 1); return x * x * (3 - 2 * x); };
+  const easeOut = (x) => 1 - Math.pow(1 - clamp(x, 0, 1), 3);
+  let seed = 1234567;
+  const rnd = () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let z = Math.imul(seed ^ seed >>> 15, 1 | seed); z = z + Math.imul(z ^ z >>> 7, 61 | z) ^ z; return ((z ^ z >>> 14) >>> 0) / 4294967296; };
+
+  ctx.scene.background = new THREE.Color(BG);
+  ctx.scene.fog = new THREE.FogExp2(BG, 0.016);
+
+  const amb = new THREE.AmbientLight(0x8688a8, 0.85);
+  const key = new THREE.DirectionalLight(0xfff2e0, 1.5);
+  key.position.set(4, 6, 8);
+  ctx.scene.add(amb, key);
+
+  // ---- arena frame: two dim side rails and a ceiling rail -----------------
+  const railMat = new THREE.MeshBasicMaterial({ color: 0x2a2440, transparent: true, opacity: 0.9 });
+  const railGeo = new THREE.BoxGeometry(0.14, TOP_Y - PADDLE_Y + 1.4, 0.6);
+  const railL = new THREE.Mesh(railGeo, railMat);
+  railL.position.set(-HALF_W - 0.2, (TOP_Y + PADDLE_Y) / 2 + 0.2, 0);
+  const railR = railL.clone(); railR.position.x = HALF_W + 0.2;
+  const railT = new THREE.Mesh(new THREE.BoxGeometry(2 * HALF_W + 0.7, 0.14, 0.6), railMat);
+  railT.position.set(0, TOP_Y + 0.2, 0);
+  ctx.scene.add(railL, railR, railT);
+
+  // ---- brick wall (instanced) ---------------------------------------------
+  const N_BRICKS = COLS * ROWS;
+  const brickGeo = new THREE.BoxGeometry(BRICK_W, BRICK_H, BRICK_D);
+  const brickMat = new THREE.MeshLambertMaterial({ color: 0xffffff });
+  const bricks = new THREE.InstancedMesh(brickGeo, brickMat, N_BRICKS);
+  const baseX = new Float32Array(N_BRICKS);
+  const baseY = new Float32Array(N_BRICKS);
+  const alive = new Uint8Array(N_BRICKS);
+  const bScale = new Float32Array(N_BRICKS);   // visual scale 0..1
+  const shiverAmp = new Float32Array(N_BRICKS);
+  const shiverAge = new Float32Array(N_BRICKS);
+  const dirty = new Set();                      // bricks needing a matrix update
+  const m4 = new THREE.Matrix4();
+  const cTop = new THREE.Color(BRICK_TOP), cBot = new THREE.Color(BRICK_BOT), cTmp = new THREE.Color();
+
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      const i = r * COLS + c;
+      baseX[i] = -((COLS - 1) / 2) * CELL_W + c * CELL_W;
+      baseY[i] = GRID_TOP - r * CELL_H;
+      alive[i] = 1; bScale[i] = 1;
+      m4.makeTranslation(baseX[i], baseY[i], 0);
+      bricks.setMatrixAt(i, m4);
+      cTmp.lerpColors(cTop, cBot, ROWS <= 1 ? 0 : r / (ROWS - 1));
+      bricks.setColorAt(i, cTmp);
+    }
+  }
+  bricks.instanceMatrix.needsUpdate = true;
+  bricks.instanceColor.needsUpdate = true;
+  ctx.scene.add(bricks);
+  let aliveCount = N_BRICKS;
+
+  function setBrickMatrix(i, extraX, extraY) {
+    const s = bScale[i];
+    m4.makeScale(s, s, s);
+    m4.setPosition(baseX[i] + (extraX || 0), baseY[i] + (extraY || 0), 0);
+    bricks.setMatrixAt(i, m4);
+  }
+
+  // ---- paddle and ball -----------------------------------------------------
+  const paddle = new THREE.Mesh(
+    new THREE.BoxGeometry(PADDLE_W, 0.32, 0.6),
+    new THREE.MeshLambertMaterial({ color: PADDLE_COL, emissive: 0x1c4454 })
+  );
+  paddle.position.set(0, PADDLE_Y, 0);
+  ctx.scene.add(paddle);
+
+  const ball = new THREE.Mesh(
+    new THREE.SphereGeometry(BALL_R, 16, 12),
+    new THREE.MeshBasicMaterial({ color: BALL_COL })
+  );
+  ctx.scene.add(ball);
+
+  // soft additive glow sprite riding on the ball
+  function makeGlowMat(hex, size, op) {
+    return new THREE.ShaderMaterial({
+      uniforms: { uColor: { value: new THREE.Color(hex) }, uSize: { value: size }, uOp: { value: op } },
+      vertexShader: [
+        'uniform float uSize;',
+        'void main(){',
+        '  vec4 mv = modelViewMatrix * vec4(position, 1.0);',
+        '  gl_PointSize = uSize * (140.0 / -mv.z);',
+        '  gl_Position = projectionMatrix * mv;',
+        '}'
+      ].join('\n'),
+      fragmentShader: [
+        'uniform vec3 uColor;',
+        'uniform float uOp;',
+        'void main(){',
+        '  float d = length(gl_PointCoord - 0.5);',
+        '  float a = smoothstep(0.5, 0.05, d);',
+        '  gl_FragColor = vec4(uColor, a * uOp);',
+        '}'
+      ].join('\n'),
+      transparent: true, depthWrite: false, blending: THREE.AdditiveBlending
+    });
+  }
+  const glowGeo = new THREE.BufferGeometry();
+  glowGeo.setAttribute('position', new THREE.Float32BufferAttribute([0, 0, 0], 3));
+  const ballGlow = new THREE.Points(glowGeo, makeGlowMat(BALL_COL, 1.6, 0.55));
+  ctx.scene.add(ballGlow);
+
+  // ---- comet trail ---------------------------------------------------------
+  const trailPos = new Float32Array(TRAIL_N * 3);
+  const trailFade = new Float32Array(TRAIL_N);
+  for (let i = 0; i < TRAIL_N; i++) trailFade[i] = 1 - i / TRAIL_N;
+  const trailGeo = new THREE.BufferGeometry();
+  trailGeo.setAttribute('position', new THREE.Float32BufferAttribute(trailPos, 3));
+  trailGeo.setAttribute('aFade', new THREE.Float32BufferAttribute(trailFade, 1));
+  const trailMat = new THREE.ShaderMaterial({
+    uniforms: { uColor: { value: new THREE.Color(BALL_COL) } },
+    vertexShader: [
+      'attribute float aFade;',
+      'varying float vFade;',
+      'void main(){',
+      '  vFade = aFade;',
+      '  vec4 mv = modelViewMatrix * vec4(position, 1.0);',
+      '  gl_PointSize = (0.5 + 0.9 * aFade) * (140.0 / -mv.z);',
+      '  gl_Position = projectionMatrix * mv;',
+      '}'
+    ].join('\n'),
+    fragmentShader: [
+      'uniform vec3 uColor;',
+      'varying float vFade;',
+      'void main(){',
+      '  float d = length(gl_PointCoord - 0.5);',
+      '  float a = smoothstep(0.5, 0.05, d) * vFade * vFade * 0.7;',
+      '  gl_FragColor = vec4(uColor, a);',
+      '}'
+    ].join('\n'),
+    transparent: true, depthWrite: false, blending: THREE.AdditiveBlending
+  });
+  const trail = new THREE.Points(trailGeo, trailMat);
+  ctx.scene.add(trail);
+
+  // ---- shard pool ----------------------------------------------------------
+  const sPos = new Float32Array(SHARD_POOL * 3);
+  const sVel = new Float32Array(SHARD_POOL * 3);
+  const sLife = new Float32Array(SHARD_POOL);   // remaining life, <=0 means free
+  const sMax = new Float32Array(SHARD_POOL);
+  const sAlpha = new Float32Array(SHARD_POOL);
+  const shardGeo = new THREE.BufferGeometry();
+  shardGeo.setAttribute('position', new THREE.Float32BufferAttribute(sPos, 3));
+  shardGeo.setAttribute('aAlpha', new THREE.Float32BufferAttribute(sAlpha, 1));
+  const shardMat = new THREE.ShaderMaterial({
+    uniforms: { uColor: { value: new THREE.Color(SHARD_COL) } },
+    vertexShader: [
+      'attribute float aAlpha;',
+      'varying float vA;',
+      'void main(){',
+      '  vA = aAlpha;',
+      '  vec4 mv = modelViewMatrix * vec4(position, 1.0);',
+      '  gl_PointSize = (0.35 + 0.55 * aAlpha) * (140.0 / -mv.z);',
+      '  gl_Position = projectionMatrix * mv;',
+      '}'
+    ].join('\n'),
+    fragmentShader: [
+      'uniform vec3 uColor;',
+      'varying float vA;',
+      'void main(){',
+      '  float d = length(gl_PointCoord - 0.5);',
+      '  float a = smoothstep(0.5, 0.08, d) * vA;',
+      '  gl_FragColor = vec4(uColor + vec3(0.25) * vA, a);',
+      '}'
+    ].join('\n'),
+    transparent: true, depthWrite: false, blending: THREE.AdditiveBlending
+  });
+  const shards = new THREE.Points(shardGeo, shardMat);
+  ctx.scene.add(shards);
+  let shardCursor = 0;
+
+  function spawnShards(x, y, n, kick) {
+    for (let k = 0; k < n; k++) {
+      const i = shardCursor; shardCursor = (shardCursor + 1) % SHARD_POOL;
+      const a = rnd() * Math.PI * 2;
+      const sp = 0.8 + rnd() * 2.4;
+      sPos[i * 3] = x + (rnd() - 0.5) * BRICK_W;
+      sPos[i * 3 + 1] = y + (rnd() - 0.5) * BRICK_H;
+      sPos[i * 3 + 2] = (rnd() - 0.5) * 0.4;
+      sVel[i * 3] = Math.cos(a) * sp;
+      sVel[i * 3 + 1] = Math.sin(a) * sp + (kick || 1.2);
+      sVel[i * 3 + 2] = (rnd() - 0.5) * 1.2;
+      sMax[i] = 0.9 + rnd() * 0.9;
+      sLife[i] = sMax[i];
+    }
+  }
+
+  // ---- game state -----------------------------------------------------------
+  let bx = 0, by = -2.4;
+  let ang = (rnd() * 0.6 + 0.35) * Math.PI / 2 + Math.PI / 4; // upward-ish
+  let bvx = Math.cos(ang), bvy = Math.abs(Math.sin(ang));
+  let speed = SPEED_BASE;
+  let paddleX = 0;
+  let phase = 'play';        // play | clear | rebuild
+  let phaseT = 0;
+  let camDist = 14, camDistTarget = 14;
+  let acc = 0;
+
+  function foldX(p) {
+    // reflect a projected x back into the arena, mirroring off side walls
+    const lo = -HALF_W + BALL_R, hi = HALF_W - BALL_R;
+    const range = (hi - lo) * 2;
+    let v = (p - lo) % range;
+    if (v < 0) v += range;
+    return v < hi - lo ? lo + v : hi - (v - (hi - lo));
+  }
+
+  function paddleTarget() {
+    if (bvy < 0) {
+      const tta = (by - PADDLE_Y) / (-bvy * speed);
+      return foldX(bx + bvx * speed * tta);
+    }
+    return bx * 0.5; // shadow the ball loosely while it climbs
+  }
+
+  function killBrick(i) {
+    alive[i] = 0; bScale[i] = 0; aliveCount--;
+    setBrickMatrix(i, 0, 0); dirty.add(i);
+    spawnShards(baseX[i], baseY[i], SHARDS_PER_BRICK, 1.2);
+    // shiver the 4-neighborhood
+    const r = Math.floor(i / COLS), c = i % COLS;
+    for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++) {
+      if (dr === 0 && dc === 0) continue;
+      const rr = r + dr, cc = c + dc;
+      if (rr < 0 || rr >= ROWS || cc < 0 || cc >= COLS) continue;
+      const j = rr * COLS + cc;
+      if (alive[j]) { shiverAmp[j] = 0.05; shiverAge[j] = 0; dirty.add(j); }
+    }
+    if (aliveCount === 0) {
+      // quiet firework across the fallen wall, then pull the camera back
+      for (let k = 0; k < Math.floor(160 * q); k++) {
+        spawnShards(
+          (rnd() - 0.5) * COLS * CELL_W,
+          GRID_TOP - rnd() * ROWS * CELL_H, 1, 2.6);
+      }
+      phase = 'clear'; phaseT = 0; camDistTarget = 17;
+    }
+  }
+
+  function tryBrickHit() {
+    if (phase !== 'play') return;
+    // candidate cells around the ball
+    const probes = [[bx, by], [bx + BALL_R, by], [bx - BALL_R, by], [bx, by + BALL_R], [bx, by - BALL_R]];
+    for (let p = 0; p < probes.length; p++) {
+      const px = probes[p][0], py = probes[p][1];
+      const c = Math.round((px + ((COLS - 1) / 2) * CELL_W) / CELL_W);
+      const r = Math.round((GRID_TOP - py) / CELL_H);
+      if (r < 0 || r >= ROWS || c < 0 || c >= COLS) continue;
+      const i = r * COLS + c;
+      if (!alive[i]) continue;
+      const cx = baseX[i], cy = baseY[i];
+      const dx = bx - cx, dy = by - cy;
+      const ox = BRICK_W / 2 + BALL_R - Math.abs(dx);
+      const oy = BRICK_H / 2 + BALL_R - Math.abs(dy);
+      if (ox <= 0 || oy <= 0) continue;
+      if (ox < oy) { bvx = Math.abs(bvx) * (dx >= 0 ? 1 : -1); bx += (dx >= 0 ? ox : -ox); }
+      else { bvy = Math.abs(bvy) * (dy >= 0 ? 1 : -1); by += (dy >= 0 ? oy : -oy); }
+      killBrick(i);
+      return;
+    }
+  }
+
+  function stepPhysics(h) {
+    // gentle ramp as the wall thins
+    const frac = phase === 'play' ? 1 - aliveCount / N_BRICKS : 0;
+    const target = SPEED_BASE * (1 + SPEED_RAMP * frac);
+    speed += (target - speed) * Math.min(1, h * 1.5);
+
+    bx += bvx * speed * h;
+    by += bvy * speed * h;
+
+    if (bx < -HALF_W + BALL_R) { bx = -HALF_W + BALL_R; bvx = Math.abs(bvx); }
+    if (bx > HALF_W - BALL_R) { bx = HALF_W - BALL_R; bvx = -Math.abs(bvx); }
+    if (by > TOP_Y - BALL_R) { by = TOP_Y - BALL_R; bvy = -Math.abs(bvy); }
+    // invisible safety floor: the perfect run never actually drops the ball
+    if (by < PADDLE_Y - 0.5) { by = PADDLE_Y - 0.5; bvy = Math.abs(bvy); }
+
+    // paddle reflection: angle depends on where the ball meets the paddle
+    if (bvy < 0 && by < PADDLE_Y + BALL_R + 0.16 && by > PADDLE_Y - 0.35) {
+      const off = clamp((bx - paddleX) / (PADDLE_W / 2), -1, 1);
+      by = PADDLE_Y + BALL_R + 0.16;
+      bvx = off * 0.82;
+      bvy = Math.sqrt(Math.max(0.2, 1 - bvx * bvx));
+      const len = Math.hypot(bvx, bvy); bvx /= len; bvy /= len;
+    }
+    // keep the rally lively: never dead-vertical, never dead-horizontal
+    if (Math.abs(bvx) < 0.12) { bvx = bvx < 0 ? -0.12 : 0.12; }
+    if (Math.abs(bvy) < 0.28) { bvy = bvy < 0 ? -0.28 : 0.28; }
+    const l2 = Math.hypot(bvx, bvy); bvx /= l2; bvy /= l2;
+
+    tryBrickHit();
+  }
+
+  // camera baseline
+  ctx.camera.position.set(0, 0.6, camDist);
+  ctx.camera.lookAt(0, 0.3, 0);
+
+  function update(t, dt) {
+    dt = clamp(dt, 0, 0.05);
+    phaseT += dt;
+
+    // fixed-step simulation
+    acc += dt;
+    let guard = 0;
+    while (acc >= PHYS_STEP && guard < 20) { stepPhysics(PHYS_STEP); acc -= PHYS_STEP; guard++; }
+
+    // paddle glide with eased anticipation, like a confident player
+    const tgt = clamp(paddleTarget(), -HALF_W + PADDLE_W / 2, HALF_W - PADDLE_W / 2);
+    paddleX += (tgt - paddleX) * (1 - Math.exp(-dt * (bvy < 0 ? 9 : 3.5)));
+    paddle.position.x = paddleX;
+    paddle.position.y = PADDLE_Y - 0.16 + Math.sin(t * 2.1) * 0.02;
+
+    ball.position.set(bx, by, 0);
+    ballGlow.position.set(bx, by, 0);
+
+    // trail: shift the ring buffer back one slot, head follows the ball
+    const pa = trailGeo.attributes.position.array;
+    pa.copyWithin(3, 0, (TRAIL_N - 1) * 3);
+    pa[0] = bx; pa[1] = by; pa[2] = 0;
+    trailGeo.attributes.position.needsUpdate = true;
+
+    // shards: gravity, drag, fade
+    const spArr = shardGeo.attributes.position.array;
+    const saArr = shardGeo.attributes.aAlpha.array;
+    for (let i = 0; i < SHARD_POOL; i++) {
+      if (sLife[i] <= 0) { if (saArr[i] !== 0) saArr[i] = 0; continue; }
+      sLife[i] -= dt;
+      sVel[i * 3 + 1] -= GRAV * dt;
+      sVel[i * 3] *= (1 - 0.6 * dt);
+      spArr[i * 3] += sVel[i * 3] * dt;
+      spArr[i * 3 + 1] += sVel[i * 3 + 1] * dt;
+      spArr[i * 3 + 2] += sVel[i * 3 + 2] * dt;
+      const u = clamp(sLife[i] / sMax[i], 0, 1);
+      saArr[i] = u * u;
+    }
+    shardGeo.attributes.position.needsUpdate = true;
+    shardGeo.attributes.aAlpha.needsUpdate = true;
+
+    // brick shivers decay
+    for (const i of Array.from(dirty)) {
+      if (!alive[i] && bScale[i] === 0 && phase !== 'rebuild') {
+        setBrickMatrix(i, 0, 0); dirty.delete(i); continue;
+      }
+      if (shiverAmp[i] > 0.001) {
+        shiverAge[i] += dt;
+        shiverAmp[i] *= Math.exp(-dt * 7);
+        setBrickMatrix(i, Math.sin(shiverAge[i] * 42) * shiverAmp[i], Math.cos(shiverAge[i] * 37) * shiverAmp[i] * 0.6);
+      } else if (phase !== 'rebuild') {
+        shiverAmp[i] = 0; setBrickMatrix(i, 0, 0); dirty.delete(i);
+      }
+    }
+
+    // phase choreography
+    if (phase === 'clear' && phaseT > 2.2) {
+      phase = 'rebuild'; phaseT = 0;
+    } else if (phase === 'rebuild') {
+      let done = true;
+      for (let i = 0; i < N_BRICKS; i++) {
+        const start = ((N_BRICKS - 1 - i) % COLS) * 0.028 + Math.floor((N_BRICKS - 1 - i) / COLS) * 0.24;
+        const u = (phaseT - start) / 0.4;
+        if (u < 1) done = false;
+        const s = easeOut(u);
+        if (s > 0 && bScale[i] !== 1) {
+          bScale[i] = s;
+          if (s >= 1) { bScale[i] = 1; alive[i] = 1; aliveCount++; }
+          setBrickMatrix(i, 0, 0); dirty.add(i);
+        }
+      }
+      if (done) {
+        for (let i = 0; i < N_BRICKS; i++) { if (!alive[i]) { alive[i] = 1; aliveCount++; bScale[i] = 1; setBrickMatrix(i, 0, 0); } }
+        aliveCount = N_BRICKS;
+        phase = 'play'; phaseT = 0; camDistTarget = 14;
+      }
+    }
+    bricks.instanceMatrix.needsUpdate = true;
+
+    // camera: slow orbital swing plus pointer nudge, eased dolly on clear
+    camDist += (camDistTarget - camDist) * (1 - Math.exp(-dt * 1.6));
+    const a = Math.sin(t * 0.1) * 0.34 + ctx.pointer.x * 0.28;
+    const h = 0.6 + Math.sin(t * 0.07) * 0.5 + ctx.pointer.y * 1.1;
+    ctx.camera.position.set(Math.sin(a) * camDist, h, Math.cos(a) * camDist);
+    ctx.camera.lookAt(0, 0.3, 0);
+  }
+
+  return { update };
+}
+
+/* ================= shared runtime ================= */
+
+const canvas = document.getElementById('c');
+const btnPlay = document.getElementById('btnPlay');
+const speedEl = document.getElementById('speed');
+const btnPng = document.getElementById('btnPng');
+const note = document.getElementById('note');
+
+let renderer;
+try {
+  renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
+} catch (e) {
+  document.getElementById('err').style.display = 'grid';
+  document.getElementById('hud').hidden = true;
+  throw e;
+}
+
+/* Quality tier: 1 on desktop, lower on small screens or few cores.
+   Scenes scale particle counts by ctx.quality. */
+const small = Math.min(window.innerWidth, window.innerHeight) < 700;
+const weak = (navigator.hardwareConcurrency || 8) <= 4;
+const quality = small ? 0.5 : (weak ? 0.7 : 1);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, quality < 1 ? 1.5 : 2));
+
+const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 500);
+camera.position.set(0, 0, 12);
+
+const ctx = {
+  scene: new THREE.Scene(),
+  camera,
+  renderer,
+  quality,
+  pointer: { x: 0, y: 0 },  /* smoothed, -1..1, y up */
+};
+
+let piece;
+try {
+  piece = createScene(THREE, ctx);
+} catch (e) {
+  document.getElementById('err').style.display = 'grid';
+  document.getElementById('hud').hidden = true;
+  console.error(e);
+  throw e;
+}
+
+function resize() {
+  const w = window.innerWidth, h = window.innerHeight;
+  renderer.setSize(w, h, false);
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+  if (piece.resize) piece.resize(w, h);
+}
+window.addEventListener('resize', resize);
+resize();
+
+/* Pointer parallax target, lerped each frame for weight. */
+const target = { x: 0, y: 0 };
+window.addEventListener('pointermove', (e) => {
+  target.x = (e.clientX / window.innerWidth) * 2 - 1;
+  target.y = -((e.clientY / window.innerHeight) * 2 - 1);
+}, { passive: true });
+
+let userPaused = false;
+let hidden = false;
+let speed = 1;
+let t = 0;
+let last = performance.now();
+
+const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+function setPlayUi() {
+  btnPlay.textContent = userPaused ? 'Play' : 'Pause';
+  btnPlay.setAttribute('aria-pressed', String(userPaused));
+}
+btnPlay.addEventListener('click', () => {
+  userPaused = !userPaused;
+  note.hidden = true;
+  setPlayUi();
+  if (!userPaused) { last = performance.now(); loop(last); }
+});
+canvas.addEventListener('keydown', (e) => {
+  if (e.code === 'Space') { e.preventDefault(); btnPlay.click(); }
+});
+speedEl.addEventListener('input', () => { speed = parseFloat(speedEl.value) || 1; });
+
+btnPng.addEventListener('click', () => {
+  renderer.render(ctx.scene, camera);
+  canvas.toBlob((blob) => {
+    if (!blob) return;
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'breakout-game-3d.png';
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+  });
+});
+
+document.addEventListener('visibilitychange', () => {
+  hidden = document.hidden;
+  if (!hidden && !userPaused) { last = performance.now(); loop(last); }
+});
+
+let raf = 0;
+function frame(now) {
+  const dt = Math.min((now - last) / 1000, 0.1);
+  last = now;
+  t += dt * speed;
+  ctx.pointer.x += (target.x - ctx.pointer.x) * 0.06;
+  ctx.pointer.y += (target.y - ctx.pointer.y) * 0.06;
+  piece.update(t, dt * speed);
+  renderer.render(ctx.scene, camera);
+}
+function loop(now) {
+  if (userPaused || hidden) return;
+  frame(now);
+  raf = requestAnimationFrame(loop);
+}
+
+if (reduceMotion) {
+  /* Advance to a composed moment, render one still frame, and wait. */
+  for (let i = 0; i < 240; i++) { t += 1 / 60; piece.update(t, 1 / 60); }
+  renderer.render(ctx.scene, camera);
+  userPaused = true;
+  note.hidden = false;
+  setPlayUi();
+} else {
+  loop(performance.now());
+}
+</script>
+</body>
+</html>

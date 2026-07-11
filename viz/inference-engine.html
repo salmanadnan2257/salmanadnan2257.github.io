@@ -1,0 +1,520 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <meta name="theme-color" content="#0B0F1C">
+  <title>LLM Inference Engine in 3D · Salman Adnan</title>
+  <meta name="description" content="Paged Attention: an interactive 3D study of KV-cache pages, batching, and speculative decoding.">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="../assets/favicon.png" sizes="any">
+  <style>
+    :root { color-scheme: dark; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      background: #0B0F1C;
+      overflow: hidden;
+      font: 12px/1.4 ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+      color: rgba(255, 255, 255, 0.85);
+    }
+    #stage { position: fixed; inset: 0; }
+    canvas { display: block; width: 100%; height: 100%; outline: none; }
+    canvas:focus-visible { box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.6); }
+    #hud {
+      position: absolute; right: 12px; bottom: 12px;
+      display: flex; align-items: center; gap: 10px;
+      padding: 7px 10px; border-radius: 999px;
+      background: rgba(8, 8, 14, 0.55);
+      backdrop-filter: blur(6px);
+      opacity: 0.55; transition: opacity 0.25s ease;
+    }
+    #hud:hover, #hud:focus-within { opacity: 1; }
+    #hud button {
+      appearance: none; border: 1px solid rgba(255, 255, 255, 0.25);
+      background: transparent; color: inherit; font: inherit;
+      padding: 3px 10px; border-radius: 999px; cursor: pointer;
+    }
+    #hud button:hover { border-color: rgba(255, 255, 255, 0.6); }
+    #hud button:focus-visible, #hud input:focus-visible {
+      outline: 2px solid #fff; outline-offset: 2px;
+    }
+    #hud label { display: flex; align-items: center; gap: 6px; }
+    #hud input[type="range"] { width: 72px; accent-color: #5AE6B8; }
+    #note {
+      position: absolute; left: 12px; bottom: 12px; max-width: 46ch;
+      padding: 8px 12px; border-radius: 10px;
+      background: rgba(8, 8, 14, 0.65);
+    }
+    #err {
+      position: absolute; inset: 0; display: none;
+      place-items: center; text-align: center; padding: 24px;
+    }
+    @media (max-width: 560px) {
+      #hud label { display: none; }
+    }
+  </style>
+</head>
+<body>
+<div id="stage">
+  <canvas id="c" tabindex="0" aria-label="Animated 3D lattice of memory pages lighting up as token particles stream through, with speculative ghost tokens racing ahead."></canvas>
+  <div id="hud" role="group" aria-label="Visualization controls">
+    <button id="btnPlay" type="button" aria-pressed="false">Pause</button>
+    <label for="speed">speed
+      <input id="speed" type="range" min="0.25" max="2" step="0.25" value="1"
+             aria-label="Animation speed">
+    </label>
+    <button id="btnPng" type="button">Save PNG</button>
+  </div>
+  <p id="note" hidden>Motion is paused because your system prefers reduced motion.
+     Press Play to animate.</p>
+  <div id="err"><p>This visualization needs WebGL, which is unavailable here.<br>
+     A screenshot of it lives on the project page.</p></div>
+</div>
+
+<script type="importmap">
+{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js" } }
+</script>
+<script type="module">
+import * as THREE from 'three';
+
+/* ================= scene: inference-engine ================= */
+// PAGED ATTENTION
+// Concept: a floating lattice of KV-cache pages; token streams thread winding
+// lanes through it, pages brighten as the streams allocate and free them, and
+// speculative ghost tokens race ahead of each stream, snapping in or flaring out.
+// Palette: bg graphite blue #0B0F1C, page slate #2A3550, active violet #8B7BF7,
+//          token mint #5AE6B8, reject ember #E85D4A.
+//   Cool datacenter calm with mint throughput and violet activation; no cliche
+//   matrix green anywhere.
+// Signature: speculative ghost tokens that either snap into the stream or flare
+// ember and dissolve.
+
+function createScene(THREE, ctx) {
+  var q = ctx.quality;
+
+  // ---- tunables ----
+  var BG = 0x0b0f1c;                          // background, graphite blue
+  var NX = Math.max(7, Math.floor(14 * q));   // lattice pages along x
+  var NY = 8;                                 // lattice pages along y
+  var NZ = 4;                                 // lattice pages along z
+  var SP_X = 1.05, SP_Y = 0.85, SP_Z = 1.35;  // lattice spacing
+  var N_LANES = 5;                            // token stream lanes
+  var N_TOKENS = Math.max(220, Math.floor(550 * q)); // stream token points
+  var N_GHOSTS = Math.max(48, Math.floor(130 * q));  // speculative ghost points
+  var FLOW = 0.11;                            // lane crossings per second (~9s per pass)
+  var GHOST_CYCLE = 6.0;                      // seconds per ghost life cycle
+  var REJECT_FRACTION = 0.2;                  // share of ghosts that get rejected
+  var PAGE_BREATH = 0.05;                     // idle page shimmer amplitude
+
+  var COL_SLATE = new THREE.Color(0x2a3550);
+  var COL_VIOLET = new THREE.Color(0x8b7bf7);
+  var COL_WHITE = new THREE.Color(0xdfe6ff);
+  var COL_MINT = new THREE.Color(0x5ae6b8);
+  var COL_EMBER = new THREE.Color(0xe85d4a);
+
+  ctx.scene.background = new THREE.Color(BG);
+  ctx.scene.fog = new THREE.FogExp2(BG, 0.03);
+  ctx.scene.add(new THREE.AmbientLight(0x2a3350, 1.2));
+  var dir = new THREE.DirectionalLight(0xbcc8f2, 1.0);
+  dir.position.set(5, 8, 10);
+  ctx.scene.add(dir);
+
+  var group = new THREE.Group();
+  ctx.scene.add(group);
+
+  var spanX = (NX - 1) * SP_X * 0.5 + 1.6;    // lane travel half-span
+
+  // ---- lanes: analytic winding paths y(x), z(x)
+  var lanes = [];
+  for (var l = 0; l < N_LANES; l++) {
+    lanes.push({
+      yc: -2.0 + 4.0 * (l / (N_LANES - 1)) + (Math.random() - 0.5) * 0.5,
+      a1: 0.7 + Math.random() * 0.6,
+      f1: 0.35 + Math.random() * 0.3,
+      p1: Math.random() * 6.28,
+      zc: (Math.random() - 0.5) * 2.4,
+      a2: 0.5 + Math.random() * 0.7,
+      f2: 0.3 + Math.random() * 0.35,
+      p2: Math.random() * 6.28
+    });
+  }
+  function laneY(l, x) { return l.yc + l.a1 * Math.sin(x * l.f1 + l.p1); }
+  function laneZ(l, x) { return l.zc + l.a2 * Math.sin(x * l.f2 + l.p2); }
+
+  // ---- KV-cache page lattice
+  var nPages = NX * NY * NZ;
+  var pageGeo = new THREE.BoxGeometry(0.62, 0.46, 0.1);
+  var pageMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.45, metalness: 0.35, emissive: 0x1a2038, emissiveIntensity: 0.65 });
+  var pages = new THREE.InstancedMesh(pageGeo, pageMat, nPages);
+  var pageNormX = new Float32Array(nPages);   // 0..1 along flow direction
+  var pagePhase = new Float32Array(nPages);   // per-page stagger
+  var pageGate = new Float32Array(nPages);    // proximity to nearest lane, 0.1..1
+  var m4 = new THREE.Matrix4();
+  var qI = new THREE.Quaternion();
+  var one = new THREE.Vector3(1, 1, 1);
+  var pv = new THREE.Vector3();
+  var idx = 0;
+  for (var ix = 0; ix < NX; ix++) {
+    for (var iy = 0; iy < NY; iy++) {
+      for (var iz = 0; iz < NZ; iz++) {
+        var px = (ix - (NX - 1) / 2) * SP_X;
+        var py = (iy - (NY - 1) / 2) * SP_Y;
+        var pz = (iz - (NZ - 1) / 2) * SP_Z;
+        m4.compose(pv.set(px, py, pz), qI, one);
+        pages.setMatrixAt(idx, m4);
+        pages.setColorAt(idx, COL_SLATE);
+        pageNormX[idx] = ix / Math.max(1, NX - 1);
+        pagePhase[idx] = Math.random();
+        var best = 1e9;
+        for (var ll = 0; ll < N_LANES; ll++) {
+          var dy = laneY(lanes[ll], px) - py;
+          var dz = laneZ(lanes[ll], px) - pz;
+          var d2 = dy * dy + dz * dz;
+          if (d2 < best) best = d2;
+        }
+        pageGate[idx] = 0.12 + 0.88 * Math.exp(-best * 0.9);
+        idx++;
+      }
+    }
+  }
+  pages.instanceMatrix.needsUpdate = true;
+  pages.instanceColor.needsUpdate = true;
+  group.add(pages);
+
+  // faint wire cage around the lattice
+  var hx = (NX - 1) / 2 * SP_X + 0.6, hy = (NY - 1) / 2 * SP_Y + 0.5, hz = (NZ - 1) / 2 * SP_Z + 0.4;
+  var cage = [
+    -hx, -hy, -hz, hx, -hy, -hz, hx, -hy, -hz, hx, hy, -hz, hx, hy, -hz, -hx, hy, -hz, -hx, hy, -hz, -hx, -hy, -hz,
+    -hx, -hy, hz, hx, -hy, hz, hx, -hy, hz, hx, hy, hz, hx, hy, hz, -hx, hy, hz, -hx, hy, hz, -hx, -hy, hz,
+    -hx, -hy, -hz, -hx, -hy, hz, hx, -hy, -hz, hx, -hy, hz, hx, hy, -hz, hx, hy, hz, -hx, hy, -hz, -hx, hy, hz
+  ];
+  var cageGeo = new THREE.BufferGeometry();
+  cageGeo.setAttribute('position', new THREE.Float32BufferAttribute(cage, 3));
+  group.add(new THREE.LineSegments(cageGeo, new THREE.LineBasicMaterial({ color: 0x3a4568, transparent: true, opacity: 0.35 })));
+
+  // ---- shared lane attribute packer
+  function packLane(arr4a, arr4b, i, lane) {
+    arr4a[i * 4] = lane.yc; arr4a[i * 4 + 1] = lane.a1; arr4a[i * 4 + 2] = lane.f1; arr4a[i * 4 + 3] = lane.p1;
+    arr4b[i * 4] = lane.zc; arr4b[i * 4 + 1] = lane.a2; arr4b[i * 4 + 2] = lane.f2; arr4b[i * 4 + 3] = lane.p2;
+  }
+
+  // ---- token streams (analytic in the vertex shader, loops forever)
+  var tokGeo = new THREE.BufferGeometry();
+  var tokPos = new Float32Array(N_TOKENS * 3);
+  var tokT = new Float32Array(N_TOKENS);
+  var tokSeed = new Float32Array(N_TOKENS);
+  var tokP1 = new Float32Array(N_TOKENS * 4);
+  var tokP2 = new Float32Array(N_TOKENS * 4);
+  for (var ti = 0; ti < N_TOKENS; ti++) {
+    tokT[ti] = Math.random();
+    tokSeed[ti] = Math.random();
+    packLane(tokP1, tokP2, ti, lanes[ti % N_LANES]);
+  }
+  tokGeo.setAttribute('position', new THREE.Float32BufferAttribute(tokPos, 3));
+  tokGeo.setAttribute('aT', new THREE.Float32BufferAttribute(tokT, 1));
+  tokGeo.setAttribute('aSeed', new THREE.Float32BufferAttribute(tokSeed, 1));
+  tokGeo.setAttribute('aP1', new THREE.Float32BufferAttribute(tokP1, 4));
+  tokGeo.setAttribute('aP2', new THREE.Float32BufferAttribute(tokP2, 4));
+  var tokUniforms = {
+    uTime: { value: 0 },
+    uSpan: { value: spanX },
+    uSpeed: { value: FLOW },
+    uColor: { value: COL_MINT }
+  };
+  var tokMat = new THREE.ShaderMaterial({
+    uniforms: tokUniforms,
+    vertexShader: [
+      'attribute float aT;',
+      'attribute float aSeed;',
+      'attribute vec4 aP1;',
+      'attribute vec4 aP2;',
+      'uniform float uTime;',
+      'uniform float uSpan;',
+      'uniform float uSpeed;',
+      'varying float vA;',
+      'void main(){',
+      '  float p = fract(aT + uTime * uSpeed);',
+      '  float x = mix(-uSpan, uSpan, p);',
+      '  float y = aP1.x + aP1.y * sin(x * aP1.z + aP1.w);',
+      '  float z = aP2.x + aP2.y * sin(x * aP2.z + aP2.w);',
+      '  y += 0.05 * sin(uTime * 3.0 + aSeed * 41.0);',
+      '  z += 0.05 * cos(uTime * 2.6 + aSeed * 27.0);',
+      '  float edge = smoothstep(0.0, 0.06, p) * smoothstep(1.0, 0.94, p);',
+      '  vA = edge * (0.5 + 0.5 * sin(uTime * 2.0 + aSeed * 6.2831));',
+      '  vec4 mv = modelViewMatrix * vec4(x, y, z, 1.0);',
+      '  gl_PointSize = min((0.8 + 1.0 * aSeed + 0.7 * vA) * (95.0 / -mv.z), 12.0);',
+      '  gl_Position = projectionMatrix * mv;',
+      '}'
+    ].join('\n'),
+    fragmentShader: [
+      'uniform vec3 uColor;',
+      'varying float vA;',
+      'void main(){',
+      '  float d = length(gl_PointCoord - 0.5);',
+      '  float a = smoothstep(0.5, 0.06, d) * (0.05 + 0.28 * vA);',
+      '  gl_FragColor = vec4(uColor, a);',
+      '}'
+    ].join('\n'),
+    transparent: true, depthWrite: false, blending: THREE.AdditiveBlending
+  });
+  var tokPoints = new THREE.Points(tokGeo, tokMat);
+  tokPoints.frustumCulled = false; // positions are analytic in the vertex shader
+  group.add(tokPoints);
+
+  // ---- speculative ghost tokens: shoot ahead, then snap in or flare ember
+  var ghGeo = new THREE.BufferGeometry();
+  var ghPos = new Float32Array(N_GHOSTS * 3);
+  var ghT0 = new Float32Array(N_GHOSTS);
+  var ghSeed = new Float32Array(N_GHOSTS);
+  var ghRej = new Float32Array(N_GHOSTS);
+  var ghP1 = new Float32Array(N_GHOSTS * 4);
+  var ghP2 = new Float32Array(N_GHOSTS * 4);
+  for (var gi = 0; gi < N_GHOSTS; gi++) {
+    ghT0[gi] = Math.random();
+    ghSeed[gi] = Math.random();
+    ghRej[gi] = Math.random() < REJECT_FRACTION ? 1 : 0;
+    packLane(ghP1, ghP2, gi, lanes[gi % N_LANES]);
+  }
+  ghGeo.setAttribute('position', new THREE.Float32BufferAttribute(ghPos, 3));
+  ghGeo.setAttribute('aT0', new THREE.Float32BufferAttribute(ghT0, 1));
+  ghGeo.setAttribute('aSeed', new THREE.Float32BufferAttribute(ghSeed, 1));
+  ghGeo.setAttribute('aRej', new THREE.Float32BufferAttribute(ghRej, 1));
+  ghGeo.setAttribute('aP1', new THREE.Float32BufferAttribute(ghP1, 4));
+  ghGeo.setAttribute('aP2', new THREE.Float32BufferAttribute(ghP2, 4));
+  var ghUniforms = {
+    uTime: { value: 0 },
+    uSpan: { value: spanX },
+    uSpeed: { value: FLOW },
+    uCycle: { value: GHOST_CYCLE },
+    uMint: { value: COL_MINT },
+    uEmber: { value: COL_EMBER }
+  };
+  var ghMat = new THREE.ShaderMaterial({
+    uniforms: ghUniforms,
+    vertexShader: [
+      'attribute float aT0;',
+      'attribute float aSeed;',
+      'attribute float aRej;',
+      'attribute vec4 aP1;',
+      'attribute vec4 aP2;',
+      'uniform float uTime;',
+      'uniform float uSpan;',
+      'uniform float uSpeed;',
+      'uniform float uCycle;',
+      'uniform vec3 uMint;',
+      'uniform vec3 uEmber;',
+      'varying vec3 vColor;',
+      'varying float vAlpha;',
+      'void main(){',
+      '  float c = fract(uTime / uCycle + aSeed);',
+      '  float isRej = step(0.5, aRej);',
+      '  float shoot = smoothstep(0.0, 0.35, c);',
+      '  shoot = 1.0 - (1.0 - shoot) * (1.0 - shoot);',
+      '  float back = smoothstep(0.38, 0.52, c);',
+      '  float ahead = 0.055 * shoot - (1.0 - isRej) * back * 0.02;',
+      '  float p = fract(fract(aT0 + uTime * uSpeed) + ahead);',
+      '  float x = mix(-uSpan, uSpan, p);',
+      '  float y = aP1.x + aP1.y * sin(x * aP1.z + aP1.w);',
+      '  float z = aP2.x + aP2.y * sin(x * aP2.z + aP2.w);',
+      '  float off = (1.0 - back * (1.0 - isRej)) * shoot * 0.3;',
+      '  y += off * sin(aSeed * 40.0);',
+      '  z += off * cos(aSeed * 34.0);',
+      '  float edge = smoothstep(0.0, 0.05, p) * smoothstep(1.0, 0.95, p);',
+      '  float aIn = smoothstep(0.0, 0.08, c);',
+      '  float envAcc = 1.0 - smoothstep(0.55, 0.8, c);',
+      '  float envRej = 1.0 - smoothstep(0.4, 0.58, c);',
+      '  float env = mix(envAcc, envRej, isRej) * aIn;',
+      '  float flash = exp(-abs(c - 0.45) * 24.0) * (1.0 - isRej);',
+      '  float flare = smoothstep(0.34, 0.46, c) * isRej;',
+      '  vColor = mix(uMint, uEmber, flare) + vec3(0.55) * flash;',
+      '  vAlpha = env * edge * (0.3 + 0.7 * shoot + flash);',
+      '  float size = 1.5 + 0.9 * aSeed + 2.6 * flash + 3.4 * flare * env;',
+      '  vec4 mv = modelViewMatrix * vec4(x, y, z, 1.0);',
+      '  gl_PointSize = min(size * (150.0 / -mv.z), 42.0);',
+      '  gl_Position = projectionMatrix * mv;',
+      '}'
+    ].join('\n'),
+    fragmentShader: [
+      'varying vec3 vColor;',
+      'varying float vAlpha;',
+      'void main(){',
+      '  float d = length(gl_PointCoord - 0.5);',
+      '  float a = smoothstep(0.5, 0.06, d) * vAlpha;',
+      '  gl_FragColor = vec4(vColor, a);',
+      '}'
+    ].join('\n'),
+    transparent: true, depthWrite: false, blending: THREE.AdditiveBlending
+  });
+  var ghPoints = new THREE.Points(ghGeo, ghMat);
+  ghPoints.frustumCulled = false; // positions are analytic in the vertex shader
+  group.add(ghPoints);
+
+  // ---- per-frame page choreography (allocate then free waves, few hundred items)
+  var tmpCol = new THREE.Color();
+  function ssj(a, b, x) {
+    x = Math.min(1, Math.max(0, (x - a) / (b - a)));
+    return x * x * (3 - 2 * x);
+  }
+
+  return {
+    update: function (t, dt) {
+      tokUniforms.uTime.value = t;
+      ghUniforms.uTime.value = t;
+
+      for (var i = 0; i < nPages; i++) {
+        var f = t * FLOW - pageNormX[i] + pagePhase[i] * 0.08;
+        f = f - Math.floor(f);
+        var win = ssj(0.0, 0.05, f) * (1 - ssj(0.09, 0.2, f));  // allocated then freed
+        var b = pageGate[i] * win * 0.62;
+        b += 0.04 + PAGE_BREATH * Math.sin(t * 0.7 + pagePhase[i] * 12.0);
+        if (b > 1) b = 1;
+        tmpCol.copy(COL_SLATE).lerp(COL_VIOLET, b);
+        if (b > 0.92) tmpCol.lerp(COL_WHITE, (b - 0.92) * 0.8);
+        pages.setColorAt(i, tmpCol);
+      }
+      pages.instanceColor.needsUpdate = true;
+
+      // gentle group sway + drifting camera with pointer parallax
+      group.rotation.y = 0.14 * Math.sin(t * 0.05);
+      group.rotation.x = 0.05 * Math.sin(t * 0.041 + 1.0);
+      var camX = 2.4 * Math.sin(t * 0.07) + ctx.pointer.x * 1.8;
+      var camY = 0.7 + 1.1 * Math.sin(t * 0.045) + ctx.pointer.y * 1.4;
+      ctx.camera.position.set(camX, camY, spanX + 7.5);
+      ctx.camera.lookAt(0, 0, 0);
+    }
+  };
+}
+
+/* ================= shared runtime ================= */
+
+const canvas = document.getElementById('c');
+const btnPlay = document.getElementById('btnPlay');
+const speedEl = document.getElementById('speed');
+const btnPng = document.getElementById('btnPng');
+const note = document.getElementById('note');
+
+let renderer;
+try {
+  renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
+} catch (e) {
+  document.getElementById('err').style.display = 'grid';
+  document.getElementById('hud').hidden = true;
+  throw e;
+}
+
+/* Quality tier: 1 on desktop, lower on small screens or few cores.
+   Scenes scale particle counts by ctx.quality. */
+const small = Math.min(window.innerWidth, window.innerHeight) < 700;
+const weak = (navigator.hardwareConcurrency || 8) <= 4;
+const quality = small ? 0.5 : (weak ? 0.7 : 1);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, quality < 1 ? 1.5 : 2));
+
+const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 500);
+camera.position.set(0, 0, 12);
+
+const ctx = {
+  scene: new THREE.Scene(),
+  camera,
+  renderer,
+  quality,
+  pointer: { x: 0, y: 0 },  /* smoothed, -1..1, y up */
+};
+
+let piece;
+try {
+  piece = createScene(THREE, ctx);
+} catch (e) {
+  document.getElementById('err').style.display = 'grid';
+  document.getElementById('hud').hidden = true;
+  console.error(e);
+  throw e;
+}
+
+function resize() {
+  const w = window.innerWidth, h = window.innerHeight;
+  renderer.setSize(w, h, false);
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+  if (piece.resize) piece.resize(w, h);
+}
+window.addEventListener('resize', resize);
+resize();
+
+/* Pointer parallax target, lerped each frame for weight. */
+const target = { x: 0, y: 0 };
+window.addEventListener('pointermove', (e) => {
+  target.x = (e.clientX / window.innerWidth) * 2 - 1;
+  target.y = -((e.clientY / window.innerHeight) * 2 - 1);
+}, { passive: true });
+
+let userPaused = false;
+let hidden = false;
+let speed = 1;
+let t = 0;
+let last = performance.now();
+
+const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+function setPlayUi() {
+  btnPlay.textContent = userPaused ? 'Play' : 'Pause';
+  btnPlay.setAttribute('aria-pressed', String(userPaused));
+}
+btnPlay.addEventListener('click', () => {
+  userPaused = !userPaused;
+  note.hidden = true;
+  setPlayUi();
+  if (!userPaused) { last = performance.now(); loop(last); }
+});
+canvas.addEventListener('keydown', (e) => {
+  if (e.code === 'Space') { e.preventDefault(); btnPlay.click(); }
+});
+speedEl.addEventListener('input', () => { speed = parseFloat(speedEl.value) || 1; });
+
+btnPng.addEventListener('click', () => {
+  renderer.render(ctx.scene, camera);
+  canvas.toBlob((blob) => {
+    if (!blob) return;
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'inference-engine-3d.png';
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+  });
+});
+
+document.addEventListener('visibilitychange', () => {
+  hidden = document.hidden;
+  if (!hidden && !userPaused) { last = performance.now(); loop(last); }
+});
+
+let raf = 0;
+function frame(now) {
+  const dt = Math.min((now - last) / 1000, 0.1);
+  last = now;
+  t += dt * speed;
+  ctx.pointer.x += (target.x - ctx.pointer.x) * 0.06;
+  ctx.pointer.y += (target.y - ctx.pointer.y) * 0.06;
+  piece.update(t, dt * speed);
+  renderer.render(ctx.scene, camera);
+}
+function loop(now) {
+  if (userPaused || hidden) return;
+  frame(now);
+  raf = requestAnimationFrame(loop);
+}
+
+if (reduceMotion) {
+  /* Advance to a composed moment, render one still frame, and wait. */
+  for (let i = 0; i < 240; i++) { t += 1 / 60; piece.update(t, 1 / 60); }
+  renderer.render(ctx.scene, camera);
+  userPaused = true;
+  note.hidden = false;
+  setPlayUi();
+} else {
+  loop(performance.now());
+}
+</script>
+</body>
+</html>

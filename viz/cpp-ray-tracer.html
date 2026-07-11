@@ -1,0 +1,707 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <meta name="theme-color" content="#0E0C0A">
+  <title>C++ Ray Tracer in 3D · Salman Adnan</title>
+  <meta name="description" content="Rays Made Visible: an interactive 3D study of light paths bouncing through a Cornell-style box.">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="../assets/favicon.png" sizes="any">
+  <style>
+    :root { color-scheme: dark; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      background: #0E0C0A;
+      overflow: hidden;
+      font: 12px/1.4 ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+      color: rgba(255, 255, 255, 0.85);
+    }
+    #stage { position: fixed; inset: 0; }
+    canvas { display: block; width: 100%; height: 100%; outline: none; }
+    canvas:focus-visible { box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.6); }
+    #hud {
+      position: absolute; right: 12px; bottom: 12px;
+      display: flex; align-items: center; gap: 10px;
+      padding: 7px 10px; border-radius: 999px;
+      background: rgba(8, 8, 14, 0.55);
+      backdrop-filter: blur(6px);
+      opacity: 0.55; transition: opacity 0.25s ease;
+    }
+    #hud:hover, #hud:focus-within { opacity: 1; }
+    #hud button {
+      appearance: none; border: 1px solid rgba(255, 255, 255, 0.25);
+      background: transparent; color: inherit; font: inherit;
+      padding: 3px 10px; border-radius: 999px; cursor: pointer;
+    }
+    #hud button:hover { border-color: rgba(255, 255, 255, 0.6); }
+    #hud button:focus-visible, #hud input:focus-visible {
+      outline: 2px solid #fff; outline-offset: 2px;
+    }
+    #hud label { display: flex; align-items: center; gap: 6px; }
+    #hud input[type="range"] { width: 72px; accent-color: #FFC96B; }
+    #note {
+      position: absolute; left: 12px; bottom: 12px; max-width: 46ch;
+      padding: 8px 12px; border-radius: 10px;
+      background: rgba(8, 8, 14, 0.65);
+    }
+    #err {
+      position: absolute; inset: 0; display: none;
+      place-items: center; text-align: center; padding: 24px;
+    }
+    @media (max-width: 560px) {
+      #hud label { display: none; }
+    }
+  </style>
+</head>
+<body>
+<div id="stage">
+  <canvas id="c" tabindex="0" aria-label="Animated luminous rays entering a dim Cornell box, reflecting off a mirror sphere, bending through a glass sphere, and scattering off a diffuse one."></canvas>
+  <div id="hud" role="group" aria-label="Visualization controls">
+    <button id="btnPlay" type="button" aria-pressed="false">Pause</button>
+    <label for="speed">speed
+      <input id="speed" type="range" min="0.25" max="2" step="0.25" value="1"
+             aria-label="Animation speed">
+    </label>
+    <button id="btnPng" type="button">Save PNG</button>
+  </div>
+  <p id="note" hidden>Motion is paused because your system prefers reduced motion.
+     Press Play to animate.</p>
+  <div id="err"><p>This visualization needs WebGL, which is unavailable here.<br>
+     A screenshot of it lives on the project page.</p></div>
+</div>
+
+<script type="importmap">
+{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js" } }
+</script>
+<script type="module">
+import * as THREE from 'three';
+
+/* ================= scene: cpp-ray-tracer ================= */
+// Rays Made Visible
+// Concept: a path tracer's inner life. Gold rays enter a Cornell-style box and travel
+// polylines whose joints were precomputed at setup with real reflect and Snell refract
+// vector math against three analytic spheres; a bright head pulse rides each path.
+// Palette: bg warm dark #0E0C0A, ray gold #FFC96B, mirror ice #9FD4E8,
+//          glass violet #B48AE0, Cornell red #7A3A3A, Cornell green #3A6E4A.
+//          The Cornell box is ray tracing canon; gold light moving through a dim
+//          red-green room reads instantly as a renderer's interior.
+// Signature: a gold pulse enters the glass sphere and exits visibly bent, refracted twice.
+
+function createScene(THREE, ctx) {
+  const Q = ctx.quality;
+
+  // ---- tunables ----
+  const PATH_COUNT   = Math.max(12, Math.floor(30 * Q)); // precomputed ray paths
+  const PTS_PER_PATH = Math.max(28, Math.floor(60 * Q)); // glow samples along each path
+  const LINE_SAMPLES = 44;     // polyline samples per path for the faint beam
+  const PERIOD       = 9.0;    // seconds per pulse cycle on every path
+  const RAY_SPEED    = 9.5;    // world units per second for the head pulse
+  const IOR          = 1.5;    // glass index of refraction
+  const MAX_EVENTS   = 6;      // bounce budget per path
+  const SCATTER_RAYS = 4;      // fuzz rays sprayed at a diffuse hit
+  const ROOM = { hx: 5, floor: -4, ceil: 4, back: -4 }; // box extents, front open
+
+  const COL_GOLD   = new THREE.Color(0xFFC96B); // ray color at birth
+  const COL_ICE    = new THREE.Color(0x9FD4E8); // tint gained on mirror bounces
+  const COL_VIOLET = new THREE.Color(0xB48AE0); // tint gained inside glass
+  const COL_CLAY   = new THREE.Color(0xD9A06A); // scatter fuzz color
+
+  ctx.scene.background = new THREE.Color(0x0E0C0A);
+
+  const rand = (a, b) => a + Math.random() * (b - a);
+
+  // ---- analytic spheres the rays are traced against ----
+  const spheres = [
+    { c: new THREE.Vector3(-2.4, -2.4, -1.4), r: 1.6, kind: 'mirror' },
+    { c: new THREE.Vector3( 1.9, -2.6,  0.6), r: 1.4, kind: 'glass' },
+    { c: new THREE.Vector3( 0.4, -2.9, -2.6), r: 1.1, kind: 'diffuse' },
+  ];
+
+  // ---- real intersection and optics math (runs once at setup) ----
+  function sphereHit(o, d, s, fromInside) {
+    const oc = o.clone().sub(s.c);
+    const b = oc.dot(d);
+    const c = oc.lengthSq() - s.r * s.r;
+    const disc = b * b - c;
+    if (disc < 0) return Infinity;
+    const sq = Math.sqrt(disc);
+    if (fromInside) {
+      const t1 = -b + sq;
+      return t1 > 1e-4 ? t1 : Infinity;
+    }
+    const t0 = -b - sq;
+    if (t0 > 1e-4) return t0;
+    return Infinity;
+  }
+
+  // Snell refraction; n must oppose d; returns null on total internal reflection
+  function refractDir(d, n, eta) {
+    const cosi = -d.dot(n);
+    const k = 1 - eta * eta * (1 - cosi * cosi);
+    if (k < 0) return null;
+    return d.clone().multiplyScalar(eta).add(n.clone().multiplyScalar(eta * cosi - Math.sqrt(k)));
+  }
+
+  function reflectDir(d, n) {
+    return d.clone().sub(n.clone().multiplyScalar(2 * d.dot(n))).normalize();
+  }
+
+  function wallHit(o, d) {
+    const planes = [
+      [-ROOM.hx, 'x', 1], [ROOM.hx, 'x', -1],
+      [ROOM.floor, 'y', 1], [ROOM.ceil, 'y', -1],
+      [ROOM.back, 'z', 1],
+    ];
+    let bestT = Infinity;
+    let bestN = null;
+    for (let i = 0; i < planes.length; i++) {
+      const c = planes[i][0];
+      const ax = planes[i][1];
+      const ns = planes[i][2];
+      const dv = d[ax];
+      if (Math.abs(dv) < 1e-6) continue;
+      const t = (c - o[ax]) / dv;
+      if (t < 1e-3 || t >= bestT) continue;
+      const p = o.clone().addScaledVector(d, t);
+      let ok = true;
+      if (ax !== 'x' && Math.abs(p.x) > ROOM.hx + 0.02) ok = false;
+      if (ax !== 'y' && (p.y < ROOM.floor - 0.02 || p.y > ROOM.ceil + 0.02)) ok = false;
+      if (ax !== 'z' && (p.z < ROOM.back - 0.02 || p.z > (ax === 'y' ? 4.05 : 7.2))) ok = false;
+      if (!ok) continue;
+      bestT = t;
+      bestN = new THREE.Vector3(ax === 'x' ? ns : 0, ax === 'y' ? ns : 0, ax === 'z' ? ns : 0);
+    }
+    return { t: bestT, n: bestN };
+  }
+
+  function tracePath(origin, dir) {
+    const joints = [origin.clone()];
+    const cols = [COL_GOLD.clone()];
+    let o = origin.clone();
+    let d = dir.clone().normalize();
+    let col = COL_GOLD.clone();
+    let scatter = null;
+    for (let ev = 0; ev < MAX_EVENTS; ev++) {
+      let tBest = Infinity;
+      let hitS = null;
+      for (let s = 0; s < spheres.length; s++) {
+        const t = sphereHit(o, d, spheres[s], false);
+        if (t < tBest) { tBest = t; hitS = spheres[s]; }
+      }
+      const w = wallHit(o, d);
+      if (w.t < tBest) {
+        joints.push(o.clone().addScaledVector(d, w.t));
+        cols.push(col.clone());
+        break;
+      }
+      if (!hitS || !isFinite(tBest)) break;
+      const p = o.clone().addScaledVector(d, tBest);
+      const n = p.clone().sub(hitS.c).normalize();
+      joints.push(p.clone());
+      cols.push(col.clone());
+      if (hitS.kind === 'mirror') {
+        d = reflectDir(d, n);
+        col = col.clone().lerp(COL_ICE, 0.5);
+        o = p.clone().addScaledVector(d, 1e-3);
+      } else if (hitS.kind === 'glass') {
+        const rd = refractDir(d, n, 1 / IOR);
+        if (!rd) {
+          d = reflectDir(d, n);
+          col = col.clone().lerp(COL_VIOLET, 0.25);
+          o = p.clone().addScaledVector(d, 1e-3);
+        } else {
+          col = col.clone().lerp(COL_VIOLET, 0.55);
+          let id = rd.normalize();
+          let ip = p.clone().addScaledVector(id, 1e-3);
+          let out = null;
+          for (let k = 0; k < 3 && !out; k++) {
+            const ti = sphereHit(ip, id, hitS, true);
+            if (!isFinite(ti)) break;
+            const ep = ip.clone().addScaledVector(id, ti);
+            const en = ep.clone().sub(hitS.c).normalize();
+            joints.push(ep.clone());
+            cols.push(col.clone());
+            const od = refractDir(id, en.clone().negate(), IOR);
+            if (od) {
+              out = { p: ep, d: od.normalize() };
+            } else {
+              id = reflectDir(id, en);
+              ip = ep.clone().addScaledVector(id, 1e-3);
+            }
+          }
+          if (!out) break;
+          d = out.d;
+          col = col.clone().lerp(COL_GOLD, 0.2);
+          o = out.p.clone().addScaledVector(d, 1e-3);
+        }
+      } else {
+        scatter = { p: p.clone(), n: n.clone() };
+        break;
+      }
+    }
+    return { joints, cols, scatter };
+  }
+
+  function pathLength(joints) {
+    let total = 0;
+    for (let i = 1; i < joints.length; i++) total += joints[i].distanceTo(joints[i - 1]);
+    return total;
+  }
+
+  function resample(joints, cols, count) {
+    const lens = [0];
+    let total = 0;
+    for (let i = 1; i < joints.length; i++) {
+      total += joints[i].distanceTo(joints[i - 1]);
+      lens.push(total);
+    }
+    const out = [];
+    for (let i = 0; i < count; i++) {
+      const target = (i / (count - 1)) * total;
+      let s = 1;
+      while (s < lens.length - 1 && lens[s] < target) s++;
+      const l0 = lens[s - 1];
+      const l1 = lens[s];
+      const f = l1 > l0 ? (target - l0) / (l1 - l0) : 0;
+      out.push({
+        p: joints[s - 1].clone().lerp(joints[s], f),
+        c: cols[s - 1].clone().lerp(cols[s], f),
+        t: total > 0 ? target / total : 0,
+      });
+    }
+    return out;
+  }
+
+  // ---- build the ray buffers ----
+  const pPos = [], pT = [], pPhase = [], pDur = [], pSize = [], pCol = [];
+  const lPos = [], lT = [], lPhase = [], lDur = [], lCol = [];
+
+  let made = 0;
+  let guard = 0;
+  while (made < PATH_COUNT && guard++ < PATH_COUNT * 60) {
+    const target = spheres[[0, 1, 1, 2, 0, 1, 2][made % 7]];
+    const origin = new THREE.Vector3(rand(-3.4, 3.4), rand(-1.6, 2.6), 6.8);
+    const jitter = new THREE.Vector3(rand(-1, 1), rand(-1, 1), rand(-1, 1))
+      .normalize().multiplyScalar(target.r * rand(0.05, 0.6));
+    const dir = target.c.clone().add(jitter).sub(origin).normalize();
+    const traced = tracePath(origin, dir);
+    if (traced.joints.length < 3 && !traced.scatter) continue;
+    const total = pathLength(traced.joints);
+    if (total < 7) continue;
+
+    const phase = (made * 0.618034 + rand(0, 0.1)) % 1;
+    const dur = THREE.MathUtils.clamp(total / (RAY_SPEED * PERIOD), 0.16, 0.52);
+
+    const pts = resample(traced.joints, traced.cols, PTS_PER_PATH);
+    for (let i = 0; i < pts.length; i++) {
+      const s = pts[i];
+      pPos.push(s.p.x, s.p.y, s.p.z);
+      pT.push(s.t);
+      pPhase.push(phase);
+      pDur.push(dur);
+      pSize.push(rand(0.75, 1.15));
+      pCol.push(s.c.r, s.c.g, s.c.b);
+    }
+
+    const ln = resample(traced.joints, traced.cols, LINE_SAMPLES);
+    for (let i = 0; i < ln.length - 1; i++) {
+      const a = ln[i], b = ln[i + 1];
+      lPos.push(a.p.x, a.p.y, a.p.z, b.p.x, b.p.y, b.p.z);
+      lT.push(a.t, b.t);
+      lPhase.push(phase, phase);
+      lDur.push(dur, dur);
+      lCol.push(a.c.r, a.c.g, a.c.b, b.c.r, b.c.g, b.c.b);
+    }
+
+    if (traced.scatter) {
+      const sp = traced.scatter.p;
+      const sn = traced.scatter.n;
+      for (let rIdx = 0; rIdx < SCATTER_RAYS; rIdx++) {
+        const dirS = sn.clone()
+          .add(new THREE.Vector3(rand(-1, 1), rand(-1, 1), rand(-1, 1)).multiplyScalar(0.85))
+          .normalize();
+        for (let j = 1; j <= 5; j++) {
+          const f = j / 5;
+          const p = sp.clone().addScaledVector(dirS, 0.95 * f);
+          pPos.push(p.x, p.y, p.z);
+          pT.push(1.0 + f * 0.15);
+          pPhase.push(phase);
+          pDur.push(dur);
+          pSize.push(0.62 * (1 - f * 0.45));
+          pCol.push(COL_CLAY.r, COL_CLAY.g, COL_CLAY.b);
+        }
+      }
+    }
+    made++;
+  }
+
+  const uTime = { value: 0 };
+  const uFlicker = { value: 1 };
+
+  const pulseVert = `
+    attribute float aT;
+    attribute float aPhase;
+    attribute float aDur;
+    attribute float aSize;
+    attribute vec3 aCol;
+    uniform float uTime;
+    uniform float uPeriod;
+    varying float vB;
+    varying vec3 vCol;
+    void main() {
+      float prog = fract(uTime / uPeriod + aPhase);
+      float local = prog / aDur;
+      float head = local * 1.18;
+      float behind = max(head - aT, 0.0);
+      float lit = step(aT, head);
+      float trail = exp(-behind * 5.0) * lit;
+      float glow = exp(-behind * 0.8) * 0.22 * lit;
+      float hg = exp(-pow((aT - head) * 30.0, 2.0)) * 2.2;
+      float env = smoothstep(0.0, 0.05, local) * (1.0 - smoothstep(0.92, 1.0, local)) * step(local, 1.0);
+      vB = (trail + glow + hg) * env;
+      vCol = aCol;
+      vec4 mv = modelViewMatrix * vec4(position, 1.0);
+      gl_PointSize = aSize * (150.0 / -mv.z) * (0.75 + min(hg, 2.2) * 0.35);
+      gl_Position = projectionMatrix * mv;
+    }
+  `;
+  const pulseFrag = `
+    varying float vB;
+    varying vec3 vCol;
+    void main() {
+      float d = length(gl_PointCoord - 0.5);
+      float a = smoothstep(0.5, 0.06, d);
+      float core = smoothstep(0.22, 0.0, d) * 0.6;
+      vec3 col = vCol * vB * (1.0 + core);
+      gl_FragColor = vec4(col, a * clamp(vB, 0.0, 1.0));
+    }
+  `;
+
+  const pulseGeo = new THREE.BufferGeometry();
+  pulseGeo.setAttribute('position', new THREE.Float32BufferAttribute(pPos, 3));
+  pulseGeo.setAttribute('aT', new THREE.Float32BufferAttribute(pT, 1));
+  pulseGeo.setAttribute('aPhase', new THREE.Float32BufferAttribute(pPhase, 1));
+  pulseGeo.setAttribute('aDur', new THREE.Float32BufferAttribute(pDur, 1));
+  pulseGeo.setAttribute('aSize', new THREE.Float32BufferAttribute(pSize, 1));
+  pulseGeo.setAttribute('aCol', new THREE.Float32BufferAttribute(pCol, 3));
+  const pulseMat = new THREE.ShaderMaterial({
+    vertexShader: pulseVert,
+    fragmentShader: pulseFrag,
+    uniforms: { uTime: uTime, uPeriod: { value: PERIOD } },
+    blending: THREE.AdditiveBlending,
+    transparent: true,
+    depthWrite: false,
+  });
+  const pulsePts = new THREE.Points(pulseGeo, pulseMat);
+  pulsePts.frustumCulled = false;
+  pulsePts.renderOrder = 3;
+  ctx.scene.add(pulsePts);
+
+  const beamVert = `
+    attribute float aT;
+    attribute float aPhase;
+    attribute float aDur;
+    attribute vec3 aCol;
+    uniform float uTime;
+    uniform float uPeriod;
+    varying float vB;
+    varying vec3 vCol;
+    void main() {
+      float prog = fract(uTime / uPeriod + aPhase);
+      float local = prog / aDur;
+      float head = local * 1.18;
+      float behind = max(head - aT, 0.0);
+      float trail = exp(-behind * 1.6) * step(aT, head);
+      float env = smoothstep(0.0, 0.05, local) * (1.0 - smoothstep(0.9, 1.0, local)) * step(local, 1.0);
+      vB = trail * env * 0.16;
+      vCol = aCol;
+      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    }
+  `;
+  const beamFrag = `
+    varying float vB;
+    varying vec3 vCol;
+    void main() {
+      gl_FragColor = vec4(vCol * vB * 2.0, vB);
+    }
+  `;
+
+  const beamGeo = new THREE.BufferGeometry();
+  beamGeo.setAttribute('position', new THREE.Float32BufferAttribute(lPos, 3));
+  beamGeo.setAttribute('aT', new THREE.Float32BufferAttribute(lT, 1));
+  beamGeo.setAttribute('aPhase', new THREE.Float32BufferAttribute(lPhase, 1));
+  beamGeo.setAttribute('aDur', new THREE.Float32BufferAttribute(lDur, 1));
+  beamGeo.setAttribute('aCol', new THREE.Float32BufferAttribute(lCol, 3));
+  const beamMat = new THREE.ShaderMaterial({
+    vertexShader: beamVert,
+    fragmentShader: beamFrag,
+    uniforms: { uTime: uTime, uPeriod: { value: PERIOD } },
+    blending: THREE.AdditiveBlending,
+    transparent: true,
+    depthWrite: false,
+  });
+  const beams = new THREE.LineSegments(beamGeo, beamMat);
+  beams.frustumCulled = false;
+  beams.renderOrder = 2;
+  ctx.scene.add(beams);
+
+  // ---- the Cornell room ----
+  const wallVert = `
+    varying vec3 vW;
+    varying vec3 vN;
+    void main() {
+      vec4 w = modelMatrix * vec4(position, 1.0);
+      vW = w.xyz;
+      vN = normalize(mat3(modelMatrix) * normal);
+      gl_Position = projectionMatrix * viewMatrix * w;
+    }
+  `;
+  const wallFrag = `
+    uniform vec3 uColor;
+    uniform float uFlicker;
+    varying vec3 vW;
+    varying vec3 vN;
+    void main() {
+      vec3 L = vec3(0.0, 3.8, 0.3);
+      vec3 toL = L - vW;
+      float d2 = dot(toL, toL);
+      float lam = max(dot(normalize(vN), normalize(toL)), 0.0);
+      float li = uFlicker * 10.0 / (1.0 + d2 * 0.55);
+      vec3 col = uColor * (0.14 + li * lam * 0.55);
+      gl_FragColor = vec4(col, 1.0);
+    }
+  `;
+
+  function makeWall(w, h, color, px, py, pz, rx, ry) {
+    const mat = new THREE.ShaderMaterial({
+      vertexShader: wallVert,
+      fragmentShader: wallFrag,
+      uniforms: { uColor: { value: new THREE.Color(color) }, uFlicker: uFlicker },
+    });
+    const mesh = new THREE.Mesh(new THREE.PlaneGeometry(w, h), mat);
+    mesh.position.set(px, py, pz);
+    mesh.rotation.set(rx, ry, 0);
+    ctx.scene.add(mesh);
+    return mesh;
+  }
+  makeWall(10, 8, 0x4A4038, 0, ROOM.floor, 0, -Math.PI / 2, 0);       // floor
+  makeWall(10, 8, 0x3E3630, 0, ROOM.ceil, 0, Math.PI / 2, 0);         // ceiling
+  makeWall(10, 8, 0x453C34, 0, 0, ROOM.back, 0, 0);                   // back
+  makeWall(8, 8, 0x7A3A3A, -ROOM.hx, 0, 0, 0, Math.PI / 2);           // Cornell red left
+  makeWall(8, 8, 0x3A6E4A, ROOM.hx, 0, 0, 0, -Math.PI / 2);           // Cornell green right
+
+  // ---- the three spheres, shaded to read as mirror, glass, and clay ----
+  const sphVert = wallVert;
+  const sphFrag = `
+    uniform vec3 uColor;
+    uniform vec3 uRim;
+    uniform float uSpecAmt;
+    uniform float uShin;
+    uniform float uOpacity;
+    uniform float uFlicker;
+    varying vec3 vW;
+    varying vec3 vN;
+    void main() {
+      vec3 N = normalize(vN);
+      vec3 V = normalize(cameraPosition - vW);
+      vec3 L = normalize(vec3(0.0, 3.8, 0.3) - vW);
+      float diff = max(dot(N, L), 0.0);
+      vec3 H = normalize(L + V);
+      float spec = pow(max(dot(N, H), 0.0), uShin) * uSpecAmt;
+      float fres = pow(1.0 - max(dot(N, V), 0.0), 3.0);
+      vec3 col = uColor * (0.10 + 0.7 * diff * uFlicker)
+               + uRim * fres * 0.85
+               + vec3(1.0, 0.97, 0.9) * spec * uFlicker;
+      gl_FragColor = vec4(col, uOpacity);
+    }
+  `;
+
+  function makeSphere(s, color, rim, specAmt, shin, opacity, transparent) {
+    const mat = new THREE.ShaderMaterial({
+      vertexShader: sphVert,
+      fragmentShader: sphFrag,
+      uniforms: {
+        uColor: { value: new THREE.Color(color) },
+        uRim: { value: new THREE.Color(rim) },
+        uSpecAmt: { value: specAmt },
+        uShin: { value: shin },
+        uOpacity: { value: opacity },
+        uFlicker: uFlicker,
+      },
+      transparent: transparent,
+      depthWrite: !transparent,
+    });
+    const mesh = new THREE.Mesh(new THREE.SphereGeometry(s.r, 48, 32), mat);
+    mesh.position.copy(s.c);
+    if (transparent) mesh.renderOrder = 1;
+    ctx.scene.add(mesh);
+    return mesh;
+  }
+  makeSphere(spheres[0], 0x2A3E48, 0x9FD4E8, 1.2, 90, 1.0, false);   // mirror, ice tinted
+  makeSphere(spheres[1], 0x2E2440, 0xB48AE0, 0.9, 60, 0.42, true);   // glass, violet tinted
+  makeSphere(spheres[2], 0x8A6A50, 0x3A2E26, 0.05, 8, 1.0, false);   // diffuse clay
+
+  // ---- the ceiling light quad, source of the flicker ----
+  const lightBase = new THREE.Color(0xFFE9C8);
+  const lightMat = new THREE.MeshBasicMaterial({ color: 0xFFE9C8 });
+  const lightQuad = new THREE.Mesh(new THREE.PlaneGeometry(2.6, 1.9), lightMat);
+  lightQuad.position.set(0, ROOM.ceil - 0.02, 0.3);
+  lightQuad.rotation.x = Math.PI / 2;
+  ctx.scene.add(lightQuad);
+
+  ctx.camera.position.set(0, 0.7, 11.2);
+  ctx.camera.lookAt(0, -0.8, -0.6);
+
+  return {
+    update(t, dt) {
+      uTime.value = t;
+      const f = 0.85 + 0.10 * Math.sin(t * 12.7) * Math.sin(t * 7.3) + 0.05 * Math.sin(t * 2.3);
+      uFlicker.value = f;
+      lightMat.color.copy(lightBase).multiplyScalar(0.75 + 0.35 * f);
+      const px = ctx.pointer.x;
+      const py = ctx.pointer.y;
+      const a = t * 0.055 + px * 0.30;
+      ctx.camera.position.set(
+        Math.sin(a) * 2.6 + px * 1.2,
+        0.7 + Math.sin(t * 0.09) * 0.5 + py * 1.3,
+        11.2
+      );
+      ctx.camera.lookAt(0, -0.8, -0.6);
+    },
+  };
+}
+
+/* ================= shared runtime ================= */
+
+const canvas = document.getElementById('c');
+const btnPlay = document.getElementById('btnPlay');
+const speedEl = document.getElementById('speed');
+const btnPng = document.getElementById('btnPng');
+const note = document.getElementById('note');
+
+let renderer;
+try {
+  renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
+} catch (e) {
+  document.getElementById('err').style.display = 'grid';
+  document.getElementById('hud').hidden = true;
+  throw e;
+}
+
+/* Quality tier: 1 on desktop, lower on small screens or few cores.
+   Scenes scale particle counts by ctx.quality. */
+const small = Math.min(window.innerWidth, window.innerHeight) < 700;
+const weak = (navigator.hardwareConcurrency || 8) <= 4;
+const quality = small ? 0.5 : (weak ? 0.7 : 1);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, quality < 1 ? 1.5 : 2));
+
+const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 500);
+camera.position.set(0, 0, 12);
+
+const ctx = {
+  scene: new THREE.Scene(),
+  camera,
+  renderer,
+  quality,
+  pointer: { x: 0, y: 0 },  /* smoothed, -1..1, y up */
+};
+
+let piece;
+try {
+  piece = createScene(THREE, ctx);
+} catch (e) {
+  document.getElementById('err').style.display = 'grid';
+  document.getElementById('hud').hidden = true;
+  console.error(e);
+  throw e;
+}
+
+function resize() {
+  const w = window.innerWidth, h = window.innerHeight;
+  renderer.setSize(w, h, false);
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+  if (piece.resize) piece.resize(w, h);
+}
+window.addEventListener('resize', resize);
+resize();
+
+/* Pointer parallax target, lerped each frame for weight. */
+const target = { x: 0, y: 0 };
+window.addEventListener('pointermove', (e) => {
+  target.x = (e.clientX / window.innerWidth) * 2 - 1;
+  target.y = -((e.clientY / window.innerHeight) * 2 - 1);
+}, { passive: true });
+
+let userPaused = false;
+let hidden = false;
+let speed = 1;
+let t = 0;
+let last = performance.now();
+
+const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+function setPlayUi() {
+  btnPlay.textContent = userPaused ? 'Play' : 'Pause';
+  btnPlay.setAttribute('aria-pressed', String(userPaused));
+}
+btnPlay.addEventListener('click', () => {
+  userPaused = !userPaused;
+  note.hidden = true;
+  setPlayUi();
+  if (!userPaused) { last = performance.now(); loop(last); }
+});
+canvas.addEventListener('keydown', (e) => {
+  if (e.code === 'Space') { e.preventDefault(); btnPlay.click(); }
+});
+speedEl.addEventListener('input', () => { speed = parseFloat(speedEl.value) || 1; });
+
+btnPng.addEventListener('click', () => {
+  renderer.render(ctx.scene, camera);
+  canvas.toBlob((blob) => {
+    if (!blob) return;
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'cpp-ray-tracer-3d.png';
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+  });
+});
+
+document.addEventListener('visibilitychange', () => {
+  hidden = document.hidden;
+  if (!hidden && !userPaused) { last = performance.now(); loop(last); }
+});
+
+let raf = 0;
+function frame(now) {
+  const dt = Math.min((now - last) / 1000, 0.1);
+  last = now;
+  t += dt * speed;
+  ctx.pointer.x += (target.x - ctx.pointer.x) * 0.06;
+  ctx.pointer.y += (target.y - ctx.pointer.y) * 0.06;
+  piece.update(t, dt * speed);
+  renderer.render(ctx.scene, camera);
+}
+function loop(now) {
+  if (userPaused || hidden) return;
+  frame(now);
+  raf = requestAnimationFrame(loop);
+}
+
+if (reduceMotion) {
+  /* Advance to a composed moment, render one still frame, and wait. */
+  for (let i = 0; i < 240; i++) { t += 1 / 60; piece.update(t, 1 / 60); }
+  renderer.render(ctx.scene, camera);
+  userPaused = true;
+  note.hidden = false;
+  setPlayUi();
+} else {
+  loop(performance.now());
+}
+</script>
+</body>
+</html>

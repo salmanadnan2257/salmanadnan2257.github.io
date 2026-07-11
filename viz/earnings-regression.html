@@ -1,0 +1,565 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <meta name="theme-color" content="#0C1410">
+  <title>Earnings Regression in 3D · Salman Adnan</title>
+  <meta name="description" content="The Fitting Surface: an interactive 3D study of a regression plane settling onto scattered data.">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="../assets/favicon.png" sizes="any">
+  <style>
+    :root { color-scheme: dark; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      background: #0C1410;
+      overflow: hidden;
+      font: 12px/1.4 ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+      color: rgba(255, 255, 255, 0.85);
+    }
+    #stage { position: fixed; inset: 0; }
+    canvas { display: block; width: 100%; height: 100%; outline: none; }
+    canvas:focus-visible { box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.6); }
+    #hud {
+      position: absolute; right: 12px; bottom: 12px;
+      display: flex; align-items: center; gap: 10px;
+      padding: 7px 10px; border-radius: 999px;
+      background: rgba(8, 8, 14, 0.55);
+      backdrop-filter: blur(6px);
+      opacity: 0.55; transition: opacity 0.25s ease;
+    }
+    #hud:hover, #hud:focus-within { opacity: 1; }
+    #hud button {
+      appearance: none; border: 1px solid rgba(255, 255, 255, 0.25);
+      background: transparent; color: inherit; font: inherit;
+      padding: 3px 10px; border-radius: 999px; cursor: pointer;
+    }
+    #hud button:hover { border-color: rgba(255, 255, 255, 0.6); }
+    #hud button:focus-visible, #hud input:focus-visible {
+      outline: 2px solid #fff; outline-offset: 2px;
+    }
+    #hud label { display: flex; align-items: center; gap: 6px; }
+    #hud input[type="range"] { width: 72px; accent-color: #4FB89A; }
+    #note {
+      position: absolute; left: 12px; bottom: 12px; max-width: 46ch;
+      padding: 8px 12px; border-radius: 10px;
+      background: rgba(8, 8, 14, 0.65);
+    }
+    #err {
+      position: absolute; inset: 0; display: none;
+      place-items: center; text-align: center; padding: 24px;
+    }
+    @media (max-width: 560px) {
+      #hud label { display: none; }
+    }
+  </style>
+</head>
+<body>
+<div id="stage">
+  <canvas id="c" tabindex="0" aria-label="Animated 3D scatter of data points over a plane while a translucent regression surface ripples, fits, and settles, residual lines shrinking."></canvas>
+  <div id="hud" role="group" aria-label="Visualization controls">
+    <button id="btnPlay" type="button" aria-pressed="false">Pause</button>
+    <label for="speed">speed
+      <input id="speed" type="range" min="0.25" max="2" step="0.25" value="1"
+             aria-label="Animation speed">
+    </label>
+    <button id="btnPng" type="button">Save PNG</button>
+  </div>
+  <p id="note" hidden>Motion is paused because your system prefers reduced motion.
+     Press Play to animate.</p>
+  <div id="err"><p>This visualization needs WebGL, which is unavailable here.<br>
+     A screenshot of it lives on the project page.</p></div>
+</div>
+
+<script type="importmap">
+{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js" } }
+</script>
+<script type="module">
+import * as THREE from 'three';
+
+/* ================= scene: earnings-regression ================= */
+// THE FITTING SURFACE
+// Concept: a translucent regression plane ripples over a chalk scatter of
+//          earnings data and iteratively settles onto the true least-squares
+//          fit while coral residual lines breathe down to near-nothing.
+// Palette: bg chalkboard green-black #0C1410, point chalk #EAE6D8, surface teal
+//          #4FB89A, residual coral #E87A5A, grid dim #2A3A32 (plus a warm ivory
+//          tint of chalk for points sitting close to the surface).
+//          Justification: a chalkboard econometrics mood, coral error against
+//          a calm teal fit.
+// Signature: residual lines shrinking as the surface gives in to the data.
+
+function createScene(THREE, ctx) {
+  const Q = ctx.quality;
+
+  // Tunables
+  const N = Math.floor(500 * Q);     // data points (and residual lines)
+  const SURF_SEG = Math.max(28, Math.floor(44 * Q)); // surface grid segments
+  const HALF = 4.6;                  // surface half-extent in x and z
+  const T_FIT = 8.0;                 // seconds the fit takes
+  const T_HOLD = 3.0;                // clean settled beat
+  const T_RESAMPLE = 3.0;            // data eases to a fresh sample
+  const CYCLE = T_FIT + T_HOLD + T_RESAMPLE;
+  const NOISE_SD = 0.85;             // vertical noise on the synthetic data
+  const RIP_AMP = 0.85;              // initial ripple amplitude of the surface
+  const BG = 0x0C1410;
+
+  ctx.scene.background = new THREE.Color(BG);
+  ctx.scene.fog = new THREE.FogExp2(BG, 0.015);
+
+  const px = ctx.renderer.getPixelRatio();
+
+  // Shared uniforms: surface, points and residuals must agree exactly.
+  const shared = {
+    uTime: { value: 0 },
+    uPlane: { value: new THREE.Vector3(0, 0, 0) }, // y = x*a + z*b + c
+    uRip: { value: RIP_AMP },
+    uData: { value: 0 }                            // resample mix 0..1
+  };
+
+  // Ripple used by every shader (analytic, loops forever).
+  const RIPPLE_GLSL = `
+  float ripple(vec2 p, float t){
+    return 0.6 * sin(p.x * 1.9 + t * 2.4) * cos(p.y * 1.6 - t * 2.0)
+         + 0.4 * sin((p.x + p.y) * 2.7 + t * 3.0);
+  }
+  float surfaceY(vec2 p, vec3 pl, float rip, float t){
+    return pl.x * p.x + pl.y * p.y + pl.z + rip * ripple(p, t);
+  }`;
+
+  // Synthetic data: earnings over (schooling, experience), upward trend + noise.
+  function gauss() { return (Math.random() + Math.random() + Math.random()) - 1.5; }
+  function genData(arr) {
+    for (let i = 0; i < N; i++) {
+      const x = (Math.random() * 2 - 1) * 4.0;
+      const z = (Math.random() * 2 - 1) * 4.0;
+      let y = 0.42 * x + 0.30 * z + 0.3 + gauss() * NOISE_SD;
+      y = Math.max(-3.0, Math.min(3.4, y));
+      arr[i * 3] = x; arr[i * 3 + 1] = y; arr[i * 3 + 2] = z;
+    }
+  }
+
+  // Least squares plane through data: solve the 3x3 normal equations.
+  function lsq(arr) {
+    let sxx = 0, sxz = 0, sx = 0, szz = 0, sz = 0, sxy = 0, szy = 0, sy = 0;
+    for (let i = 0; i < N; i++) {
+      const x = arr[i * 3], y = arr[i * 3 + 1], z = arr[i * 3 + 2];
+      sxx += x * x; sxz += x * z; sx += x; szz += z * z; sz += z;
+      sxy += x * y; szy += z * y; sy += y;
+    }
+    const n = N;
+    const det = sxx * (szz * n - sz * sz) - sxz * (sxz * n - sz * sx) + sx * (sxz * sz - szz * sx);
+    if (Math.abs(det) < 1e-8) return new THREE.Vector3(0.4, 0.3, 0.3);
+    const a = (sxy * (szz * n - sz * sz) - sxz * (szy * n - sz * sy) + sx * (szy * sz - szz * sy)) / det;
+    const b = (sxx * (szy * n - sz * sy) - sxy * (sxz * n - sz * sx) + sx * (sxz * sy - szy * sx)) / det;
+    const c = (sxx * (szz * sy - szy * sz) - sxz * (sxz * sy - szy * sx) + sxy * (sxz * sz - szz * sx)) / det;
+    return new THREE.Vector3(a, b, c);
+  }
+
+  const dataA = new Float32Array(N * 3);
+  const dataB = new Float32Array(N * 3);
+  genData(dataA);
+  dataB.set(dataA);
+
+  // Scatter points
+  const pGeo = new THREE.BufferGeometry();
+  pGeo.setAttribute('position', new THREE.Float32BufferAttribute(new Float32Array(N * 3), 3));
+  pGeo.setAttribute('aPosB', new THREE.Float32BufferAttribute(new Float32Array(N * 3), 3));
+  const pSeed = new Float32Array(N);
+  for (let i = 0; i < N; i++) pSeed[i] = Math.random() * 100;
+  pGeo.setAttribute('aSeed', new THREE.Float32BufferAttribute(pSeed, 1));
+
+  const pMat = new THREE.ShaderMaterial({
+    uniforms: {
+      uTime: shared.uTime, uPlane: shared.uPlane, uRip: shared.uRip, uData: shared.uData,
+      uPx: { value: px },
+      uChalk: { value: new THREE.Color(0xEAE6D8) },
+      uWarm: { value: new THREE.Color(0xF2D8B8) }
+    },
+    transparent: true,
+    depthWrite: false,
+    blending: THREE.AdditiveBlending,
+    vertexShader: `
+      uniform float uTime; uniform vec3 uPlane; uniform float uRip;
+      uniform float uData; uniform float uPx;
+      uniform vec3 uChalk; uniform vec3 uWarm;
+      attribute vec3 aPosB;
+      attribute float aSeed;
+      varying vec3 vColor;
+      varying float vAlpha;
+      ${RIPPLE_GLSL}
+      void main(){
+        float e = smoothstep(0.0, 1.0, clamp(uData * 1.3 - fract(aSeed * 3.7) * 0.3, 0.0, 1.0));
+        vec3 p = mix(position, aPosB, e);
+        float surf = surfaceY(p.xz, uPlane, uRip, uTime);
+        float warm = smoothstep(1.1, 0.1, abs(p.y - surf));
+        float tw = 0.8 + 0.2 * sin(uTime * 0.9 + aSeed * 17.0);
+        vColor = mix(uChalk * 0.85, uWarm, warm * 0.65) * tw;
+        vAlpha = 0.85;
+        vec4 mv = modelViewMatrix * vec4(p, 1.0);
+        gl_PointSize = uPx * (2.5 + warm * 0.9) * (110.0 / -mv.z);
+        gl_Position = projectionMatrix * mv;
+      }`,
+    fragmentShader: `
+      varying vec3 vColor;
+      varying float vAlpha;
+      void main(){
+        float d = length(gl_PointCoord - 0.5);
+        float alpha = smoothstep(0.5, 0.08, d) * vAlpha;
+        if (alpha < 0.02) discard;
+        gl_FragColor = vec4(vColor, alpha);
+      }`
+  });
+  ctx.scene.add(new THREE.Points(pGeo, pMat));
+
+  // Residual lines: two vertices per datum, the bottom one clamps to the surface.
+  const lGeo = new THREE.BufferGeometry();
+  lGeo.setAttribute('position', new THREE.Float32BufferAttribute(new Float32Array(N * 2 * 3), 3));
+  lGeo.setAttribute('aPosB', new THREE.Float32BufferAttribute(new Float32Array(N * 2 * 3), 3));
+  const lSeed = new Float32Array(N * 2);
+  const lBottom = new Float32Array(N * 2);
+  for (let i = 0; i < N; i++) {
+    lSeed[i * 2] = pSeed[i]; lSeed[i * 2 + 1] = pSeed[i];
+    lBottom[i * 2] = 0; lBottom[i * 2 + 1] = 1;
+  }
+  lGeo.setAttribute('aSeed', new THREE.Float32BufferAttribute(lSeed, 1));
+  lGeo.setAttribute('aBottom', new THREE.Float32BufferAttribute(lBottom, 1));
+
+  const lMat = new THREE.ShaderMaterial({
+    uniforms: {
+      uTime: shared.uTime, uPlane: shared.uPlane, uRip: shared.uRip, uData: shared.uData,
+      uCoral: { value: new THREE.Color(0xE87A5A) }
+    },
+    transparent: true,
+    depthWrite: false,
+    blending: THREE.AdditiveBlending,
+    vertexShader: `
+      uniform float uTime; uniform vec3 uPlane; uniform float uRip; uniform float uData;
+      attribute vec3 aPosB;
+      attribute float aSeed;
+      attribute float aBottom;
+      varying float vAlpha;
+      ${RIPPLE_GLSL}
+      void main(){
+        float e = smoothstep(0.0, 1.0, clamp(uData * 1.3 - fract(aSeed * 3.7) * 0.3, 0.0, 1.0));
+        vec3 p = mix(position, aPosB, e);
+        float surf = surfaceY(p.xz, uPlane, uRip, uTime);
+        vec3 wp = mix(p, vec3(p.x, surf, p.z), aBottom);
+        vAlpha = clamp(abs(p.y - surf) * 0.45, 0.04, 0.6);
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(wp, 1.0);
+      }`,
+    fragmentShader: `
+      uniform vec3 uCoral;
+      varying float vAlpha;
+      void main(){
+        gl_FragColor = vec4(uCoral, vAlpha);
+      }`
+  });
+  ctx.scene.add(new THREE.LineSegments(lGeo, lMat));
+
+  // Regression surface: hand-built indexed grid with uv for the edge glow.
+  const sv = new Float32Array((SURF_SEG + 1) * (SURF_SEG + 1) * 3);
+  const suv = new Float32Array((SURF_SEG + 1) * (SURF_SEG + 1) * 2);
+  const sIdx = [];
+  for (let j = 0; j <= SURF_SEG; j++) {
+    for (let i = 0; i <= SURF_SEG; i++) {
+      const k = j * (SURF_SEG + 1) + i;
+      sv[k * 3] = (i / SURF_SEG - 0.5) * 2 * HALF;
+      sv[k * 3 + 1] = 0;
+      sv[k * 3 + 2] = (j / SURF_SEG - 0.5) * 2 * HALF;
+      suv[k * 2] = i / SURF_SEG;
+      suv[k * 2 + 1] = j / SURF_SEG;
+    }
+  }
+  for (let j = 0; j < SURF_SEG; j++) {
+    for (let i = 0; i < SURF_SEG; i++) {
+      const a = j * (SURF_SEG + 1) + i, b = a + 1, c = a + SURF_SEG + 1, d = c + 1;
+      sIdx.push(a, c, b, b, c, d);
+    }
+  }
+  const sGeo = new THREE.BufferGeometry();
+  sGeo.setAttribute('position', new THREE.Float32BufferAttribute(sv, 3));
+  sGeo.setAttribute('uv', new THREE.Float32BufferAttribute(suv, 2));
+  sGeo.setIndex(sIdx);
+
+  const sMat = new THREE.ShaderMaterial({
+    uniforms: {
+      uTime: shared.uTime, uPlane: shared.uPlane, uRip: shared.uRip,
+      uGlow: { value: 0 },
+      uTeal: { value: new THREE.Color(0x4FB89A) }
+    },
+    transparent: true,
+    depthWrite: false,
+    side: THREE.DoubleSide,
+    vertexShader: `
+      uniform float uTime; uniform vec3 uPlane; uniform float uRip;
+      varying vec2 vUv2;
+      ${RIPPLE_GLSL}
+      void main(){
+        vec3 p = position;
+        p.y = surfaceY(p.xz, uPlane, uRip, uTime);
+        vUv2 = uv;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(p, 1.0);
+      }`,
+    fragmentShader: `
+      uniform vec3 uTeal; uniform float uGlow;
+      varying vec2 vUv2;
+      void main(){
+        float ex = min(vUv2.x, 1.0 - vUv2.x);
+        float ey = min(vUv2.y, 1.0 - vUv2.y);
+        float edge = 1.0 - smoothstep(0.0, 0.06, min(ex, ey));
+        vec2 g = abs(fract(vUv2 * 16.0) - 0.5);
+        float grid = smoothstep(0.44, 0.5, max(g.x, g.y)) * 0.08;
+        float a = 0.15 + grid + edge * (0.14 + uGlow * 0.45);
+        vec3 col = uTeal * (0.75 + edge * (0.4 + uGlow * 0.9));
+        gl_FragColor = vec4(col, a);
+      }`
+  });
+  ctx.scene.add(new THREE.Mesh(sGeo, sMat));
+
+  // Quiet floor grid.
+  const gridPts = [];
+  const GY = -3.6, GN = 10, GH = 5.0;
+  for (let i = 0; i <= GN; i++) {
+    const c = (i / GN - 0.5) * 2 * GH;
+    gridPts.push(-GH, GY, c, GH, GY, c);
+    gridPts.push(c, GY, -GH, c, GY, GH);
+  }
+  const gridGeo = new THREE.BufferGeometry();
+  gridGeo.setAttribute('position', new THREE.Float32BufferAttribute(gridPts, 3));
+  ctx.scene.add(new THREE.LineSegments(gridGeo, new THREE.LineBasicMaterial({
+    color: 0x2A3A32, transparent: true, opacity: 0.7
+  })));
+
+  // Fill the point / line attribute arrays from dataA and dataB.
+  function fillAttrs() {
+    const pa = pGeo.getAttribute('position').array;
+    const pb = pGeo.getAttribute('aPosB').array;
+    const la = lGeo.getAttribute('position').array;
+    const lb = lGeo.getAttribute('aPosB').array;
+    for (let i = 0; i < N; i++) {
+      for (let c = 0; c < 3; c++) {
+        pa[i * 3 + c] = dataA[i * 3 + c];
+        pb[i * 3 + c] = dataB[i * 3 + c];
+        la[i * 6 + c] = dataA[i * 3 + c];
+        la[i * 6 + 3 + c] = dataA[i * 3 + c];
+        lb[i * 6 + c] = dataB[i * 3 + c];
+        lb[i * 6 + 3 + c] = dataB[i * 3 + c];
+      }
+    }
+    pGeo.getAttribute('position').needsUpdate = true;
+    pGeo.getAttribute('aPosB').needsUpdate = true;
+    lGeo.getAttribute('position').needsUpdate = true;
+    lGeo.getAttribute('aPosB').needsUpdate = true;
+  }
+  fillAttrs();
+
+  // Fit cycle state
+  let target = lsq(dataA);
+  const start = new THREE.Vector3();
+  function perturb() {
+    start.copy(target);
+    start.x += (Math.random() - 0.5) * 0.7;
+    start.y += (Math.random() - 0.5) * 0.7;
+    start.z += (Math.random() - 0.5) * 2.4 + 1.0 * (Math.random() < 0.5 ? -1 : 1) * 0.6;
+  }
+  perturb();
+  shared.uPlane.value.copy(start);
+  let lastCycle = 0;
+  let resampled = false;
+
+  ctx.camera.position.set(0, 3.2, 12.5);
+  ctx.camera.lookAt(0, -0.3, 0);
+
+  function smooth01(x) { return x <= 0 ? 0 : x >= 1 ? 1 : x * x * (3 - 2 * x); }
+
+  return {
+    update(t) {
+      shared.uTime.value = t;
+      const cyc = Math.floor(t / CYCLE);
+      const phase = t - cyc * CYCLE;
+
+      // cycle rollover: commit the resample, refit from a perturbed plane
+      if (cyc !== lastCycle) {
+        lastCycle = cyc;
+        resampled = false;
+        dataA.set(dataB);
+        fillAttrs();
+        shared.uData.value = 0;
+        target = lsq(dataA);
+        perturb();
+      }
+
+      if (phase < T_FIT) {
+        // iterative fit: eased approach plus a damped oscillation
+        const u = phase / T_FIT;
+        const e = 1 - Math.pow(1 - u, 3);
+        const wob = Math.pow(1 - e, 2);
+        const pl = shared.uPlane.value;
+        pl.x = start.x + (target.x - start.x) * e + wob * 0.05 * Math.sin(u * 22.0);
+        pl.y = start.y + (target.y - start.y) * e + wob * 0.05 * Math.sin(u * 22.0 + 2.1);
+        pl.z = start.z + (target.z - start.z) * e + wob * 0.22 * Math.sin(u * 22.0 + 4.2);
+        shared.uRip.value = RIP_AMP * Math.pow(1 - e, 1.6) + 0.03;
+        sMat.uniforms.uGlow.value = smooth01((u - 0.9) / 0.1) * 0.8;
+      } else if (phase < T_FIT + T_HOLD) {
+        // settled: calm surface, faint edge glow
+        shared.uPlane.value.copy(target);
+        shared.uRip.value = 0.03;
+        sMat.uniforms.uGlow.value = 1.0;
+      } else {
+        // resample: points ease to a fresh draw, surface stays calm
+        if (!resampled) {
+          resampled = true;
+          genData(dataB);
+          fillAttrs();
+        }
+        shared.uPlane.value.copy(target);
+        shared.uRip.value = 0.03;
+        const u = (phase - T_FIT - T_HOLD) / T_RESAMPLE;
+        shared.uData.value = smooth01(u);
+        sMat.uniforms.uGlow.value = 1.0 - smooth01(u * 1.5);
+      }
+
+      const a = t * 0.045 + ctx.pointer.x * 0.5;
+      ctx.camera.position.set(
+        Math.sin(a) * 12.5,
+        3.2 + ctx.pointer.y * 1.5,
+        Math.cos(a) * 12.5);
+      ctx.camera.lookAt(0, -0.3, 0);
+    }
+  };
+}
+
+/* ================= shared runtime ================= */
+
+const canvas = document.getElementById('c');
+const btnPlay = document.getElementById('btnPlay');
+const speedEl = document.getElementById('speed');
+const btnPng = document.getElementById('btnPng');
+const note = document.getElementById('note');
+
+let renderer;
+try {
+  renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
+} catch (e) {
+  document.getElementById('err').style.display = 'grid';
+  document.getElementById('hud').hidden = true;
+  throw e;
+}
+
+/* Quality tier: 1 on desktop, lower on small screens or few cores.
+   Scenes scale particle counts by ctx.quality. */
+const small = Math.min(window.innerWidth, window.innerHeight) < 700;
+const weak = (navigator.hardwareConcurrency || 8) <= 4;
+const quality = small ? 0.5 : (weak ? 0.7 : 1);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, quality < 1 ? 1.5 : 2));
+
+const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 500);
+camera.position.set(0, 0, 12);
+
+const ctx = {
+  scene: new THREE.Scene(),
+  camera,
+  renderer,
+  quality,
+  pointer: { x: 0, y: 0 },  /* smoothed, -1..1, y up */
+};
+
+let piece;
+try {
+  piece = createScene(THREE, ctx);
+} catch (e) {
+  document.getElementById('err').style.display = 'grid';
+  document.getElementById('hud').hidden = true;
+  console.error(e);
+  throw e;
+}
+
+function resize() {
+  const w = window.innerWidth, h = window.innerHeight;
+  renderer.setSize(w, h, false);
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+  if (piece.resize) piece.resize(w, h);
+}
+window.addEventListener('resize', resize);
+resize();
+
+/* Pointer parallax target, lerped each frame for weight. */
+const target = { x: 0, y: 0 };
+window.addEventListener('pointermove', (e) => {
+  target.x = (e.clientX / window.innerWidth) * 2 - 1;
+  target.y = -((e.clientY / window.innerHeight) * 2 - 1);
+}, { passive: true });
+
+let userPaused = false;
+let hidden = false;
+let speed = 1;
+let t = 0;
+let last = performance.now();
+
+const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+function setPlayUi() {
+  btnPlay.textContent = userPaused ? 'Play' : 'Pause';
+  btnPlay.setAttribute('aria-pressed', String(userPaused));
+}
+btnPlay.addEventListener('click', () => {
+  userPaused = !userPaused;
+  note.hidden = true;
+  setPlayUi();
+  if (!userPaused) { last = performance.now(); loop(last); }
+});
+canvas.addEventListener('keydown', (e) => {
+  if (e.code === 'Space') { e.preventDefault(); btnPlay.click(); }
+});
+speedEl.addEventListener('input', () => { speed = parseFloat(speedEl.value) || 1; });
+
+btnPng.addEventListener('click', () => {
+  renderer.render(ctx.scene, camera);
+  canvas.toBlob((blob) => {
+    if (!blob) return;
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'earnings-regression-3d.png';
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+  });
+});
+
+document.addEventListener('visibilitychange', () => {
+  hidden = document.hidden;
+  if (!hidden && !userPaused) { last = performance.now(); loop(last); }
+});
+
+let raf = 0;
+function frame(now) {
+  const dt = Math.min((now - last) / 1000, 0.1);
+  last = now;
+  t += dt * speed;
+  ctx.pointer.x += (target.x - ctx.pointer.x) * 0.06;
+  ctx.pointer.y += (target.y - ctx.pointer.y) * 0.06;
+  piece.update(t, dt * speed);
+  renderer.render(ctx.scene, camera);
+}
+function loop(now) {
+  if (userPaused || hidden) return;
+  frame(now);
+  raf = requestAnimationFrame(loop);
+}
+
+if (reduceMotion) {
+  /* Advance to a composed moment, render one still frame, and wait. */
+  for (let i = 0; i < 240; i++) { t += 1 / 60; piece.update(t, 1 / 60); }
+  renderer.render(ctx.scene, camera);
+  userPaused = true;
+  note.hidden = false;
+  setPlayUi();
+} else {
+  loop(performance.now());
+}
+</script>
+</body>
+</html>

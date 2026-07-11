@@ -1,0 +1,664 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <meta name="theme-color" content="#12101A">
+  <title>ReelFlow Studio in 3D · Salman Adnan</title>
+  <meta name="description" content="Filmstrip Flow: an interactive 3D study of video frames winding toward approval and publish.">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="../assets/favicon.png" sizes="any">
+  <style>
+    :root { color-scheme: dark; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      background: #12101A;
+      overflow: hidden;
+      font: 12px/1.4 ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+      color: rgba(255, 255, 255, 0.85);
+    }
+    #stage { position: fixed; inset: 0; }
+    canvas { display: block; width: 100%; height: 100%; outline: none; }
+    canvas:focus-visible { box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.6); }
+    #hud {
+      position: absolute; right: 12px; bottom: 12px;
+      display: flex; align-items: center; gap: 10px;
+      padding: 7px 10px; border-radius: 999px;
+      background: rgba(8, 8, 14, 0.55);
+      backdrop-filter: blur(6px);
+      opacity: 0.55; transition: opacity 0.25s ease;
+    }
+    #hud:hover, #hud:focus-within { opacity: 1; }
+    #hud button {
+      appearance: none; border: 1px solid rgba(255, 255, 255, 0.25);
+      background: transparent; color: inherit; font: inherit;
+      padding: 3px 10px; border-radius: 999px; cursor: pointer;
+    }
+    #hud button:hover { border-color: rgba(255, 255, 255, 0.6); }
+    #hud button:focus-visible, #hud input:focus-visible {
+      outline: 2px solid #fff; outline-offset: 2px;
+    }
+    #hud label { display: flex; align-items: center; gap: 6px; }
+    #hud input[type="range"] { width: 72px; accent-color: #E86A8A; }
+    #note {
+      position: absolute; left: 12px; bottom: 12px; max-width: 46ch;
+      padding: 8px 12px; border-radius: 10px;
+      background: rgba(8, 8, 14, 0.65);
+    }
+    #err {
+      position: absolute; inset: 0; display: none;
+      place-items: center; text-align: center; padding: 24px;
+    }
+    @media (max-width: 560px) {
+      #hud label { display: none; }
+    }
+  </style>
+</head>
+<body>
+<div id="stage">
+  <canvas id="c" tabindex="0" aria-label="Animated ribbons of filmstrip winding through space, frames lighting up as approved, captions appearing beneath, publish bursts at the end."></canvas>
+  <div id="hud" role="group" aria-label="Visualization controls">
+    <button id="btnPlay" type="button" aria-pressed="false">Pause</button>
+    <label for="speed">speed
+      <input id="speed" type="range" min="0.25" max="2" step="0.25" value="1"
+             aria-label="Animation speed">
+    </label>
+    <button id="btnPng" type="button">Save PNG</button>
+  </div>
+  <p id="note" hidden>Motion is paused because your system prefers reduced motion.
+     Press Play to animate.</p>
+  <div id="err"><p>This visualization needs WebGL, which is unavailable here.<br>
+     A screenshot of it lives on the project page.</p></div>
+</div>
+
+<script type="importmap">
+{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js" } }
+</script>
+<script type="module">
+import * as THREE from 'three';
+
+/* ================= scene: reelflow-studio ================= */
+// Filmstrip Flow
+// Concept: filmstrip ribbons wind through the dark like slow rollercoasters; each frame
+// rides its spline into review (rose), approval (green edge plus a caption dash), and a
+// publish burst, then loops around dark and begins again.
+// Palette: bg studio charcoal #12101A, strip graphite #2E2C3A, review rose #E86A8A,
+//          approve green #58C98A, caption cream #F0E9D8. A dark edit-suite mood: rose is
+//          the human review moment, green strictly means approved.
+// Signature: the occasional frame sent back down the ribbon, revision requested.
+
+function createScene(THREE, ctx) {
+  const Q = ctx.quality;
+
+  // ---- tunables ----
+  const RIBBONS = Q >= 0.9 ? 3 : 2;                    // filmstrip loops in the scene
+  const FRAMES = Math.max(14, Math.floor(26 * Q));     // frames per ribbon
+  const TAB = 512;              // arc-length table entries per ribbon
+  const FRAME_W = 1.5;          // frame quad width along the strip
+  const FRAME_H = 1.0;          // frame quad height
+  const BURST_SLOTS = 8;        // concurrent publish bursts
+  const BURST_PTS = Math.max(14, Math.floor(26 * Q));  // particles per burst
+  const REVIEW_AT = 0.50;       // spline u where review warming begins
+  const APPROVE_AT = 0.62;      // u where the frame flips to approved
+  const PUBLISH_AT = 0.855;     // u where the publish burst fires
+  const DARK_IN = 0.86;         // u where the strip fades toward the dark loop-around
+  const REV_EVERY = 6.5;        // mean seconds between revision events
+  const COL_BODY_BASE = new THREE.Color(0xFFFFFF);
+  const COL_ROSE  = new THREE.Color(0xE86A8A);
+  const COL_GREEN = new THREE.Color(0x58C98A);
+  const COL_CREAM = new THREE.Color(0xF0E9D8);
+  const COL_BORDER_IDLE = new THREE.Color(0x232838);
+
+  ctx.scene.background = new THREE.Color(0x12101A);
+  ctx.scene.fog = new THREE.FogExp2(0x12101A, 0.028);
+
+  // ---- ribbon spline definitions (closed Catmull-Rom loops) ----
+  const loopDefs = [
+    { pts: [[-9, 0.5, 0], [-5.5, 2.6, 3.2], [0, 3.6, 4.6], [5.5, 2.6, 3.2], [9, 0.2, 0],
+            [5.5, -2.4, -3.2], [0, -3.4, -4.6], [-5.5, -2.6, -3.2]], speed: 0.0125, phase: 0.0 },
+    { pts: [[-7, -1.5, 2.5], [-2.5, 1.2, 5.5], [3.5, 2.8, 3.0], [7.5, 0.5, -1.5],
+            [4.0, -2.8, -4.0], [-2.0, -3.2, -2.0], [-6.5, -3.0, 1.0]], speed: 0.0104, phase: 0.37 },
+    { pts: [[-3, 4.2, -2], [2.5, 4.8, -3.5], [6.5, 3.0, -4.5], [8.0, -0.5, -5.0],
+            [3.0, -1.5, -6.0], [-3.5, -0.5, -5.5], [-7.0, 1.8, -4.0]], speed: 0.0142, phase: 0.7 },
+  ].slice(0, RIBBONS);
+
+  function catmull(pts, u, out) {
+    const n = pts.length;
+    let f = (((u % 1) + 1) % 1) * n;
+    const i = Math.floor(f);
+    const s = f - i;
+    const p0 = pts[(i + n - 1) % n];
+    const p1 = pts[i % n];
+    const p2 = pts[(i + 1) % n];
+    const p3 = pts[(i + 2) % n];
+    const s2 = s * s;
+    const s3 = s2 * s;
+    out.set(
+      0.5 * ((2 * p1[0]) + (-p0[0] + p2[0]) * s + (2 * p0[0] - 5 * p1[0] + 4 * p2[0] - p3[0]) * s2 + (-p0[0] + 3 * p1[0] - 3 * p2[0] + p3[0]) * s3),
+      0.5 * ((2 * p1[1]) + (-p0[1] + p2[1]) * s + (2 * p0[1] - 5 * p1[1] + 4 * p2[1] - p3[1]) * s2 + (-p0[1] + 3 * p1[1] - 3 * p2[1] + p3[1]) * s3),
+      0.5 * ((2 * p1[2]) + (-p0[2] + p2[2]) * s + (2 * p0[2] - 5 * p1[2] + 4 * p2[2] - p3[2]) * s2 + (-p0[2] + 3 * p1[2] - 3 * p2[2] + p3[2]) * s3)
+    );
+    return out;
+  }
+
+  // arc-length uniform table + parallel-transport frames per ribbon, built once
+  function buildTable(def) {
+    const RAW = 900;
+    const raw = [];
+    for (let i = 0; i <= RAW; i++) raw.push(catmull(def.pts, i / RAW, new THREE.Vector3()));
+    const cum = [0];
+    for (let i = 1; i <= RAW; i++) cum.push(cum[i - 1] + raw[i].distanceTo(raw[i - 1]));
+    const total = cum[RAW];
+    const pos = [];
+    for (let j = 0; j < TAB; j++) {
+      const target = (j / TAB) * total;
+      let s = 1;
+      while (s < RAW && cum[s] < target) s++;
+      const f = (target - cum[s - 1]) / Math.max(cum[s] - cum[s - 1], 1e-6);
+      pos.push(raw[s - 1].clone().lerp(raw[s], f));
+    }
+    const tan = [];
+    for (let j = 0; j < TAB; j++) {
+      tan.push(pos[(j + 1) % TAB].clone().sub(pos[(j + TAB - 1) % TAB]).normalize());
+    }
+    const nrm = [];
+    let N = new THREE.Vector3(0, 1, 0).addScaledVector(tan[0], -tan[0].y).normalize();
+    for (let j = 0; j < TAB; j++) {
+      N = N.clone().addScaledVector(tan[j], -N.dot(tan[j])).normalize();
+      nrm.push(N);
+    }
+    // distribute the loop-closure twist so the seam (hidden in the dark zone) is clean
+    const Nw = nrm[TAB - 1].clone().addScaledVector(tan[0], -nrm[TAB - 1].dot(tan[0])).normalize();
+    const cosA = THREE.MathUtils.clamp(Nw.dot(nrm[0]), -1, 1);
+    const sinA = new THREE.Vector3().crossVectors(nrm[0], Nw).dot(tan[0]);
+    const ang = Math.atan2(sinA, cosA);
+    const q = new THREE.Quaternion();
+    for (let j = 0; j < TAB; j++) {
+      q.setFromAxisAngle(tan[j], -ang * (j / TAB));
+      nrm[j] = nrm[j].clone().applyQuaternion(q);
+    }
+    const bin = [];
+    for (let j = 0; j < TAB; j++) bin.push(new THREE.Vector3().crossVectors(tan[j], nrm[j]));
+    return { pos, tan, nrm, bin };
+  }
+  const tables = loopDefs.map(buildTable);
+
+  const _P = new THREE.Vector3(), _T = new THREE.Vector3(), _N = new THREE.Vector3(), _B = new THREE.Vector3();
+  const _Ts = new THREE.Vector3(), _Ns = new THREE.Vector3(), _Bs = new THREE.Vector3();
+  const _M = new THREE.Matrix4();
+  const _c1 = new THREE.Color(), _c2 = new THREE.Color();
+
+  function sampleRibbon(r, u, P, T, N, B) {
+    const tb = tables[r];
+    let f = (((u % 1) + 1) % 1) * TAB;
+    const j = Math.floor(f) % TAB;
+    const k = (j + 1) % TAB;
+    const s = f - Math.floor(f);
+    P.copy(tb.pos[j]).lerp(tb.pos[k], s);
+    T.copy(tb.tan[j]).lerp(tb.tan[k], s).normalize();
+    N.copy(tb.nrm[j]).lerp(tb.nrm[k], s);
+    N.addScaledVector(T, -N.dot(T)).normalize();
+    B.crossVectors(T, N);
+  }
+
+  // ---- canvas textures: film cell, glow border, caption dash, strip connector ----
+  function filmTexture() {
+    const cv = document.createElement('canvas');
+    cv.width = 256; cv.height = 192;
+    const g = cv.getContext('2d');
+    g.fillStyle = '#2E2C3A';
+    g.fillRect(0, 0, 256, 192);
+    const grad = g.createLinearGradient(0, 30, 0, 162);
+    grad.addColorStop(0, '#453F55');
+    grad.addColorStop(0.5, '#39344B');
+    grad.addColorStop(1, '#2F2B40');
+    g.fillStyle = grad;
+    g.fillRect(18, 34, 220, 124);
+    g.fillStyle = '#16141D';
+    g.fillRect(0, 0, 256, 26);
+    g.fillRect(0, 166, 256, 26);
+    g.fillStyle = '#09080E';
+    for (let i = 0; i < 6; i++) {
+      const x = 14 + i * 40;
+      g.fillRect(x, 7, 22, 12);
+      g.fillRect(x, 173, 22, 12);
+    }
+    const tex = new THREE.CanvasTexture(cv);
+    return tex;
+  }
+  function borderTexture() {
+    const cv = document.createElement('canvas');
+    cv.width = 128; cv.height = 96;
+    const g = cv.getContext('2d');
+    g.clearRect(0, 0, 128, 96);
+    g.strokeStyle = 'rgba(255,255,255,0.95)';
+    g.shadowColor = 'rgba(255,255,255,0.9)';
+    g.shadowBlur = 10;
+    g.lineWidth = 5;
+    g.strokeRect(8, 8, 112, 80);
+    g.shadowBlur = 0;
+    g.lineWidth = 2;
+    g.strokeRect(8, 8, 112, 80);
+    return new THREE.CanvasTexture(cv);
+  }
+  function captionTexture() {
+    const cv = document.createElement('canvas');
+    cv.width = 64; cv.height = 16;
+    const g = cv.getContext('2d');
+    g.clearRect(0, 0, 64, 16);
+    g.fillStyle = 'rgba(255,255,255,0.9)';
+    g.fillRect(4, 5, 40, 6);
+    g.fillRect(48, 5, 12, 6);
+    return new THREE.CanvasTexture(cv);
+  }
+  function connectorTexture() {
+    const cv = document.createElement('canvas');
+    cv.width = 64; cv.height = 96;
+    const g = cv.getContext('2d');
+    g.fillStyle = '#17151E';
+    g.fillRect(0, 0, 64, 96);
+    g.fillStyle = '#09080E';
+    g.fillRect(20, 4, 24, 10);
+    g.fillRect(20, 82, 24, 10);
+    return new THREE.CanvasTexture(cv);
+  }
+
+  const COUNT = RIBBONS * FRAMES;
+
+  const bodyMesh = new THREE.InstancedMesh(
+    new THREE.PlaneGeometry(FRAME_W, FRAME_H),
+    new THREE.MeshBasicMaterial({ map: filmTexture(), side: THREE.DoubleSide }),
+    COUNT
+  );
+  const borderMesh = new THREE.InstancedMesh(
+    new THREE.PlaneGeometry(FRAME_W * 1.1, FRAME_H * 1.14),
+    new THREE.MeshBasicMaterial({
+      map: borderTexture(), side: THREE.DoubleSide, transparent: true,
+      blending: THREE.AdditiveBlending, depthWrite: false,
+    }),
+    COUNT
+  );
+  const captionMesh = new THREE.InstancedMesh(
+    new THREE.PlaneGeometry(0.9, 0.11),
+    new THREE.MeshBasicMaterial({
+      map: captionTexture(), side: THREE.DoubleSide, transparent: true,
+      blending: THREE.AdditiveBlending, depthWrite: false,
+    }),
+    COUNT
+  );
+  const connectorMesh = new THREE.InstancedMesh(
+    new THREE.PlaneGeometry(FRAME_W * 0.42, FRAME_H),
+    new THREE.MeshBasicMaterial({ map: connectorTexture(), side: THREE.DoubleSide }),
+    COUNT
+  );
+
+  const meshes = [bodyMesh, borderMesh, captionMesh, connectorMesh];
+  const seedColor = new THREE.Color(0xFFFFFF);
+  for (const m of meshes) {
+    m.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+    for (let i = 0; i < COUNT; i++) m.setColorAt(i, seedColor);
+    m.instanceColor.needsUpdate = true;
+    m.frustumCulled = false;
+    ctx.scene.add(m);
+  }
+  borderMesh.renderOrder = 2;
+  captionMesh.renderOrder = 2;
+
+  // per-frame state: persistent slide-back shift plus revision animation
+  const frames = [];
+  for (let r = 0; r < RIBBONS; r++) {
+    for (let i = 0; i < FRAMES; i++) {
+      frames.push({ r: r, i: i, shift: 0, baseShift: 0, prevU: -1, rev: null });
+    }
+  }
+
+  // ---- publish burst pool (analytic in the shader, slots re-armed from JS) ----
+  const uBPos = { value: [] };
+  const uBAge = { value: new Float32Array(BURST_SLOTS).fill(-1) };
+  for (let b = 0; b < BURST_SLOTS; b++) uBPos.value.push(new THREE.Vector3(0, -99, 0));
+
+  const burstGeo = new THREE.BufferGeometry();
+  {
+    const n = BURST_SLOTS * BURST_PTS;
+    const pos = new Float32Array(n * 3);
+    const slot = new Float32Array(n);
+    const dir = new Float32Array(n * 3);
+    const spd = new Float32Array(n);
+    const seed = new Float32Array(n);
+    for (let b = 0; b < BURST_SLOTS; b++) {
+      for (let k = 0; k < BURST_PTS; k++) {
+        const idx = b * BURST_PTS + k;
+        slot[idx] = b;
+        const a = Math.random() * Math.PI * 2;
+        const up = 0.35 + Math.random() * 0.65;
+        const rr = Math.sqrt(1 - up * up);
+        dir[idx * 3] = Math.cos(a) * rr;
+        dir[idx * 3 + 1] = up;
+        dir[idx * 3 + 2] = Math.sin(a) * rr;
+        spd[idx] = Math.random();
+        seed[idx] = Math.random() * 100;
+      }
+    }
+    burstGeo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    burstGeo.setAttribute('aSlot', new THREE.Float32BufferAttribute(slot, 1));
+    burstGeo.setAttribute('aDir', new THREE.Float32BufferAttribute(dir, 3));
+    burstGeo.setAttribute('aSpd', new THREE.Float32BufferAttribute(spd, 1));
+    burstGeo.setAttribute('aSeed', new THREE.Float32BufferAttribute(seed, 1));
+  }
+  const burstMat = new THREE.ShaderMaterial({
+    vertexShader: `
+      attribute float aSlot;
+      attribute vec3 aDir;
+      attribute float aSpd;
+      attribute float aSeed;
+      uniform vec3 uBPos[${BURST_SLOTS}];
+      uniform float uBAge[${BURST_SLOTS}];
+      varying float vA;
+      void main() {
+        int i = int(aSlot + 0.5);
+        float age = uBAge[i];
+        float k = clamp(age / 1.6, 0.0, 1.0);
+        float ease = 1.0 - pow(1.0 - k, 3.0);
+        vec3 p = uBPos[i] + aDir * ease * (0.9 + aSpd * 1.1) + vec3(0.0, k * 0.7, 0.0);
+        p.x += sin(aSeed + age * 3.0) * 0.05;
+        vA = (1.0 - k) * (1.0 - k) * step(0.0, age);
+        vec4 mv = modelViewMatrix * vec4(p, 1.0);
+        gl_PointSize = (2.5 + aSpd * 2.5) * (60.0 / -mv.z);
+        gl_Position = projectionMatrix * mv;
+      }
+    `,
+    fragmentShader: `
+      varying float vA;
+      void main() {
+        float d = length(gl_PointCoord - 0.5);
+        float a = smoothstep(0.5, 0.08, d);
+        vec3 col = mix(vec3(0.35, 0.79, 0.54), vec3(0.94, 0.91, 0.85), smoothstep(0.3, 0.0, d));
+        gl_FragColor = vec4(col * vA * 1.6, a * vA);
+      }
+    `,
+    uniforms: { uBPos: uBPos, uBAge: uBAge },
+    blending: THREE.AdditiveBlending,
+    transparent: true,
+    depthWrite: false,
+  });
+  const bursts = new THREE.Points(burstGeo, burstMat);
+  bursts.frustumCulled = false;
+  bursts.renderOrder = 3;
+  ctx.scene.add(bursts);
+  let nextBurst = 0;
+
+  function fireBurst(pos) {
+    const b = nextBurst % BURST_SLOTS;
+    nextBurst++;
+    uBPos.value[b].copy(pos);
+    uBAge.value[b] = 0.0001;
+  }
+
+  const smooth01 = (x) => {
+    const c = THREE.MathUtils.clamp(x, 0, 1);
+    return c * c * (3 - 2 * c);
+  };
+
+  // visibility envelope: bright on the run, near-dark through the loop-around
+  function visibility(u) {
+    if (u < 0.5) return 0.06 + 0.94 * smooth01(u / 0.045);
+    return 1 - smooth01((u - DARK_IN) / 0.06) * 0.94;
+  }
+
+  let nextRev = 4;
+  ctx.camera.position.set(0, 2.6, 13);
+  ctx.camera.lookAt(0, 0.3, 0);
+
+  return {
+    update(t, dt) {
+      const step = Math.min(dt || 0.016, 0.05);
+
+      // advance burst clocks
+      for (let b = 0; b < BURST_SLOTS; b++) {
+        if (uBAge.value[b] >= 0) {
+          uBAge.value[b] += step;
+          if (uBAge.value[b] > 1.7) uBAge.value[b] = -1;
+        }
+      }
+
+      // occasionally send a reviewing frame back down the ribbon
+      if (t > nextRev) {
+        nextRev = t + REV_EVERY + Math.random() * 5;
+        for (const fr of frames) {
+          const def = loopDefs[fr.r];
+          let u = (fr.i / FRAMES + def.phase + t * def.speed + fr.shift) % 1;
+          if (u < 0) u += 1;
+          if (!fr.rev && u > REVIEW_AT && u < 0.58) {
+            fr.rev = { t0: t };
+            fr.baseShift = fr.shift;
+            break;
+          }
+        }
+      }
+
+      for (let idx = 0; idx < frames.length; idx++) {
+        const fr = frames[idx];
+        const def = loopDefs[fr.r];
+
+        let revDim = 0;
+        if (fr.rev) {
+          const age = t - fr.rev.t0;
+          fr.shift = fr.baseShift - 0.085 * smooth01(age / 1.6);
+          revDim = smooth01(age / 0.5) * (1 - smooth01((age - 2.8) / 0.6));
+          if (age > 3.6) { fr.baseShift = fr.shift; fr.rev = null; }
+        }
+
+        let u = (fr.i / FRAMES + def.phase + t * def.speed + fr.shift) % 1;
+        if (u < 0) u += 1;
+
+        // restore chain spacing while hidden in the dark zone
+        if (fr.shift !== 0 && !fr.rev && u > 0.92 && u < 0.985) {
+          fr.shift = 0;
+          fr.baseShift = 0;
+          u = (fr.i / FRAMES + def.phase + t * def.speed) % 1;
+          if (u < 0) u += 1;
+          fr.prevU = u;
+        }
+
+        sampleRibbon(fr.r, u, _P, _T, _N, _B);
+
+        // publish burst the moment a frame crosses the publish point
+        if (fr.prevU >= 0 && fr.prevU < PUBLISH_AT && u >= PUBLISH_AT && u < DARK_IN + 0.05) {
+          fireBurst(_P);
+        }
+        fr.prevU = u;
+
+        const vis = visibility(u) * (1 - revDim * 0.55);
+
+        // body
+        _M.makeBasis(_Ts.copy(_T).multiplyScalar(1), _Ns.copy(_N), _Bs.copy(_B));
+        _M.setPosition(_P);
+        bodyMesh.setMatrixAt(idx, _M);
+        _c1.copy(COL_BODY_BASE);
+        const reviewMix = smooth01((u - REVIEW_AT) / 0.05) * (1 - smooth01((u - APPROVE_AT) / 0.02));
+        _c1.lerp(COL_ROSE, reviewMix * 0.35);
+        _c1.multiplyScalar(vis);
+        bodyMesh.setColorAt(idx, _c1);
+
+        // connector between this frame and the next
+        sampleRibbon(fr.r, u + 0.5 / FRAMES, _P, _T, _N, _B);
+        _M.makeBasis(_Ts.copy(_T), _Ns.copy(_N), _Bs.copy(_B));
+        _M.setPosition(_P);
+        connectorMesh.setMatrixAt(idx, _M);
+        _c1.setScalar(vis);
+        connectorMesh.setColorAt(idx, _c1);
+
+        // border: rose during review, green once approved, dark otherwise
+        sampleRibbon(fr.r, u, _P, _T, _N, _B);
+        _M.makeBasis(_Ts.copy(_T), _Ns.copy(_N), _Bs.copy(_B));
+        _M.setPosition(_P);
+        borderMesh.setMatrixAt(idx, _M);
+        const approveMix = smooth01((u - APPROVE_AT) / 0.02);
+        _c1.copy(COL_BORDER_IDLE)
+          .lerp(_c2.copy(COL_ROSE), reviewMix)
+          .lerp(_c2.copy(COL_GREEN), approveMix * (1 - smooth01((u - DARK_IN) / 0.05)));
+        _c1.multiplyScalar(vis * (1 - revDim * 0.7));
+        borderMesh.setColorAt(idx, _c1);
+
+        // caption dash fades and grows in under approved frames
+        const capA = smooth01((u - APPROVE_AT) / 0.04) * (1 - smooth01((u - 0.84) / 0.04)) * (1 - revDim);
+        _M.makeBasis(
+          _Ts.copy(_T).multiplyScalar(Math.max(capA, 0.001)),
+          _Ns.copy(_N).multiplyScalar(Math.max(capA, 0.001)),
+          _Bs.copy(_B)
+        );
+        _M.setPosition(_Ns.copy(_P).addScaledVector(_N, -0.72));
+        captionMesh.setMatrixAt(idx, _M);
+        _c1.copy(COL_CREAM).multiplyScalar(capA * vis);
+        captionMesh.setColorAt(idx, _c1);
+      }
+
+      for (const m of meshes) {
+        m.instanceMatrix.needsUpdate = true;
+        m.instanceColor.needsUpdate = true;
+      }
+
+      const a = t * 0.045 + ctx.pointer.x * 0.35;
+      ctx.camera.position.set(
+        Math.sin(a) * 13,
+        2.6 + Math.sin(t * 0.11) * 1.0 + ctx.pointer.y * 2.0,
+        Math.cos(a) * 13
+      );
+      ctx.camera.lookAt(0, 0.3, 0);
+    },
+  };
+}
+
+/* ================= shared runtime ================= */
+
+const canvas = document.getElementById('c');
+const btnPlay = document.getElementById('btnPlay');
+const speedEl = document.getElementById('speed');
+const btnPng = document.getElementById('btnPng');
+const note = document.getElementById('note');
+
+let renderer;
+try {
+  renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
+} catch (e) {
+  document.getElementById('err').style.display = 'grid';
+  document.getElementById('hud').hidden = true;
+  throw e;
+}
+
+/* Quality tier: 1 on desktop, lower on small screens or few cores.
+   Scenes scale particle counts by ctx.quality. */
+const small = Math.min(window.innerWidth, window.innerHeight) < 700;
+const weak = (navigator.hardwareConcurrency || 8) <= 4;
+const quality = small ? 0.5 : (weak ? 0.7 : 1);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, quality < 1 ? 1.5 : 2));
+
+const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 500);
+camera.position.set(0, 0, 12);
+
+const ctx = {
+  scene: new THREE.Scene(),
+  camera,
+  renderer,
+  quality,
+  pointer: { x: 0, y: 0 },  /* smoothed, -1..1, y up */
+};
+
+let piece;
+try {
+  piece = createScene(THREE, ctx);
+} catch (e) {
+  document.getElementById('err').style.display = 'grid';
+  document.getElementById('hud').hidden = true;
+  console.error(e);
+  throw e;
+}
+
+function resize() {
+  const w = window.innerWidth, h = window.innerHeight;
+  renderer.setSize(w, h, false);
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+  if (piece.resize) piece.resize(w, h);
+}
+window.addEventListener('resize', resize);
+resize();
+
+/* Pointer parallax target, lerped each frame for weight. */
+const target = { x: 0, y: 0 };
+window.addEventListener('pointermove', (e) => {
+  target.x = (e.clientX / window.innerWidth) * 2 - 1;
+  target.y = -((e.clientY / window.innerHeight) * 2 - 1);
+}, { passive: true });
+
+let userPaused = false;
+let hidden = false;
+let speed = 1;
+let t = 0;
+let last = performance.now();
+
+const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+function setPlayUi() {
+  btnPlay.textContent = userPaused ? 'Play' : 'Pause';
+  btnPlay.setAttribute('aria-pressed', String(userPaused));
+}
+btnPlay.addEventListener('click', () => {
+  userPaused = !userPaused;
+  note.hidden = true;
+  setPlayUi();
+  if (!userPaused) { last = performance.now(); loop(last); }
+});
+canvas.addEventListener('keydown', (e) => {
+  if (e.code === 'Space') { e.preventDefault(); btnPlay.click(); }
+});
+speedEl.addEventListener('input', () => { speed = parseFloat(speedEl.value) || 1; });
+
+btnPng.addEventListener('click', () => {
+  renderer.render(ctx.scene, camera);
+  canvas.toBlob((blob) => {
+    if (!blob) return;
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'reelflow-studio-3d.png';
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+  });
+});
+
+document.addEventListener('visibilitychange', () => {
+  hidden = document.hidden;
+  if (!hidden && !userPaused) { last = performance.now(); loop(last); }
+});
+
+let raf = 0;
+function frame(now) {
+  const dt = Math.min((now - last) / 1000, 0.1);
+  last = now;
+  t += dt * speed;
+  ctx.pointer.x += (target.x - ctx.pointer.x) * 0.06;
+  ctx.pointer.y += (target.y - ctx.pointer.y) * 0.06;
+  piece.update(t, dt * speed);
+  renderer.render(ctx.scene, camera);
+}
+function loop(now) {
+  if (userPaused || hidden) return;
+  frame(now);
+  raf = requestAnimationFrame(loop);
+}
+
+if (reduceMotion) {
+  /* Advance to a composed moment, render one still frame, and wait. */
+  for (let i = 0; i < 240; i++) { t += 1 / 60; piece.update(t, 1 / 60); }
+  renderer.render(ctx.scene, camera);
+  userPaused = true;
+  note.hidden = false;
+  setPlayUi();
+} else {
+  loop(performance.now());
+}
+</script>
+</body>
+</html>

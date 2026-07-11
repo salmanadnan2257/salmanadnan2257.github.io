@@ -1,0 +1,601 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <meta name="theme-color" content="#0D1117">
+  <title>Web Element Inspector in 3D · Salman Adnan</title>
+  <meta name="description" content="DOM Constellation: an interactive 3D study of a locator beam finding its element in a page tree.">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="../assets/favicon.png" sizes="any">
+  <style>
+    :root { color-scheme: dark; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      background: #0D1117;
+      overflow: hidden;
+      font: 12px/1.4 ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+      color: rgba(255, 255, 255, 0.85);
+    }
+    #stage { position: fixed; inset: 0; }
+    canvas { display: block; width: 100%; height: 100%; outline: none; }
+    canvas:focus-visible { box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.6); }
+    #hud {
+      position: absolute; right: 12px; bottom: 12px;
+      display: flex; align-items: center; gap: 10px;
+      padding: 7px 10px; border-radius: 999px;
+      background: rgba(8, 8, 14, 0.55);
+      backdrop-filter: blur(6px);
+      opacity: 0.55; transition: opacity 0.25s ease;
+    }
+    #hud:hover, #hud:focus-within { opacity: 1; }
+    #hud button {
+      appearance: none; border: 1px solid rgba(255, 255, 255, 0.25);
+      background: transparent; color: inherit; font: inherit;
+      padding: 3px 10px; border-radius: 999px; cursor: pointer;
+    }
+    #hud button:hover { border-color: rgba(255, 255, 255, 0.6); }
+    #hud button:focus-visible, #hud input:focus-visible {
+      outline: 2px solid #fff; outline-offset: 2px;
+    }
+    #hud label { display: flex; align-items: center; gap: 6px; }
+    #hud input[type="range"] { width: 72px; accent-color: #53C4E8; }
+    #note {
+      position: absolute; left: 12px; bottom: 12px; max-width: 46ch;
+      padding: 8px 12px; border-radius: 10px;
+      background: rgba(8, 8, 14, 0.65);
+    }
+    #err {
+      position: absolute; inset: 0; display: none;
+      place-items: center; text-align: center; padding: 24px;
+    }
+    @media (max-width: 560px) {
+      #hud label { display: none; }
+    }
+  </style>
+</head>
+<body>
+<div id="stage">
+  <canvas id="c" tabindex="0" aria-label="Animated 3D tree of DOM nodes swept by a locator beam, candidate nodes flickering until the match flares with a highlight ring."></canvas>
+  <div id="hud" role="group" aria-label="Visualization controls">
+    <button id="btnPlay" type="button" aria-pressed="false">Pause</button>
+    <label for="speed">speed
+      <input id="speed" type="range" min="0.25" max="2" step="0.25" value="1"
+             aria-label="Animation speed">
+    </label>
+    <button id="btnPng" type="button">Save PNG</button>
+  </div>
+  <p id="note" hidden>Motion is paused because your system prefers reduced motion.
+     Press Play to animate.</p>
+  <div id="err"><p>This visualization needs WebGL, which is unavailable here.<br>
+     A screenshot of it lives on the project page.</p></div>
+</div>
+
+<script type="importmap">
+{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js" } }
+</script>
+<script type="module">
+import * as THREE from 'three';
+
+/* ================= scene: custom-web-scraper ================= */
+// Piece: DOM Constellation. A living DOM tree hangs in inspector space while a cyan
+// locator beam sweeps it; candidates flicker, the match flares amber inside a drawn
+// highlight ring, and the root-to-match selector path ignites violet segment by segment.
+// Palette: bg inspector slate #0D1117, node gray #4A5568, beam cyan #53C4E8, match
+// amber #F0B454, path violet #9B7BE0. Devtools slate with the amber inspect-element
+// flash every developer recognizes.
+// Signature: the root-to-match path lighting up like a CSS selector being read aloud.
+
+function createScene(THREE, ctx) {
+  const q = ctx.quality;
+
+  // ---------- tunables ----------
+  const BG = 0x0D1117;               // inspector slate background
+  const GRAY = new THREE.Color(0x4A5568);   // resting node hue
+  const CYAN = new THREE.Color(0x53C4E8);   // locator beam, candidate flicker
+  const AMBER = new THREE.Color(0xF0B454);  // matched element
+  const VIOLET = new THREE.Color(0x9B7BE0); // selector path
+  const NODE_TARGET = Math.max(60, Math.floor(150 * q)); // tree size
+  const MAX_DEPTH = 6;               // tree depth below root
+  const TOP_Y = 4.1;                 // root height
+  const LEVEL_H = 1.35;              // vertical distance per depth level
+  const BEAM_SPEED = 2.1;            // beam sweep speed, units per second
+  const RING_DUR = 0.7;              // highlight ring draw time
+  const FLARE_DUR = 0.45;            // match flare-up time
+  const PATH_SEG_DUR = 0.16;         // ignition time per selector path segment
+  const HOLD_DUR = 1.25;             // hold with the match lit
+  const COOL_DUR = 1.1;              // cool-down before the next sweep
+  const RESHUFFLE_EVERY = 3;         // sweeps between page reshuffles
+  const RESHUFFLE_DUR = 2.0;         // layout transition time
+
+  ctx.scene.background = new THREE.Color(BG);
+  ctx.scene.fog = new THREE.FogExp2(BG, 0.016);
+
+  const root = new THREE.Group();
+  ctx.scene.add(root);
+
+  function rand(a, b) { return a + Math.random() * (b - a); }
+  function ease(u) { return u * u * (3.0 - 2.0 * u); }
+
+  // ---------- tree topology ----------
+  const parent = [-1];
+  const depth = [0];
+  const children = [[]];
+  let frontier = [0];
+  while (parent.length < NODE_TARGET) {
+    if (!frontier.length) {
+      // reseed from a random non-leaf-depth node
+      for (let i = 0; i < parent.length; i++) if (depth[i] < MAX_DEPTH - 1) frontier.push(i);
+      if (!frontier.length) break;
+    }
+    const p = frontier.shift();
+    if (depth[p] >= MAX_DEPTH) continue;
+    const kids = depth[p] === 0 ? 4 : 1 + Math.floor(Math.random() * 3);
+    for (let k = 0; k < kids && parent.length < NODE_TARGET; k++) {
+      const idx = parent.length;
+      parent.push(p);
+      depth.push(depth[p] + 1);
+      children.push([]);
+      children[p].push(idx);
+      frontier.push(idx);
+    }
+  }
+  const N = parent.length;
+  const seed = new Float32Array(N);
+  for (let i = 0; i < N; i++) seed[i] = Math.random();
+
+  // ---------- layout (regenerated on page reshuffle) ----------
+  function makeLayout() {
+    const lx = new Float32Array(N);
+    const ly = new Float32Array(N);
+    const lz = new Float32Array(N);
+    lx[0] = 0; ly[0] = TOP_Y; lz[0] = 0;
+    for (let i = 1; i < N; i++) {
+      const p = parent[i];
+      const sibs = children[p];
+      const ci = sibs.indexOf(i);
+      const spacing = 7.6 * Math.pow(0.52, depth[i]);
+      lx[i] = lx[p] + (ci - (sibs.length - 1) / 2) * spacing + rand(-0.25, 0.25) * spacing;
+      ly[i] = TOP_Y - depth[i] * LEVEL_H + rand(-0.14, 0.14);
+      lz[i] = lz[p] + rand(-1, 1) * (1.0 - depth[i] * 0.09);
+    }
+    return { x: lx, y: ly, z: lz };
+  }
+  let layoutA = makeLayout();
+  let layoutB = layoutA;
+  let morphU = 1; // 1 = fully at layoutB
+  let morphing = false;
+
+  // live node positions written every frame (sway + morph)
+  const npx = new Float32Array(N);
+  const npy = new Float32Array(N);
+  const npz = new Float32Array(N);
+
+  // ---------- node points ----------
+  const nodePosAttr = new THREE.Float32BufferAttribute(new Float32Array(N * 3), 3);
+  const nodeColAttr = new THREE.Float32BufferAttribute(new Float32Array(N * 3), 3);
+  const nodeSizeAttr = new THREE.Float32BufferAttribute(new Float32Array(N), 1);
+  const nodeGeo = new THREE.BufferGeometry();
+  nodeGeo.setAttribute('position', nodePosAttr);
+  nodeGeo.setAttribute('aColor', nodeColAttr);
+  nodeGeo.setAttribute('aSize', nodeSizeAttr);
+  const nodePts = new THREE.Points(nodeGeo, new THREE.ShaderMaterial({
+    vertexShader: `
+      attribute vec3 aColor;
+      attribute float aSize;
+      varying vec3 vC;
+      void main() {
+        vC = aColor;
+        vec4 mv = modelViewMatrix * vec4(position, 1.0);
+        gl_PointSize = aSize * (300.0 / -mv.z);
+        gl_Position = projectionMatrix * mv;
+      }
+    `,
+    fragmentShader: `
+      varying vec3 vC;
+      void main() {
+        float d = length(gl_PointCoord - 0.5);
+        float a = smoothstep(0.5, 0.06, d);
+        gl_FragColor = vec4(vC, a);
+      }
+    `,
+    transparent: true, depthWrite: false, blending: THREE.AdditiveBlending
+  }));
+  root.add(nodePts);
+
+  // ---------- tree edges ----------
+  const EN = N - 1;
+  const edgePosAttr = new THREE.Float32BufferAttribute(new Float32Array(EN * 2 * 3), 3);
+  const edgeGeo = new THREE.BufferGeometry();
+  edgeGeo.setAttribute('position', edgePosAttr);
+  root.add(new THREE.LineSegments(edgeGeo, new THREE.LineBasicMaterial({
+    color: 0x2E3A4E, transparent: true, opacity: 0.85, depthWrite: false
+  })));
+
+  // ---------- locator beam ----------
+  const beam = new THREE.Mesh(
+    new THREE.PlaneGeometry(6.5, 9.5),
+    new THREE.ShaderMaterial({
+      uniforms: { uColor: { value: CYAN.clone() }, uGlow: { value: 1 } },
+      vertexShader: `
+        varying vec2 vUv;
+        void main() {
+          vUv = uv;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+      `,
+      fragmentShader: `
+        uniform vec3 uColor;
+        uniform float uGlow;
+        varying vec2 vUv;
+        void main() {
+          float across = smoothstep(0.0, 0.5, vUv.x) * smoothstep(1.0, 0.5, vUv.x);
+          float tall = smoothstep(0.0, 0.18, vUv.y) * smoothstep(1.0, 0.82, vUv.y);
+          gl_FragColor = vec4(uColor, across * across * tall * 0.10 * uGlow);
+        }
+      `,
+      transparent: true, depthWrite: false, side: THREE.DoubleSide,
+      blending: THREE.AdditiveBlending
+    })
+  );
+  beam.rotation.y = Math.PI / 2; // plane spans z and y, sweeps along x
+  beam.position.y = TOP_Y - (MAX_DEPTH * LEVEL_H) / 2;
+  root.add(beam);
+  let beamX = -6.0;
+
+  // ---------- highlight ring (drawn arc via drawRange) ----------
+  const RING_SEGS = 48;
+  const ringPos = new Float32Array(RING_SEGS * 2 * 3);
+  for (let s = 0; s < RING_SEGS; s++) {
+    const a0 = (s / RING_SEGS) * Math.PI * 2 - Math.PI / 2;
+    const a1 = ((s + 1) / RING_SEGS) * Math.PI * 2 - Math.PI / 2;
+    ringPos[s * 6] = Math.cos(a0) * 0.42; ringPos[s * 6 + 1] = Math.sin(a0) * 0.42; ringPos[s * 6 + 2] = 0;
+    ringPos[s * 6 + 3] = Math.cos(a1) * 0.42; ringPos[s * 6 + 4] = Math.sin(a1) * 0.42; ringPos[s * 6 + 5] = 0;
+  }
+  const ringGeo = new THREE.BufferGeometry();
+  ringGeo.setAttribute('position', new THREE.Float32BufferAttribute(ringPos, 3));
+  ringGeo.setDrawRange(0, 0);
+  const ringMat = new THREE.LineBasicMaterial({
+    color: 0xF0B454, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false
+  });
+  const ring = new THREE.LineSegments(ringGeo, ringMat);
+  root.add(ring);
+
+  // ---------- selector path overlay ----------
+  const pathPosAttr = new THREE.Float32BufferAttribute(new Float32Array(MAX_DEPTH * 2 * 3), 3);
+  const pathGeo = new THREE.BufferGeometry();
+  pathGeo.setAttribute('position', pathPosAttr);
+  pathGeo.setDrawRange(0, 0);
+  const pathMat = new THREE.LineBasicMaterial({
+    color: 0x9B7BE0, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false
+  });
+  root.add(new THREE.LineSegments(pathGeo, pathMat));
+
+  // ---------- choreography state ----------
+  const matchHeat = new Float32Array(N); // amber per node
+  const pathHeat = new Float32Array(N);  // violet per node
+  let state = 'sweep';
+  let sT = 0;
+  let sweepCount = 0;
+  let matchIdx = 0;
+  let chain = [];       // node indices root..match
+  let pathProg = 0;     // 0..chain.length-1 in segments
+
+  function pickTarget() {
+    // prefer a deep node far from the beam so sweeps travel
+    let best = -1, bd = -1;
+    for (let tries = 0; tries < 24; tries++) {
+      const i = Math.floor(Math.random() * N);
+      if (depth[i] < 2) continue;
+      const dx = Math.abs(layoutB.x[i] - beamX);
+      if (dx > bd) { bd = dx; best = i; }
+      if (dx > 3.5) break;
+    }
+    if (best < 0) best = N - 1;
+    matchIdx = best;
+    chain = [];
+    let c = matchIdx;
+    while (c >= 0) { chain.push(c); c = parent[c]; }
+    chain.reverse();
+  }
+  pickTarget();
+
+  // ---------- update ----------
+  const camQ = new THREE.Quaternion();
+  const rootQ = new THREE.Quaternion();
+  const look = new THREE.Vector3(0, 0.6, 0);
+
+  return {
+    update: function (t, dt) {
+      const d = Math.min(dt, 0.05);
+      sT += d;
+
+      // layout morph progress
+      if (morphing) {
+        morphU = Math.min(1, morphU + d / RESHUFFLE_DUR);
+        if (morphU >= 1) { morphing = false; layoutA = layoutB; }
+      }
+      const mu = ease(morphU);
+
+      // recompute living node positions: morph + gentle sway per depth
+      for (let i = 0; i < N; i++) {
+        const swayA = t * 0.8 + depth[i] * 0.65 + seed[i] * 6.283;
+        const sw = 0.04 + depth[i] * 0.035;
+        npx[i] = layoutA.x[i] * (1 - mu) + layoutB.x[i] * mu + Math.sin(swayA) * sw;
+        npy[i] = layoutA.y[i] * (1 - mu) + layoutB.y[i] * mu + Math.sin(t * 0.5 + seed[i] * 9.0) * 0.03;
+        npz[i] = layoutA.z[i] * (1 - mu) + layoutB.z[i] * mu + Math.cos(swayA * 0.8) * sw * 0.7;
+      }
+
+      // beam motion and state machine
+      const targetX = layoutB.x[matchIdx];
+      if (state === 'sweep') {
+        const dx = targetX - beamX;
+        const dir = dx >= 0 ? 1 : -1;
+        // ease in near arrival, never overshoot
+        const sp = BEAM_SPEED * Math.min(1, Math.max(0.16, Math.abs(dx) / 1.6));
+        beamX += dir * sp * d;
+        if ((dir > 0 && beamX >= targetX) || (dir < 0 && beamX <= targetX)) {
+          beamX = targetX;
+          state = 'flare';
+          sT = 0;
+        }
+      } else if (state === 'flare') {
+        matchHeat[matchIdx] = Math.min(1, sT / FLARE_DUR);
+        if (sT >= FLARE_DUR) { state = 'ring'; sT = 0; ringMat.opacity = 0.95; }
+      } else if (state === 'ring') {
+        const u = Math.min(1, sT / RING_DUR);
+        ringGeo.setDrawRange(0, Math.floor(ease(u) * RING_SEGS) * 2);
+        matchHeat[matchIdx] = 1;
+        if (u >= 1) { state = 'path'; sT = 0; pathProg = 0; pathMat.opacity = 0.9; }
+      } else if (state === 'path') {
+        const segs = chain.length - 1;
+        pathProg = Math.min(segs, sT / PATH_SEG_DUR);
+        matchHeat[matchIdx] = 1;
+        // heat chain nodes as the ignition front passes them
+        for (let s = 0; s < chain.length; s++) {
+          if (pathProg >= s) pathHeat[chain[s]] = Math.max(pathHeat[chain[s]], 1);
+        }
+        if (pathProg >= segs) { state = 'hold'; sT = 0; }
+      } else if (state === 'hold') {
+        matchHeat[matchIdx] = 1 + 0.25 * Math.sin(t * 8.0);
+        for (let s = 0; s < chain.length; s++) pathHeat[chain[s]] = 1;
+        if (sT >= HOLD_DUR) {
+          state = 'cool';
+          sT = 0;
+          sweepCount++;
+          if (sweepCount % RESHUFFLE_EVERY === 0) {
+            layoutA = { x: npx.slice(), y: npy.slice(), z: npz.slice() };
+            layoutB = makeLayout();
+            morphU = 0;
+            morphing = true;
+          }
+        }
+      } else if (state === 'cool') {
+        ringMat.opacity = Math.max(0, ringMat.opacity - d * 1.6);
+        pathMat.opacity = Math.max(0, pathMat.opacity - d * 1.4);
+        if (sT >= COOL_DUR && !morphing) {
+          ringGeo.setDrawRange(0, 0);
+          pathGeo.setDrawRange(0, 0);
+          pickTarget();
+          state = 'sweep';
+          sT = 0;
+        }
+      }
+
+      // heat decays
+      const mdec = Math.exp(-1.8 * d);
+      const pdec = Math.exp(-1.4 * d);
+      for (let i = 0; i < N; i++) {
+        if (i !== matchIdx || (state === 'cool' || state === 'sweep')) matchHeat[i] *= mdec;
+        if (state === 'cool' || state === 'sweep') pathHeat[i] *= pdec;
+      }
+
+      // write node buffers: position, color, size
+      const pa = nodePosAttr.array;
+      const ca = nodeColAttr.array;
+      const sa = nodeSizeAttr.array;
+      for (let i = 0; i < N; i++) {
+        pa[i * 3] = npx[i]; pa[i * 3 + 1] = npy[i]; pa[i * 3 + 2] = npz[i];
+        // candidate flicker near the beam plane
+        const bd = Math.abs(npx[i] - beamX);
+        const cand = Math.exp(-bd * bd * 2.2) * (0.55 + 0.45 * Math.sin(t * 16 + seed[i] * 20.0)) *
+          (state === 'sweep' ? 1 : 0.25);
+        const mh = Math.min(1, matchHeat[i]);
+        const ph = Math.min(1, pathHeat[i]);
+        let r = GRAY.r, g = GRAY.g, b = GRAY.b;
+        r += (CYAN.r - r) * cand * 0.8; g += (CYAN.g - g) * cand * 0.8; b += (CYAN.b - b) * cand * 0.8;
+        r += (VIOLET.r - r) * ph; g += (VIOLET.g - g) * ph; b += (VIOLET.b - b) * ph;
+        r += (AMBER.r - r) * mh; g += (AMBER.g - g) * mh; b += (AMBER.b - b) * mh;
+        ca[i * 3] = r; ca[i * 3 + 1] = g; ca[i * 3 + 2] = b;
+        sa[i] = (0.16 + 0.05 * (MAX_DEPTH - depth[i]) / MAX_DEPTH) * (1 + cand * 0.5 + mh * 1.6 + ph * 0.6);
+      }
+      nodePosAttr.needsUpdate = true;
+      nodeColAttr.needsUpdate = true;
+      nodeSizeAttr.needsUpdate = true;
+
+      // edges follow the living nodes
+      const ea = edgePosAttr.array;
+      for (let i = 1; i < N; i++) {
+        const p = parent[i];
+        const o = (i - 1) * 6;
+        ea[o] = npx[p]; ea[o + 1] = npy[p]; ea[o + 2] = npz[p];
+        ea[o + 3] = npx[i]; ea[o + 4] = npy[i]; ea[o + 5] = npz[i];
+      }
+      edgePosAttr.needsUpdate = true;
+
+      // selector path overlay follows too, with partial last segment
+      if (chain.length > 1 && pathMat.opacity > 0.01) {
+        const paA = pathPosAttr.array;
+        const full = Math.floor(pathProg);
+        for (let s = 0; s < chain.length - 1; s++) {
+          const a = chain[s], b2 = chain[s + 1];
+          const o = s * 6;
+          paA[o] = npx[a]; paA[o + 1] = npy[a]; paA[o + 2] = npz[a];
+          if (s < full) {
+            paA[o + 3] = npx[b2]; paA[o + 4] = npy[b2]; paA[o + 5] = npz[b2];
+          } else {
+            const fr = ease(Math.min(1, pathProg - s));
+            paA[o + 3] = npx[a] + (npx[b2] - npx[a]) * fr;
+            paA[o + 4] = npy[a] + (npy[b2] - npy[a]) * fr;
+            paA[o + 5] = npz[a] + (npz[b2] - npz[a]) * fr;
+          }
+        }
+        pathGeo.setDrawRange(0, Math.min(chain.length - 1, full + 1) * 2);
+        pathPosAttr.needsUpdate = true;
+      }
+
+      // beam placement and glow
+      beam.position.x = beamX;
+      beam.material.uniforms.uGlow.value = state === 'flare' ? 1.8 : 1.0;
+
+      // ring follows the match node, billboarded to the camera
+      ring.position.set(npx[matchIdx], npy[matchIdx], npz[matchIdx]);
+      root.getWorldQuaternion(rootQ);
+      camQ.copy(ctx.camera.quaternion);
+      ring.quaternion.copy(rootQ.invert().multiply(camQ));
+
+      // gentle living sway of the whole tree
+      root.rotation.z = Math.sin(t * 0.23) * 0.02;
+      root.rotation.y = Math.sin(t * 0.11) * 0.06;
+
+      // camera orbit
+      const a = t * 0.045 + ctx.pointer.x * 0.5;
+      ctx.camera.position.set(Math.sin(a) * 11.5, 1.6 + ctx.pointer.y * 1.6, Math.cos(a) * 11.5);
+      ctx.camera.lookAt(look);
+    }
+  };
+}
+
+/* ================= shared runtime ================= */
+
+const canvas = document.getElementById('c');
+const btnPlay = document.getElementById('btnPlay');
+const speedEl = document.getElementById('speed');
+const btnPng = document.getElementById('btnPng');
+const note = document.getElementById('note');
+
+let renderer;
+try {
+  renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
+} catch (e) {
+  document.getElementById('err').style.display = 'grid';
+  document.getElementById('hud').hidden = true;
+  throw e;
+}
+
+/* Quality tier: 1 on desktop, lower on small screens or few cores.
+   Scenes scale particle counts by ctx.quality. */
+const small = Math.min(window.innerWidth, window.innerHeight) < 700;
+const weak = (navigator.hardwareConcurrency || 8) <= 4;
+const quality = small ? 0.5 : (weak ? 0.7 : 1);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, quality < 1 ? 1.5 : 2));
+
+const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 500);
+camera.position.set(0, 0, 12);
+
+const ctx = {
+  scene: new THREE.Scene(),
+  camera,
+  renderer,
+  quality,
+  pointer: { x: 0, y: 0 },  /* smoothed, -1..1, y up */
+};
+
+let piece;
+try {
+  piece = createScene(THREE, ctx);
+} catch (e) {
+  document.getElementById('err').style.display = 'grid';
+  document.getElementById('hud').hidden = true;
+  console.error(e);
+  throw e;
+}
+
+function resize() {
+  const w = window.innerWidth, h = window.innerHeight;
+  renderer.setSize(w, h, false);
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+  if (piece.resize) piece.resize(w, h);
+}
+window.addEventListener('resize', resize);
+resize();
+
+/* Pointer parallax target, lerped each frame for weight. */
+const target = { x: 0, y: 0 };
+window.addEventListener('pointermove', (e) => {
+  target.x = (e.clientX / window.innerWidth) * 2 - 1;
+  target.y = -((e.clientY / window.innerHeight) * 2 - 1);
+}, { passive: true });
+
+let userPaused = false;
+let hidden = false;
+let speed = 1;
+let t = 0;
+let last = performance.now();
+
+const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+function setPlayUi() {
+  btnPlay.textContent = userPaused ? 'Play' : 'Pause';
+  btnPlay.setAttribute('aria-pressed', String(userPaused));
+}
+btnPlay.addEventListener('click', () => {
+  userPaused = !userPaused;
+  note.hidden = true;
+  setPlayUi();
+  if (!userPaused) { last = performance.now(); loop(last); }
+});
+canvas.addEventListener('keydown', (e) => {
+  if (e.code === 'Space') { e.preventDefault(); btnPlay.click(); }
+});
+speedEl.addEventListener('input', () => { speed = parseFloat(speedEl.value) || 1; });
+
+btnPng.addEventListener('click', () => {
+  renderer.render(ctx.scene, camera);
+  canvas.toBlob((blob) => {
+    if (!blob) return;
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'custom-web-scraper-3d.png';
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+  });
+});
+
+document.addEventListener('visibilitychange', () => {
+  hidden = document.hidden;
+  if (!hidden && !userPaused) { last = performance.now(); loop(last); }
+});
+
+let raf = 0;
+function frame(now) {
+  const dt = Math.min((now - last) / 1000, 0.1);
+  last = now;
+  t += dt * speed;
+  ctx.pointer.x += (target.x - ctx.pointer.x) * 0.06;
+  ctx.pointer.y += (target.y - ctx.pointer.y) * 0.06;
+  piece.update(t, dt * speed);
+  renderer.render(ctx.scene, camera);
+}
+function loop(now) {
+  if (userPaused || hidden) return;
+  frame(now);
+  raf = requestAnimationFrame(loop);
+}
+
+if (reduceMotion) {
+  /* Advance to a composed moment, render one still frame, and wait. */
+  for (let i = 0; i < 240; i++) { t += 1 / 60; piece.update(t, 1 / 60); }
+  renderer.render(ctx.scene, camera);
+  userPaused = true;
+  note.hidden = false;
+  setPlayUi();
+} else {
+  loop(performance.now());
+}
+</script>
+</body>
+</html>

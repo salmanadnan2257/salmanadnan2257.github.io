@@ -1,0 +1,509 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <meta name="theme-color" content="#0A101E">
+  <title>Voice Appointment Agent in 3D · Salman Adnan</title>
+  <meta name="description" content="Voiceprint Torus: an interactive 3D study of a phone conversation that ends in a booked slot.">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="../assets/favicon.png" sizes="any">
+  <style>
+    :root { color-scheme: dark; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      background: #0A101E;
+      overflow: hidden;
+      font: 12px/1.4 ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+      color: rgba(255, 255, 255, 0.85);
+    }
+    #stage { position: fixed; inset: 0; }
+    canvas { display: block; width: 100%; height: 100%; outline: none; }
+    canvas:focus-visible { box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.6); }
+    #hud {
+      position: absolute; right: 12px; bottom: 12px;
+      display: flex; align-items: center; gap: 10px;
+      padding: 7px 10px; border-radius: 999px;
+      background: rgba(8, 8, 14, 0.55);
+      backdrop-filter: blur(6px);
+      opacity: 0.55; transition: opacity 0.25s ease;
+    }
+    #hud:hover, #hud:focus-within { opacity: 1; }
+    #hud button {
+      appearance: none; border: 1px solid rgba(255, 255, 255, 0.25);
+      background: transparent; color: inherit; font: inherit;
+      padding: 3px 10px; border-radius: 999px; cursor: pointer;
+    }
+    #hud button:hover { border-color: rgba(255, 255, 255, 0.6); }
+    #hud button:focus-visible, #hud input:focus-visible {
+      outline: 2px solid #fff; outline-offset: 2px;
+    }
+    #hud label { display: flex; align-items: center; gap: 6px; }
+    #hud input[type="range"] { width: 72px; accent-color: #43D0B0; }
+    #note {
+      position: absolute; left: 12px; bottom: 12px; max-width: 46ch;
+      padding: 8px 12px; border-radius: 10px;
+      background: rgba(8, 8, 14, 0.65);
+    }
+    #err {
+      position: absolute; inset: 0; display: none;
+      place-items: center; text-align: center; padding: 24px;
+    }
+    @media (max-width: 560px) {
+      #hud label { display: none; }
+    }
+  </style>
+</head>
+<body>
+<div id="stage">
+  <canvas id="c" tabindex="0" aria-label="Animated ring of radial spectrogram bars alternating between caller and agent turns, with a calendar lattice lighting up when a booking lands."></canvas>
+  <div id="hud" role="group" aria-label="Visualization controls">
+    <button id="btnPlay" type="button" aria-pressed="false">Pause</button>
+    <label for="speed">speed
+      <input id="speed" type="range" min="0.25" max="2" step="0.25" value="1"
+             aria-label="Animation speed">
+    </label>
+    <button id="btnPng" type="button">Save PNG</button>
+  </div>
+  <p id="note" hidden>Motion is paused because your system prefers reduced motion.
+     Press Play to animate.</p>
+  <div id="err"><p>This visualization needs WebGL, which is unavailable here.<br>
+     A screenshot of it lives on the project page.</p></div>
+</div>
+
+<script type="importmap">
+{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js" } }
+</script>
+<script type="module">
+import * as THREE from 'three';
+
+/* ================= scene: voice-agent ================= */
+// Piece: Voiceprint Torus. A ring of radial spectrogram bars speaks in alternating
+// turns, violet caller then teal agent, syllable bursts and pauses like a real phone
+// call; behind it a calendar lattice warms slot by slot until a booking locks in gold
+// and a confirmation ripple runs the whole ring.
+// Palette: bg deep slate #0A101E, agent teal #43D0B0, caller violet #9B7BE8, lattice
+// gray #3A4358, confirm gold #EFC868. Two clearly voiced hues on calm slate, gold
+// saved strictly for the booking moment.
+// Signature: speech-rhythm bars, you can almost hear the turn-taking.
+
+function createScene(THREE, ctx) {
+  const q = ctx.quality;
+
+  // ---------- tunables ----------
+  const BG = 0x0A101E;                        // deep slate background
+  const TEAL = new THREE.Color(0x43D0B0);     // agent voice
+  const VIOLET = new THREE.Color(0x9B7BE8);   // caller voice
+  const GRAY = new THREE.Color(0x3A4358);     // resting bars, lattice slots
+  const GOLD = new THREE.Color(0xEFC868);     // confirmed booking
+  const BARS = Math.max(96, Math.floor(240 * q)); // radial spectrogram bars
+  const RING_R = 2.9;                         // ring radius
+  const BAR_MAX = 1.35;                       // full-burst bar length
+  const CAL_COLS = 7, CAL_ROWS = 5;           // calendar lattice
+  const TURN_LEN = [1.7, 3.4];                // speech turn duration range
+  const PAUSE_LEN = [0.35, 0.9];              // gap between turns
+  const SYL_RATE = 4.3;                       // syllables per second
+  const BOOK_EVERY = 4;                       // exchanges per booking
+  const RESET_AFTER = 5;                      // bookings per conversation
+  const RIPPLE_DUR = 1.4;                     // confirmation ripple lap time
+
+  ctx.scene.background = new THREE.Color(BG);
+  ctx.scene.fog = new THREE.FogExp2(BG, 0.02);
+
+  const rig = new THREE.Group();   // pointer tilt
+  const ring = new THREE.Group();  // slow precession
+  rig.add(ring);
+  ctx.scene.add(rig);
+
+  function rand(a, b) { return a + Math.random() * (b - a); }
+  function ease(u) { return u * u * (3.0 - 2.0 * u); }
+
+  // ---------- spectrogram bars ----------
+  const barMesh = new THREE.InstancedMesh(
+    new THREE.BoxGeometry(1, 1, 1),
+    new THREE.MeshBasicMaterial({ color: 0xFFFFFF }),
+    BARS
+  );
+  ring.add(barMesh);
+  const barAngle = new Float32Array(BARS);
+  const barSeed = new Float32Array(BARS);
+  const barAmp = new Float32Array(BARS); // eased current amplitude
+  for (let i = 0; i < BARS; i++) {
+    barAngle[i] = (i / BARS) * Math.PI * 2;
+    barSeed[i] = Math.random();
+  }
+  const m4 = new THREE.Matrix4();
+  const qz = new THREE.Quaternion();
+  const axisZ = new THREE.Vector3(0, 0, 1);
+  const pv = new THREE.Vector3();
+  const sv = new THREE.Vector3();
+  const cTmp = new THREE.Color();
+  const cTmp2 = new THREE.Color();
+  for (let i = 0; i < BARS; i++) barMesh.setColorAt(i, cTmp.copy(GRAY));
+  barMesh.instanceColor.needsUpdate = true;
+
+  // soft center glow that breathes with whoever is speaking
+  const glowGeo = new THREE.BufferGeometry();
+  glowGeo.setAttribute('position', new THREE.Float32BufferAttribute([0, 0, 0], 3));
+  const glowMat = new THREE.ShaderMaterial({
+    uniforms: { uColor: { value: new THREE.Color(0x43D0B0) }, uAmp: { value: 0 } },
+    vertexShader: `
+      uniform float uAmp;
+      void main() {
+        vec4 mv = modelViewMatrix * vec4(position, 1.0);
+        gl_PointSize = (2.4 + uAmp * 1.6) * (300.0 / -mv.z);
+        gl_Position = projectionMatrix * mv;
+      }
+    `,
+    fragmentShader: `
+      uniform vec3 uColor;
+      uniform float uAmp;
+      void main() {
+        float d = length(gl_PointCoord - 0.5);
+        float a = smoothstep(0.5, 0.0, d);
+        gl_FragColor = vec4(uColor, a * a * (0.08 + uAmp * 0.16));
+      }
+    `,
+    transparent: true, depthWrite: false, blending: THREE.AdditiveBlending
+  });
+  ring.add(new THREE.Points(glowGeo, glowMat));
+
+  // ---------- calendar lattice ----------
+  const SLOT_N = CAL_COLS * CAL_ROWS;
+  const slotMesh = new THREE.InstancedMesh(
+    new THREE.BoxGeometry(0.36, 0.36, 0.05),
+    new THREE.MeshBasicMaterial({ color: 0xFFFFFF }),
+    SLOT_N
+  );
+  rig.add(slotMesh);
+  const slotWarm = new Float32Array(SLOT_N);   // eased candidate warmth
+  const slotWarmGoal = new Float32Array(SLOT_N);
+  const slotLock = new Float32Array(SLOT_N);   // eased gold lock
+  const slotLockGoal = new Float32Array(SLOT_N);
+  const slotPop = new Float32Array(SLOT_N);    // lock-in scale pop
+  const slotBase = [];
+  for (let i = 0; i < SLOT_N; i++) {
+    const cx = i % CAL_COLS;
+    const cy = Math.floor(i / CAL_COLS);
+    slotBase.push(new THREE.Vector3(
+      (cx - (CAL_COLS - 1) / 2) * 0.52,
+      (cy - (CAL_ROWS - 1) / 2) * 0.52,
+      -2.6
+    ));
+  }
+
+  // ---------- conversation engine ----------
+  let speaker = 0;            // 0 = caller (violet), 1 = agent (teal)
+  let talkState = 'talk';     // talk | pause
+  let stateT = 0;
+  let stateDur = rand(TURN_LEN[0], TURN_LEN[1]);
+  let exchanges = 0;          // completed caller+agent pairs
+  let halfDone = 0;           // turns completed within the current exchange
+  let bookings = 0;
+  let resetting = false;
+  let resetT = 0;
+  const speakWeight = [0, 0]; // eased per-speaker activity
+  let rippleT = -1;           // confirmation ripple progress, -1 idle
+  const warmed = [];          // candidate slot ids, in warm order
+
+  function completeTurn() {
+    halfDone++;
+    if (halfDone >= 2) {
+      halfDone = 0;
+      exchanges++;
+      // each exchange warms a fresh candidate slot
+      if (!resetting) {
+        let tries = 0;
+        let s = Math.floor(Math.random() * SLOT_N);
+        while ((slotWarmGoal[s] > 0 || slotLockGoal[s] > 0) && tries < 40) {
+          s = Math.floor(Math.random() * SLOT_N); tries++;
+        }
+        slotWarmGoal[s] = 1;
+        warmed.push(s);
+        // every few exchanges one warmed slot locks in gold
+        if (exchanges % BOOK_EVERY === 0 && warmed.length) {
+          const pick = warmed.splice(Math.floor(Math.random() * warmed.length), 1)[0];
+          slotWarmGoal[pick] = 0;
+          slotLockGoal[pick] = 1;
+          slotPop[pick] = 1;
+          rippleT = 0;
+          bookings++;
+          if (bookings >= RESET_AFTER) {
+            resetting = true;
+            resetT = 0;
+          }
+        }
+      }
+    }
+  }
+
+  // ---------- update ----------
+  const look = new THREE.Vector3(0, 0, 0);
+  return {
+    update: function (t, dt) {
+      const d = Math.min(dt, 0.05);
+
+      // turn-taking state machine
+      stateT += d;
+      if (stateT >= stateDur) {
+        stateT = 0;
+        if (talkState === 'talk') {
+          talkState = 'pause';
+          stateDur = rand(PAUSE_LEN[0], PAUSE_LEN[1]);
+          completeTurn();
+        } else {
+          talkState = 'talk';
+          speaker = 1 - speaker;
+          stateDur = rand(TURN_LEN[0], TURN_LEN[1]);
+        }
+      }
+
+      // conversation reset: the lattice cools, then a fresh call begins
+      if (resetting) {
+        resetT += d;
+        if (resetT > 0.8) {
+          for (let i = 0; i < SLOT_N; i++) { slotWarmGoal[i] = 0; slotLockGoal[i] = 0; }
+          warmed.length = 0;
+        }
+        if (resetT > 3.2) {
+          resetting = false;
+          bookings = 0;
+          exchanges = 0;
+        }
+      }
+
+      // speech envelope: phrase gate * syllable bursts * slow word shape
+      let env = 0;
+      if (talkState === 'talk') {
+        const gate = Math.min(1, stateT * 4) * Math.min(1, (stateDur - stateT) * 3);
+        const syl = Math.pow(Math.max(0, Math.sin(
+          Math.PI * 2 * SYL_RATE * stateT + 0.9 * Math.sin(Math.PI * 2 * 1.7 * stateT + speaker * 3)
+        )), 0.5);
+        const word = 0.72 + 0.28 * Math.sin(Math.PI * 2 * 0.85 * stateT + speaker * 5);
+        env = gate * (0.34 + 0.66 * syl) * word;
+      }
+
+      // eased per-speaker activity so handoffs never snap
+      for (let s = 0; s < 2; s++) {
+        const goal = (talkState === 'talk' && speaker === s) ? env : 0;
+        speakWeight[s] += (goal - speakWeight[s]) * Math.min(1, d * 9);
+      }
+
+      // confirmation ripple lap
+      let ripU = -1;
+      if (rippleT >= 0) {
+        rippleT += d;
+        ripU = rippleT / RIPPLE_DUR;
+        if (ripU > 1) { rippleT = -1; ripU = -1; }
+      }
+
+      // bars: caller owns the left half, agent the right
+      for (let i = 0; i < BARS; i++) {
+        const a = barAngle[i];
+        const cosA = Math.cos(a);
+        // half membership: smooth blend across the seams
+        const callerSide = 0.5 - 0.5 * Math.tanh(cosA * 4.0);
+        const agentSide = 1 - callerSide;
+        // spatial speech texture: two traveling bumps plus per-bar seed shimmer
+        const tex = 0.38 +
+          0.47 * Math.max(0, Math.sin(a * 3.0 + t * 5.2 + barSeed[i] * 2.0)) +
+          0.35 * Math.max(0, Math.sin(a * 7.0 - t * 7.7 + barSeed[i] * 4.0));
+        const target =
+          speakWeight[0] * callerSide * tex +
+          speakWeight[1] * agentSide * tex +
+          0.045; // idle breath
+        barAmp[i] += (target - barAmp[i]) * Math.min(1, d * 14);
+
+        // gold ripple brightness window traveling the circumference
+        let rip = 0;
+        if (ripU >= 0) {
+          let da = a - ripU * Math.PI * 2;
+          da = Math.atan2(Math.sin(da), Math.cos(da));
+          rip = Math.exp(-da * da * 14.0) * Math.sin(Math.PI * Math.min(1, ripU)) * 1.0;
+        }
+
+        const len = 0.07 + Math.pow(Math.max(0.0001, barAmp[i] + rip * 0.35), 0.75) * BAR_MAX;
+        qz.setFromAxisAngle(axisZ, a - Math.PI / 2);
+        pv.set(Math.cos(a) * (RING_R + len / 2), Math.sin(a) * (RING_R + len / 2), 0);
+        sv.set(0.052, len, 0.052);
+        m4.compose(pv, qz, sv);
+        barMesh.setMatrixAt(i, m4);
+
+        const amp = Math.min(1, barAmp[i] * 3.2);
+        cTmp.copy(GRAY)
+          .lerp(cTmp2.copy(VIOLET), amp * callerSide)
+          .lerp(cTmp2.copy(TEAL), amp * agentSide)
+          .lerp(cTmp2.copy(GOLD), Math.min(1, rip));
+        barMesh.setColorAt(i, cTmp);
+      }
+      barMesh.instanceMatrix.needsUpdate = true;
+      barMesh.instanceColor.needsUpdate = true;
+
+      // center glow follows the active voice
+      const liveAmp = Math.max(speakWeight[0], speakWeight[1]);
+      glowMat.uniforms.uAmp.value += (liveAmp - glowMat.uniforms.uAmp.value) * Math.min(1, d * 6);
+      cTmp.copy(VIOLET).lerp(TEAL, speakWeight[1] / Math.max(0.0001, speakWeight[0] + speakWeight[1]));
+      glowMat.uniforms.uColor.value.lerp(cTmp, Math.min(1, d * 4));
+
+      // calendar slots
+      for (let i = 0; i < SLOT_N; i++) {
+        slotWarm[i] += (slotWarmGoal[i] - slotWarm[i]) * Math.min(1, d * 2.6);
+        slotLock[i] += (slotLockGoal[i] - slotLock[i]) * Math.min(1, d * 3.2);
+        slotPop[i] = Math.max(0, slotPop[i] - d * 1.8);
+        const pop = Math.sin(Math.min(1, 1 - slotPop[i]) * Math.PI) * slotPop[i];
+        const s = 1 + pop * 0.4 + slotLock[i] * 0.12;
+        m4.compose(slotBase[i], qz.set(0, 0, 0, 1), sv.set(s, s, s));
+        slotMesh.setMatrixAt(i, m4);
+        cTmp.copy(GRAY).multiplyScalar(0.55)
+          .lerp(cTmp2.copy(GOLD).multiplyScalar(0.45), slotWarm[i])
+          .lerp(cTmp2.copy(GOLD).multiplyScalar(1.15), slotLock[i]);
+        slotMesh.setColorAt(i, cTmp);
+      }
+      slotMesh.instanceMatrix.needsUpdate = true;
+      slotMesh.instanceColor.needsUpdate = true;
+
+      // ring precession and pointer tilt
+      ring.rotation.z = t * 0.05;
+      rig.rotation.x = -0.06 + ctx.pointer.y * 0.22;
+      rig.rotation.y = ctx.pointer.x * 0.3;
+
+      // calm dolly breathing
+      ctx.camera.position.set(0, 0, 9.6 + Math.sin(t * 0.09) * 0.4);
+      ctx.camera.lookAt(look);
+    }
+  };
+}
+
+/* ================= shared runtime ================= */
+
+const canvas = document.getElementById('c');
+const btnPlay = document.getElementById('btnPlay');
+const speedEl = document.getElementById('speed');
+const btnPng = document.getElementById('btnPng');
+const note = document.getElementById('note');
+
+let renderer;
+try {
+  renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
+} catch (e) {
+  document.getElementById('err').style.display = 'grid';
+  document.getElementById('hud').hidden = true;
+  throw e;
+}
+
+/* Quality tier: 1 on desktop, lower on small screens or few cores.
+   Scenes scale particle counts by ctx.quality. */
+const small = Math.min(window.innerWidth, window.innerHeight) < 700;
+const weak = (navigator.hardwareConcurrency || 8) <= 4;
+const quality = small ? 0.5 : (weak ? 0.7 : 1);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, quality < 1 ? 1.5 : 2));
+
+const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 500);
+camera.position.set(0, 0, 12);
+
+const ctx = {
+  scene: new THREE.Scene(),
+  camera,
+  renderer,
+  quality,
+  pointer: { x: 0, y: 0 },  /* smoothed, -1..1, y up */
+};
+
+let piece;
+try {
+  piece = createScene(THREE, ctx);
+} catch (e) {
+  document.getElementById('err').style.display = 'grid';
+  document.getElementById('hud').hidden = true;
+  console.error(e);
+  throw e;
+}
+
+function resize() {
+  const w = window.innerWidth, h = window.innerHeight;
+  renderer.setSize(w, h, false);
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+  if (piece.resize) piece.resize(w, h);
+}
+window.addEventListener('resize', resize);
+resize();
+
+/* Pointer parallax target, lerped each frame for weight. */
+const target = { x: 0, y: 0 };
+window.addEventListener('pointermove', (e) => {
+  target.x = (e.clientX / window.innerWidth) * 2 - 1;
+  target.y = -((e.clientY / window.innerHeight) * 2 - 1);
+}, { passive: true });
+
+let userPaused = false;
+let hidden = false;
+let speed = 1;
+let t = 0;
+let last = performance.now();
+
+const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+function setPlayUi() {
+  btnPlay.textContent = userPaused ? 'Play' : 'Pause';
+  btnPlay.setAttribute('aria-pressed', String(userPaused));
+}
+btnPlay.addEventListener('click', () => {
+  userPaused = !userPaused;
+  note.hidden = true;
+  setPlayUi();
+  if (!userPaused) { last = performance.now(); loop(last); }
+});
+canvas.addEventListener('keydown', (e) => {
+  if (e.code === 'Space') { e.preventDefault(); btnPlay.click(); }
+});
+speedEl.addEventListener('input', () => { speed = parseFloat(speedEl.value) || 1; });
+
+btnPng.addEventListener('click', () => {
+  renderer.render(ctx.scene, camera);
+  canvas.toBlob((blob) => {
+    if (!blob) return;
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'voice-agent-3d.png';
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+  });
+});
+
+document.addEventListener('visibilitychange', () => {
+  hidden = document.hidden;
+  if (!hidden && !userPaused) { last = performance.now(); loop(last); }
+});
+
+let raf = 0;
+function frame(now) {
+  const dt = Math.min((now - last) / 1000, 0.1);
+  last = now;
+  t += dt * speed;
+  ctx.pointer.x += (target.x - ctx.pointer.x) * 0.06;
+  ctx.pointer.y += (target.y - ctx.pointer.y) * 0.06;
+  piece.update(t, dt * speed);
+  renderer.render(ctx.scene, camera);
+}
+function loop(now) {
+  if (userPaused || hidden) return;
+  frame(now);
+  raf = requestAnimationFrame(loop);
+}
+
+if (reduceMotion) {
+  /* Advance to a composed moment, render one still frame, and wait. */
+  for (let i = 0; i < 240; i++) { t += 1 / 60; piece.update(t, 1 / 60); }
+  renderer.render(ctx.scene, camera);
+  userPaused = true;
+  note.hidden = false;
+  setPlayUi();
+} else {
+  loop(performance.now());
+}
+</script>
+</body>
+</html>
