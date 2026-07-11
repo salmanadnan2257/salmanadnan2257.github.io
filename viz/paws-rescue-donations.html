@@ -66,6 +66,7 @@
              aria-label="Animation speed">
     </label>
     <button id="btnPng" type="button">Save PNG</button>
+    <button id="btnFs" type="button" aria-pressed="false">Fullscreen</button>
   </div>
   <p id="note" hidden>Motion is paused because your system prefers reduced motion.
      Press Play to animate.</p>
@@ -445,6 +446,21 @@ btnPng.addEventListener('click', () => {
     setTimeout(() => URL.revokeObjectURL(a.href), 5000);
   });
 });
+
+const btnFs = document.getElementById('btnFs');
+if (!document.fullscreenEnabled) {
+  btnFs.hidden = true; /* e.g. embedded without allow="fullscreen" */
+} else {
+  btnFs.addEventListener('click', () => {
+    if (document.fullscreenElement) document.exitFullscreen();
+    else document.documentElement.requestFullscreen().catch(() => {});
+  });
+  document.addEventListener('fullscreenchange', () => {
+    const on = !!document.fullscreenElement;
+    btnFs.textContent = on ? 'Exit fullscreen' : 'Fullscreen';
+    btnFs.setAttribute('aria-pressed', String(on));
+  });
+}
 
 document.addEventListener('visibilitychange', () => {
   hidden = document.hidden;
