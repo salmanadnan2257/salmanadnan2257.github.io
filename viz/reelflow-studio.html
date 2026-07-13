@@ -111,6 +111,7 @@
   <div id="legend" role="list" aria-label="Legend">
     <span role="listitem"><i style="--c:#2E2C3A"></i>Frame</span>
     <span role="listitem"><i style="--c:#E86A8A"></i>In review</span>
+    <span role="listitem"><i style="--c:#E8C25C"></i>Revision send-back</span>
     <span role="listitem"><i style="--c:#58C98A"></i>Approved</span>
     <span role="listitem"><i style="--c:#F0E9D8"></i>Caption dash</span>
   </div>
@@ -154,6 +155,7 @@ function createScene(THREE, ctx) {
   const REV_EVERY = 6.5;        // mean seconds between revision events
   const COL_BODY_BASE = new THREE.Color(0xFFFFFF);
   const COL_ROSE  = new THREE.Color(0xE86A8A);
+  const COL_REV   = new THREE.Color(0xE8C25C); // revision send-back, yellow
   const COL_GREEN = new THREE.Color(0x58C98A);
   const COL_CREAM = new THREE.Color(0xF0E9D8);
   const COL_BORDER_IDLE = new THREE.Color(0x232838);
@@ -528,6 +530,7 @@ function createScene(THREE, ctx) {
         _c1.copy(COL_BODY_BASE);
         const reviewMix = smooth01((u - REVIEW_AT) / 0.05) * (1 - smooth01((u - APPROVE_AT) / 0.02));
         _c1.lerp(COL_ROSE, reviewMix * 0.35);
+        if (revDim > 0) _c1.lerp(COL_REV, revDim * 0.5);
         _c1.multiplyScalar(vis);
         bodyMesh.setColorAt(idx, _c1);
 
@@ -548,7 +551,9 @@ function createScene(THREE, ctx) {
         _c1.copy(COL_BORDER_IDLE)
           .lerp(_c2.copy(COL_ROSE), reviewMix)
           .lerp(_c2.copy(COL_GREEN), approveMix * (1 - smooth01((u - DARK_IN) / 0.05)));
-        _c1.multiplyScalar(vis * (1 - revDim * 0.7));
+        // a frame sent back for revision turns yellow while it rides down
+        if (revDim > 0) _c1.lerp(_c2.copy(COL_REV), revDim);
+        _c1.multiplyScalar(vis * (1 - revDim * 0.25));
         borderMesh.setColorAt(idx, _c1);
 
         // caption dash fades and grows in under approved frames
@@ -571,7 +576,7 @@ function createScene(THREE, ctx) {
 
       // live caption: the occasional send-back overrides a slow tour of the pipeline
       let cap;
-      if (t < capRevUntil) cap = 'Revision requested: one frame slides back down the ribbon';
+      if (t < capRevUntil) cap = 'Revision requested: the yellow frame slides back down the ribbon';
       else {
         const beat = Math.floor(t / 7) % 4;
         if (beat === 0) cap = 'Frames ride the ribbon toward human review';

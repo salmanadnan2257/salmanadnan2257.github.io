@@ -105,13 +105,14 @@
   </div>
   <div id="lbl">
     <h1>Wireframe Ridge Flight</h1>
-    <p id="lblSub">An endless flight over the project's procedural terrain, structure drawn as light.</p>
+    <p id="lblSub">An endless flight over the project's terrain, cycling its three real shading modes: wireframe, flat, smooth.</p>
     <p id="lblPhase" aria-hidden="true"></p>
   </div>
   <div id="legend" role="list" aria-label="Legend">
     <span role="listitem"><i style="--c:#6FC8D8"></i>Wireframe ridge</span>
     <span role="listitem"><i style="--c:#D9A94E"></i>Contour band</span>
     <span role="listitem"><i style="--c:#EAF4F4"></i>Peak cap</span>
+    <span role="listitem"><i style="--c:#4E7A50"></i>Lit ground (flat / smooth)</span>
   </div>
   <p id="note" hidden>Motion is paused because your system prefers reduced motion.
      Press Play to animate.</p>
@@ -207,16 +208,22 @@ function createScene(THREE, ctx) {
     }
   `;
 
-  // shared vertex shader: 3-octave ridged FBM heightfield, scrolled by uOffset
+  // shared vertex shader: 3-octave ridged FBM heightfield, scrolled by uOffset.
+  // When a lit shading mode is active (uLit > 0) it also computes a smooth
+  // per-vertex normal from the analytic height gradient, the same central
+  // difference approach the real project uses for its Phong mode.
   const terrainVert = NOISE + `
     uniform vec2 uOffset;
     uniform float uAmp;
     uniform float uFreq;
+    uniform float uLit;
     varying float vH;
     varying float vFog;
     varying float vEdge;
-    void main() {
-      vec2 wp = (position.xy + uOffset) * uFreq;
+    varying vec3 vWorld;
+    varying vec3 vNs;
+    float hgt(vec2 xy) {
+      vec2 wp = (xy + uOffset) * uFreq;
       float a = 0.55;
       float f = 1.0;
       float h = 0.0;
@@ -228,27 +235,67 @@ function createScene(THREE, ctx) {
         a *= 0.5;
         f *= 2.15;
       }
-      h = pow(h, 1.5) * uAmp;
+      return pow(h, 1.5) * uAmp;
+    }
+    void main() {
+      float h = hgt(position.xy);
+      if (uLit > 0.001) {
+        float E = 0.9;
+        float hx = hgt(position.xy + vec2(E, 0.0));
+        float hy = hgt(position.xy + vec2(0.0, E));
+        vec3 nl = normalize(vec3(-(hx - h) / E, -(hy - h) / E, 1.0));
+        vNs = normalize((modelMatrix * vec4(nl, 0.0)).xyz);
+      } else {
+        vNs = vec3(0.0, 1.0, 0.0);
+      }
       vec3 p = position;
       p.z += h;
       vH = h;
       vEdge = 1.0 - smoothstep(46.0, 58.0, abs(position.x));
       vec4 world = modelMatrix * vec4(p, 1.0);
+      vWorld = world.xyz;
       vec4 mv = viewMatrix * world;
       vFog = clamp(1.0 - exp(-0.00048 * dot(mv.xyz, mv.xyz)), 0.0, 1.0);
       gl_Position = projectionMatrix * mv;
     }
   `;
 
+  // Ground pass: a near-black occluder in wireframe mode; in the lit modes it
+  // becomes the terrain itself. Flat shading takes one normal per triangle
+  // (screen-space derivatives of the world position), smooth shading uses the
+  // interpolated analytic normal, mirroring the real app's 1/2/3 modes.
   const occluderFrag = `
     uniform vec3 uDeep;
     uniform vec3 uFogC;
     uniform vec3 uBg;
+    uniform float uAmp;
+    uniform float uLit;
+    uniform float uFlat;
+    uniform vec3 uValley;
+    uniform vec3 uMidl;
+    uniform vec3 uPeakS;
     varying float vH;
     varying float vFog;
     varying float vEdge;
+    varying vec3 vWorld;
+    varying vec3 vNs;
     void main() {
       vec3 col = mix(uDeep, uFogC, vFog);
+      if (uLit > 0.001) {
+        vec3 flatN = normalize(cross(dFdx(vWorld), dFdy(vWorld)));
+        flatN *= sign(flatN.y + 1.0e-4);
+        vec3 N = normalize(mix(normalize(vNs), flatN, uFlat));
+        float hn = clamp(vH / uAmp, 0.0, 1.1);
+        vec3 alb = mix(uValley, uMidl, smoothstep(0.10, 0.45, hn));
+        alb = mix(alb, uPeakS, smoothstep(0.60, 0.95, hn));
+        vec3 L = normalize(vec3(0.35, 0.8, 0.45));
+        float dif = max(dot(N, L), 0.0);
+        vec3 V = normalize(cameraPosition - vWorld);
+        float sp = pow(max(dot(reflect(-L, N), V), 0.0), 24.0);
+        vec3 lit = alb * (0.36 + 0.88 * dif) + vec3(1.0) * sp * 0.22;
+        lit = mix(lit, uFogC, vFog);
+        col = mix(col, lit, uLit);
+      }
       col = mix(uBg, col, vEdge);
       gl_FragColor = vec4(col, 1.0);
     }
@@ -263,9 +310,12 @@ function createScene(THREE, ctx) {
     uniform vec3 uWhite;
     uniform float uAmp;
     uniform float uBand;
+    uniform float uLit;
     varying float vH;
     varying float vFog;
     varying float vEdge;
+    varying vec3 vWorld;
+    varying vec3 vNs;
     void main() {
       vec3 wire = mix(uWireA, uWireB, uDay);
       float hn = clamp(vH / uAmp, 0.0, 1.1);
@@ -276,13 +326,21 @@ function createScene(THREE, ctx) {
       float cap = smoothstep(0.76, 0.94, hn);
       col = mix(col, uWhite, cap * 0.8);
       col = mix(col, uFogC, vFog);
-      float a = (1.0 - vFog * 0.88) * vEdge;
+      float a = (1.0 - vFog * 0.88) * vEdge * (1.0 - uLit * 0.93);
       gl_FragColor = vec4(col, a);
     }
   `;
 
   const uOffset = { value: new THREE.Vector2(0, 0) };
   const uDay = { value: 0 };
+  // shading-mode cycle, mirroring the real app's 1/2/3 keys:
+  // wireframe -> flat (faceted) -> smooth (Phong), 9 seconds each
+  const MODE_SECONDS = 9;
+  const uLit = { value: 0 };   // 0 wireframe, 1 lit ground
+  const uFlat = { value: 1 };  // 1 flat normals, 0 smooth normals
+  const COL_VALLEY = new THREE.Color(0x54422E); // brown valleys (real app palette)
+  const COL_MIDL   = new THREE.Color(0x4E7A50); // green midlands
+  const COL_PEAKS  = new THREE.Color(0xD8C48A); // sandy peaks
 
   const geo = new THREE.PlaneGeometry(W, D, SEG_X, SEG_Z);
 
@@ -296,6 +354,11 @@ function createScene(THREE, ctx) {
       uDeep: { value: COL_DEEP },
       uFogC: { value: COL_FOG },
       uBg: { value: new THREE.Color(0x071013) },
+      uLit: uLit,
+      uFlat: uFlat,
+      uValley: { value: COL_VALLEY },
+      uMidl: { value: COL_MIDL },
+      uPeakS: { value: COL_PEAKS },
     },
     polygonOffset: true,
     polygonOffsetFactor: 2,
@@ -322,6 +385,7 @@ function createScene(THREE, ctx) {
       uFogC: { value: COL_FOG },
       uWhite: { value: COL_PEAK },
       uBand: { value: BAND },
+      uLit: uLit,
     },
     wireframe: true,
     transparent: true,
@@ -354,13 +418,18 @@ function createScene(THREE, ctx) {
       uOffset.value.set(offX, t * FLY);
       uDay.value = 0.5 + 0.5 * Math.sin(t * 6.2831853 / DAY);
 
-      // live caption on a slow rotation through what the flight shows
-      const beat = Math.floor(t / 7) % 4;
+      // shading-mode cycle: the same ground rendered three ways, like the
+      // real app's 1/2/3 keys. Smooth 1.5s cross-fades at each boundary.
+      const s01 = (x) => x <= 0 ? 0 : x >= 1 ? 1 : x * x * (3 - 2 * x);
+      const u = t % (MODE_SECONDS * 3);
+      uLit.value = s01((u - 8.5) / 1.5) * (1 - s01((u - 25.5) / 1.5));
+      uFlat.value = 1 - s01((u - 17.5) / 1.5);
+
+      // live caption follows the active shading mode
       ctx.caption(
-        beat === 0 ? 'Ridged noise terrain scrolls beneath the flight'
-        : beat === 1 ? 'Gold contour bands slide across the slopes'
-        : beat === 2 ? 'The wire hue breathes on a slow day-night cycle'
-        : 'Steering follows your pointer'
+        u < 9.25 ? 'Shading 1 of 3, wireframe: the ridged grid drawn as light'
+        : u < 18.25 ? 'Shading 2 of 3, flat: one normal per triangle, the faceted low-poly look'
+        : 'Shading 3 of 3, smooth Phong: per-vertex normals on the same mesh'
       );
 
       const rollT = THREE.MathUtils.clamp(-steerCur * 0.028, -0.34, 0.34);

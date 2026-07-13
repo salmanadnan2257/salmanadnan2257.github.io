@@ -183,34 +183,75 @@ function createScene(THREE, ctx) {
   const gUniforms = {
     uTime: { value: 0 },
     uPx: { value: px },
-    uSlate: { value: new THREE.Color(0x2A3040) }
+    uSlate: { value: new THREE.Color(0x2A3040) },
+    uWarm: { value: new THREE.Color(0x6A5540) }
   };
   const gMat = new THREE.ShaderMaterial({
     uniforms: gUniforms,
     transparent: true,
     depthWrite: false,
+    blending: THREE.AdditiveBlending,
     vertexShader: `
       uniform float uTime;
       uniform float uPx;
       varying float vA;
+      varying float vW;
       void main(){
         // a very slow breath of brightness across the ground
-        vA = 0.10 + 0.06 * (0.5 + 0.5 * sin(uTime * 0.08 + (position.x + position.z) * 0.25));
+        vA = 0.11 + 0.06 * (0.5 + 0.5 * sin(uTime * 0.08 + (position.x + position.z) * 0.25));
+        // ground near the center of the field catches a little candle warmth
+        vW = smoothstep(10.0, 2.0, length(position.xz)) * 0.55;
         vec4 mv = modelViewMatrix * vec4(position, 1.0);
         gl_PointSize = uPx * 1.5 * (90.0 / -mv.z);
         gl_Position = projectionMatrix * mv;
       }`,
     fragmentShader: `
       uniform vec3 uSlate;
+      uniform vec3 uWarm;
       varying float vA;
+      varying float vW;
       void main(){
         float d = length(gl_PointCoord - 0.5);
         float alpha = smoothstep(0.5, 0.1, d) * vA;
         if (alpha < 0.01) discard;
-        gl_FragColor = vec4(uSlate, alpha);
+        gl_FragColor = vec4(mix(uSlate, uWarm, vW), alpha);
       }`
   });
-  ctx.scene.add(new THREE.Points(gGeo, gMat));
+  const groundPts = new THREE.Points(gGeo, gMat);
+  groundPts.renderOrder = -1;
+  ctx.scene.add(groundPts);
+
+  // ---- a barely-there horizon band, so the dark reads as a place ----
+  function makeHorizonTexture() {
+    // gaussian band drawn per-pixel with a whisper of dither, so the huge
+    // stretched plane shows no gradient banding and no hard edges
+    const W = 32, H = 512;
+    const c = document.createElement('canvas');
+    c.width = W; c.height = H;
+    const g = c.getContext('2d');
+    const img = g.createImageData(W, H);
+    for (let y = 0; y < H; y++) {
+      const f = y / (H - 1);
+      const band = Math.exp(-Math.pow((f - 0.64) / 0.115, 2.0));
+      for (let x = 0; x < W; x++) {
+        const o = (y * W + x) * 4;
+        img.data[o] = 40; img.data[o + 1] = 36; img.data[o + 2] = 70;
+        img.data[o + 3] = Math.max(0, Math.min(255,
+          band * 46 + (Math.random() - 0.5) * 3));
+      }
+    }
+    g.putImageData(img, 0, 0);
+    return new THREE.CanvasTexture(c);
+  }
+  const horizon = new THREE.Mesh(
+    new THREE.PlaneGeometry(320, 70),
+    new THREE.MeshBasicMaterial({
+      map: makeHorizonTexture(), transparent: true, fog: false,
+      blending: THREE.AdditiveBlending, depthWrite: false
+    }));
+  horizon.position.set(0, 12, -80);
+  horizon.renderOrder = -3;
+  ctx.scene.add(horizon);
 
   // ---- the lights: whole life computed analytically in the vertex shader,
   //      so there is never a reset pop, only slow arrivals and departures ----
@@ -239,20 +280,19 @@ function createScene(THREE, ctx) {
     uCandle: { value: new THREE.Color(0xE8DFC8) },
     uEmber: { value: new THREE.Color(0xC8926A) }
   };
-  const cMat = new THREE.ShaderMaterial({
-    uniforms: cUniforms,
-    transparent: true,
-    depthWrite: false,
-    blending: THREE.AdditiveBlending,
-    vertexShader: `
+  // One vertex program serves the lights and their faint ground reflection;
+  // uMirror flips a light below the floor, dimmer, softer, and warmer.
+  const lightVertex = `
       uniform float uTime;
       uniform float uPeriod;
       uniform float uPx;
+      uniform float uMirror;
       uniform vec3 uCandle;
       uniform vec3 uEmber;
       attribute vec3 aHash;
       attribute float aPhase;
       varying float vB;
+      varying float vSoft;
       varying vec3 vColor;
       float hash(float n){ return fract(sin(n) * 43758.5453); }
       void main(){
@@ -269,30 +309,60 @@ function createScene(THREE, ctx) {
         float bIn = smoothstep(0.0, 4.0, u);          // gentle first light
         float flick = 1.0 + 0.05 * sin(uTime * 1.3 + aHash.x * 40.0);
         float breathe = 0.85 + 0.15 * sin(uTime * 0.22 + aHash.y * 40.0);
-        float level = mix(flick, 0.16 * breathe, d);  // full glow eases to ember
+        float hero = step(0.93, aHash.x);             // a few carry more light
+        float level = mix(flick, 0.16 * breathe, d) * (1.0 + hero * 0.30);
         float fadeOut = 1.0 - smoothstep(uPeriod - ${FADE.toFixed(1)}, uPeriod, u);
-        vB = bIn * level * fadeOut;
-        vColor = mix(uCandle, uEmber, d);
         // almost imperceptible sway
         vec2 sway = vec2(sin(uTime * 0.20 + aHash.x * 60.0),
                          cos(uTime * 0.17 + aHash.y * 60.0)) * 0.10 * yf;
-        vec3 p = vec3(base.x + sway.x, yf * height, base.y + sway.y);
+        float y = mix(yf * height, -0.12 - yf * height * 0.32, uMirror);
+        vec3 p = vec3(base.x + sway.x, y, base.y + sway.y);
         vec4 mv = modelViewMatrix * vec4(p, 1.0);
-        gl_PointSize = uPx * mix(3.4, 1.9, d) * (110.0 / -mv.z);
+        // distant lights sit smaller and dimmer; near ones carry the frame
+        float depthFade = 0.35 + 0.65 * smoothstep(28.0, 12.0, -mv.z);
+        vB = bIn * level * fadeOut * depthFade * mix(1.0, 0.11, uMirror);
+        vSoft = uMirror;
+        vColor = mix(uCandle, uEmber, max(d, uMirror * 0.6));
+        float sizeVar = 0.72 + aHash.z * 0.55 + hero * 0.85;
+        gl_PointSize = uPx * sizeVar * mix(5.2, 2.8, d)
+                     * (110.0 / -mv.z) * mix(1.0, 1.35, uMirror);
         gl_Position = projectionMatrix * mv;
-      }`,
-    fragmentShader: `
+      }`;
+  const lightFragment = `
       varying float vB;
+      varying float vSoft;
       varying vec3 vColor;
       void main(){
-        float d = length(gl_PointCoord - 0.5);
-        float core = smoothstep(0.22, 0.0, d);
-        float alpha = smoothstep(0.5, 0.08, d) * vB;
-        if (alpha < 0.008) discard;
-        gl_FragColor = vec4(vColor * (0.91 + 0.65 * core), alpha);
-      }`
-  });
-  ctx.scene.add(new THREE.Points(cGeo, cMat));
+        float d = length(gl_PointCoord - 0.5) * 2.0;
+        // a crisp bright core inside a wide, soft, warm halo
+        float core = exp(-d * d * mix(30.0, 9.0, vSoft));
+        float halo = exp(-d * d * 4.0) * 0.26;
+        float alpha = (core + halo) * vB;
+        if (alpha < 0.006) discard;
+        gl_FragColor = vec4(vColor * (0.55 + 0.9 * core), alpha);
+      }`;
+  function makeLightMat(mirror) {
+    return new THREE.ShaderMaterial({
+      uniforms: {
+        uTime: cUniforms.uTime, uPeriod: cUniforms.uPeriod, uPx: cUniforms.uPx,
+        uCandle: cUniforms.uCandle, uEmber: cUniforms.uEmber,
+        uMirror: { value: mirror }
+      },
+      transparent: true,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+      vertexShader: lightVertex,
+      fragmentShader: lightFragment
+    });
+  }
+  const lights = new THREE.Points(cGeo, makeLightMat(0));
+  lights.frustumCulled = false;
+  lights.renderOrder = 1;
+  ctx.scene.add(lights);
+  const reflection = new THREE.Points(cGeo, makeLightMat(1));
+  reflection.frustumCulled = false;
+  reflection.renderOrder = 0;
+  ctx.scene.add(reflection);
 
   // ---- low violet mist, breathing across the ground ----
   function makeMistTexture() {
@@ -305,9 +375,32 @@ function createScene(THREE, ctx) {
     grad.addColorStop(1, 'rgba(255,255,255,0)');
     g.fillStyle = grad;
     g.fillRect(0, 0, 256, 128);
+    // dither the alpha so the sheets never band when seen edge-on
+    const img = g.getImageData(0, 0, 256, 128);
+    for (let i = 3; i < img.data.length; i += 4) {
+      if (img.data[i] > 0) {
+        img.data[i] = Math.max(0, Math.min(255,
+          img.data[i] + (Math.random() - 0.5) * 5));
+      }
+    }
+    g.putImageData(img, 0, 0);
     return new THREE.CanvasTexture(c);
   }
   const mistTex = makeMistTexture();
+
+  // ---- a faint warm pool of light on the ground beneath the field ----
+  const pool = new THREE.Mesh(
+    new THREE.PlaneGeometry(30, 18),
+    new THREE.MeshBasicMaterial({
+      map: mistTex, color: new THREE.Color(0xC8926A),
+      transparent: true, opacity: 0.05, fog: false,
+      blending: THREE.AdditiveBlending, depthWrite: false
+    }));
+  pool.rotation.x = -Math.PI / 2;
+  pool.position.y = 0.02;
+  pool.renderOrder = -2;
+  ctx.scene.add(pool);
+
   const mistGeo = new THREE.BufferGeometry();
   mistGeo.setAttribute('position', new THREE.Float32BufferAttribute(
     [-0.5, 0, -0.5, 0.5, 0, -0.5, 0.5, 0, 0.5, -0.5, 0, 0.5], 3));
@@ -316,10 +409,11 @@ function createScene(THREE, ctx) {
   const mists = [];
   for (let i = 0; i < MISTS; i++) {
     const m = new THREE.Mesh(mistGeo, new THREE.MeshBasicMaterial({
-      map: mistTex, color: new THREE.Color(0x3A3550),
-      transparent: true, opacity: 0.04,
+      map: mistTex, color: new THREE.Color(0x453E5E),
+      transparent: true, opacity: 0.05,
       blending: THREE.AdditiveBlending, depthWrite: false
     }));
+    m.renderOrder = 2;
     m.scale.set(10 + Math.random() * 6, 1, 5 + Math.random() * 3);
     m.position.set((Math.random() - 0.5) * FIELD_X * 0.8, 0.5 + Math.random() * 0.5,
                    (Math.random() - 0.5) * FIELD_Z * 0.8);
@@ -332,13 +426,20 @@ function createScene(THREE, ctx) {
   // ---- soft vignette, fixed to the camera ----
   function makeVignetteTexture() {
     const c = document.createElement('canvas');
-    c.width = 256; c.height = 256;
+    c.width = 512; c.height = 512;
     const g = c.getContext('2d');
-    const grad = g.createRadialGradient(128, 128, 60, 128, 128, 180);
+    const grad = g.createRadialGradient(256, 256, 120, 256, 256, 360);
     grad.addColorStop(0, 'rgba(5,5,10,0)');
     grad.addColorStop(1, 'rgba(5,5,10,0.55)');
     g.fillStyle = grad;
-    g.fillRect(0, 0, 256, 256);
+    g.fillRect(0, 0, 512, 512);
+    // dither so the darkening never shows arc-shaped banding
+    const img = g.getImageData(0, 0, 512, 512);
+    for (let i = 3; i < img.data.length; i += 4) {
+      img.data[i] = Math.max(0, Math.min(255,
+        img.data[i] + (Math.random() - 0.5) * 5));
+    }
+    g.putImageData(img, 0, 0);
     return new THREE.CanvasTexture(c);
   }
   const vinGeo = new THREE.BufferGeometry();
@@ -379,8 +480,11 @@ function createScene(THREE, ctx) {
       for (let i = 0; i < MISTS; i++) {
         const m = mists[i];
         m.position.x = m.userData.baseX + Math.sin(t * 0.012 + m.userData.ph) * 2.5;
-        m.material.opacity = 0.030 + 0.020 * (0.5 + 0.5 * Math.sin(t * 0.05 + m.userData.ph * 2.0));
+        m.material.opacity = 0.038 + 0.026 * (0.5 + 0.5 * Math.sin(t * 0.05 + m.userData.ph * 2.0));
       }
+
+      // the warm pool under the field breathes with the same patience
+      pool.material.opacity = 0.040 + 0.018 * (0.5 + 0.5 * Math.sin(t * 0.06));
 
       // the view only tilts a few degrees; no orbiting, no travel
       const az = ctx.pointer.x * 0.07 + Math.sin(t * 0.01) * 0.02;
