@@ -51,6 +51,41 @@
       position: absolute; inset: 0; display: none;
       place-items: center; text-align: center; padding: 24px;
     }
+    #lbl {
+      position: absolute; left: 12px; top: 12px; max-width: 44ch;
+      padding: 10px 14px; border-radius: 10px;
+      background: rgba(8, 8, 14, 0.55);
+      backdrop-filter: blur(6px);
+      pointer-events: none;
+    }
+    #lbl h1 {
+      font-size: 12px; font-weight: 600;
+      letter-spacing: 0.14em; text-transform: uppercase;
+      color: rgba(255, 255, 255, 0.95);
+    }
+    #lblSub { margin-top: 3px; opacity: 0.72; }
+    #lblPhase {
+      margin-top: 8px; min-height: 1.4em; color: #5BC8D8;
+      opacity: 1; transition: opacity 0.18s ease;
+    }
+    #legend {
+      position: absolute; right: 12px; top: 12px;
+      display: flex; flex-direction: column; gap: 5px;
+      padding: 9px 12px; border-radius: 10px;
+      background: rgba(8, 8, 14, 0.55);
+      backdrop-filter: blur(6px);
+      pointer-events: none; font-size: 11px;
+    }
+    #legend span { display: flex; align-items: center; gap: 7px; }
+    #legend i {
+      width: 9px; height: 9px; border-radius: 2px; flex: none;
+      background: var(--c); box-shadow: 0 0 6px var(--c);
+    }
+    @media (max-width: 640px) {
+      #lblSub { display: none; }
+      #lbl { max-width: 30ch; }
+      #legend { font-size: 10px; padding: 7px 9px; gap: 4px; }
+    }
     @media (max-width: 560px) {
       #hud label { display: none; }
     }
@@ -67,6 +102,17 @@
     </label>
     <button id="btnPng" type="button">Save PNG</button>
     <button id="btnFs" type="button" aria-pressed="false">Fullscreen</button>
+  </div>
+  <div id="lbl">
+    <h1>WPM Waves</h1>
+    <p id="lblSub">Human-rhythm typing: keys ripple, glyphs fly, and the words-per-minute trace breathes above.</p>
+    <p id="lblPhase" aria-hidden="true"></p>
+  </div>
+  <div id="legend" role="list" aria-label="Legend">
+    <span role="listitem"><i style="--c:#5BC8D8"></i>Key press</span>
+    <span role="listitem"><i style="--c:#EFE8D6"></i>Flying glyph</span>
+    <span role="listitem"><i style="--c:#E06A78"></i>Miss</span>
+    <span role="listitem"><i style="--c:#5BC8D8"></i>WPM trace</span>
   </div>
   <p id="note" hidden>Motion is paused because your system prefers reduced motion.
      Press Play to animate.</p>
@@ -260,6 +306,12 @@ function createScene(THREE, ctx) {
   const head = new THREE.Points(headGeo, headMat);
   ctx.scene.add(head);
 
+  // label the speed line at its left end
+  const traceTag = ctx.makeTag('wpm trace', '#5BC8D8', 0.3);
+  traceTag.position.set(TRACE_X0 + 0.55, TRACE_Y - 0.42, TRACE_Z);
+  traceTag.material.opacity = 0.7;
+  ctx.scene.add(traceTag);
+
   // ---- typing engine ---------------------------------------------------------
   const PHRASES = [
     'THE QUICK ONYX GOBLIN JUMPS OVER A LAZY DWARF',
@@ -364,6 +416,15 @@ function createScene(THREE, ctx) {
       if (tt - presses[i].t0 > 0.6) presses.splice(i, 1);
     }
 
+    // live caption follows the typing engine
+    let cap;
+    if (dipFlash > 0.45) cap = 'A rare miss stings in rose and costs the trace';
+    else if (pendingFix !== null) cap = 'The corrective press lands right after the slip';
+    else if (charIdx === 0 && tt < nextAt) cap = 'A breath between phrases; the trace dips';
+    else if (ema > 5.2) cap = 'A typing burst lifts the WPM trace';
+    else cap = 'Steady human rhythm, steady speed';
+    ctx.caption(cap);
+
     // key motion: own press plus rippled neighbor presses
     for (let i = 0; i < N_KEYS; i++) {
       let depth = 0;
@@ -466,6 +527,50 @@ const ctx = {
   renderer,
   quality,
   pointer: { x: 0, y: 0 },  /* smoothed, -1..1, y up */
+};
+
+/* Live phase caption: scenes call ctx.caption('...') each frame; the text
+   only touches the DOM when it changes, with a quick cross-fade. */
+const lblPhase = document.getElementById('lblPhase');
+let capText = null, capTimer = 0;
+ctx.caption = (s) => {
+  if (s === capText || !lblPhase) return;
+  capText = s;
+  lblPhase.style.opacity = '0';
+  clearTimeout(capTimer);
+  capTimer = setTimeout(() => {
+    lblPhase.textContent = capText;
+    lblPhase.style.opacity = '1';
+  }, 180);
+};
+
+/* Small floating text tag rendered to a canvas texture, for labelling
+   objects inside the 3D scene. Returns a sprite; scale is world height. */
+ctx.makeTag = (text, color, h = 0.42) => {
+  const pad = 18, fpx = 46;
+  const meas = document.createElement('canvas').getContext('2d');
+  meas.font = '600 ' + fpx + 'px ui-monospace, Menlo, Consolas, monospace';
+  const tw = Math.ceil(meas.measureText(text).width);
+  const cw = tw + pad * 2, ch = fpx + pad * 2;
+  const cnv = document.createElement('canvas');
+  cnv.width = cw; cnv.height = ch;
+  const g = cnv.getContext('2d');
+  g.font = meas.font;
+  g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.shadowColor = color; g.shadowBlur = 14;
+  g.fillStyle = color;
+  g.fillText(text, cw / 2, ch / 2 + 2);
+  g.shadowBlur = 0;
+  g.fillText(text, cw / 2, ch / 2 + 2);
+  const tex = new THREE.CanvasTexture(cnv);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.anisotropy = 4;
+  const spr = new THREE.Sprite(new THREE.SpriteMaterial({
+    map: tex, transparent: true, depthWrite: false, depthTest: false,
+  }));
+  spr.scale.set(h * cw / ch, h, 1);
+  spr.renderOrder = 20;
+  return spr;
 };
 
 let piece;

@@ -51,6 +51,41 @@
       position: absolute; inset: 0; display: none;
       place-items: center; text-align: center; padding: 24px;
     }
+    #lbl {
+      position: absolute; left: 12px; top: 12px; max-width: 44ch;
+      padding: 10px 14px; border-radius: 10px;
+      background: rgba(8, 8, 14, 0.55);
+      backdrop-filter: blur(6px);
+      pointer-events: none;
+    }
+    #lbl h1 {
+      font-size: 12px; font-weight: 600;
+      letter-spacing: 0.14em; text-transform: uppercase;
+      color: rgba(255, 255, 255, 0.95);
+    }
+    #lblSub { margin-top: 3px; opacity: 0.72; }
+    #lblPhase {
+      margin-top: 8px; min-height: 1.4em; color: #E5B84F;
+      opacity: 1; transition: opacity 0.18s ease;
+    }
+    #legend {
+      position: absolute; right: 12px; top: 12px;
+      display: flex; flex-direction: column; gap: 5px;
+      padding: 9px 12px; border-radius: 10px;
+      background: rgba(8, 8, 14, 0.55);
+      backdrop-filter: blur(6px);
+      pointer-events: none; font-size: 11px;
+    }
+    #legend span { display: flex; align-items: center; gap: 7px; }
+    #legend i {
+      width: 9px; height: 9px; border-radius: 2px; flex: none;
+      background: var(--c); box-shadow: 0 0 6px var(--c);
+    }
+    @media (max-width: 640px) {
+      #lblSub { display: none; }
+      #lbl { max-width: 30ch; }
+      #legend { font-size: 10px; padding: 7px 9px; gap: 4px; }
+    }
     @media (max-width: 560px) {
       #hud label { display: none; }
     }
@@ -67,6 +102,17 @@
     </label>
     <button id="btnPng" type="button">Save PNG</button>
     <button id="btnFs" type="button" aria-pressed="false">Fullscreen</button>
+  </div>
+  <div id="lbl">
+    <h1>Draft Press</h1>
+    <p id="lblSub">AI blog generation as a print shop: drafts typeset in the gate, one credit per post.</p>
+    <p id="lblPhase" aria-hidden="true"></p>
+  </div>
+  <div id="legend" role="list" aria-label="Legend">
+    <span role="listitem"><i style="--c:#EDE7DC"></i>Draft page</span>
+    <span role="listitem"><i style="--c:#4A5AE8"></i>Typeset ink</span>
+    <span role="listitem"><i style="--c:#E5B84F"></i>Credit token</span>
+    <span role="listitem"><i style="--c:#D95252"></i>Approval seal</span>
   </div>
   <p id="note" hidden>Motion is paused because your system prefers reduced motion.
      Press Play to animate.</p>
@@ -304,9 +350,9 @@ function createScene(THREE, ctx) {
       '  p += fl * (0.45 + 0.85 * uAct);',
       '  p.x *= 0.5;',
       '  float tw = 0.5 + 0.5 * sin(uTime * 2.4 + aSeed * 6.2831);',
-      '  vA = (0.16 + 0.55 * uAct) * (0.35 + 0.65 * tw);',
+      '  vA = (0.12 + 0.4 * uAct) * (0.35 + 0.65 * tw);',
       '  vec4 mv = modelViewMatrix * vec4(p, 1.0);',
-      '  gl_PointSize = (2.2 + 3.2 * aSeed) * (150.0 / -mv.z);',
+      '  gl_PointSize = (1.7 + 2.5 * aSeed) * (150.0 / -mv.z);',
       '  gl_Position = projectionMatrix * mv;',
       '}'
     ].join('\n'),
@@ -337,7 +383,7 @@ function createScene(THREE, ctx) {
       'void main(){',
       '  vG = uAct;',
       '  vec4 mv = modelViewMatrix * vec4(position, 1.0);',
-      '  gl_PointSize = (40.0 + 90.0 * uAct) * (150.0 / -mv.z);',
+      '  gl_PointSize = (30.0 + 66.0 * uAct) * (150.0 / -mv.z);',
       '  gl_Position = projectionMatrix * mv;',
       '}'
     ].join('\n'),
@@ -346,7 +392,7 @@ function createScene(THREE, ctx) {
       'varying float vG;',
       'void main(){',
       '  float d = length(gl_PointCoord - 0.5);',
-      '  float a = smoothstep(0.5, 0.02, d) * (0.1 + 0.35 * vG);',
+      '  float a = smoothstep(0.5, 0.02, d) * (0.08 + 0.26 * vG);',
       '  gl_FragColor = vec4(uColor, a);',
       '}'
     ].join('\n'),
@@ -363,11 +409,22 @@ function createScene(THREE, ctx) {
     ctx.scene.add(tMesh);
     tokens.push({ mesh: tMesh, slot: tk / N_TOKENS * Math.PI * 2, state: 'orbit', t0: 0 });
   }
+  var lastCreditT = -10;
   function consumeToken(t) {
+    lastCreditT = t;
     for (var ct = 0; ct < tokens.length; ct++) {
       if (tokens[ct].state === 'orbit') { tokens[ct].state = 'consume'; tokens[ct].t0 = t; return; }
     }
   }
+
+  // ---- in-scene tags
+  var tagRing = ctx.makeTag('credit ring', '#E5B84F', 0.34);
+  tagRing.position.set(0, 0.9, TOKEN_R + 0.9);
+  ctx.scene.add(tagRing);
+  var tagGate = ctx.makeTag('press gate', '#8A94E8', 0.34);
+  tagGate.position.set(0, 4.35, 0);
+  tagGate.material.opacity = 0.6;
+  ctx.scene.add(tagGate);
 
   return {
     update: function (t, dt) {
@@ -375,6 +432,7 @@ function createScene(THREE, ctx) {
 
       // pages along the belt
       var act = 0;
+      var sealNow = false;
       for (var i = 0; i < pages.length; i++) {
         var pg = pages[i];
         var prog = (t * PAGE_SPEED + pg.offset) % 1;
@@ -387,12 +445,21 @@ function createScene(THREE, ctx) {
         pg.u.uSeal.value = ssj(2.5, 4.3, x);
         pg.u.uAlpha.value = ssj(-TRAVEL, -TRAVEL + 3.4, x) * (1 - ssj(TRAVEL - 3.4, TRAVEL, x));
         act = Math.max(act, Math.exp(-x * x * 0.35));
+        if (x > 2.5 && x < 4.4) sealNow = true;
         // a page finishing its pass through the gate consumes one credit token
         if (pg.prevX <= 2.0 && x > 2.0) consumeToken(t);
         pg.prevX = x;
       }
       inkUniforms.uAct.value += (act - inkUniforms.uAct.value) * Math.min(1, dt * 5.0);
       glowUniforms.uAct.value = inkUniforms.uAct.value;
+
+      // live caption follows the press
+      var cap;
+      if (t - lastCreditT < 1.4) cap = 'One gold credit spirals into the gate: one post, one credit';
+      else if (act > 0.4) cap = 'The ink wipe typesets the draft as the page crosses the gate';
+      else if (sealNow) cap = 'The red approval seal stamps the finished post';
+      else cap = 'A blank page rides the belt toward the gate; the credit ring replenishes';
+      ctx.caption(cap);
 
       // credit token ring
       var baseSpin = t * TOKEN_SPIN;
@@ -473,6 +540,50 @@ const ctx = {
   renderer,
   quality,
   pointer: { x: 0, y: 0 },  /* smoothed, -1..1, y up */
+};
+
+/* Live phase caption: scenes call ctx.caption('...') each frame; the text
+   only touches the DOM when it changes, with a quick cross-fade. */
+const lblPhase = document.getElementById('lblPhase');
+let capText = null, capTimer = 0;
+ctx.caption = (s) => {
+  if (s === capText || !lblPhase) return;
+  capText = s;
+  lblPhase.style.opacity = '0';
+  clearTimeout(capTimer);
+  capTimer = setTimeout(() => {
+    lblPhase.textContent = capText;
+    lblPhase.style.opacity = '1';
+  }, 180);
+};
+
+/* Small floating text tag rendered to a canvas texture, for labelling
+   objects inside the 3D scene. Returns a sprite; scale is world height. */
+ctx.makeTag = (text, color, h = 0.42) => {
+  const pad = 18, fpx = 46;
+  const meas = document.createElement('canvas').getContext('2d');
+  meas.font = '600 ' + fpx + 'px ui-monospace, Menlo, Consolas, monospace';
+  const tw = Math.ceil(meas.measureText(text).width);
+  const cw = tw + pad * 2, ch = fpx + pad * 2;
+  const cnv = document.createElement('canvas');
+  cnv.width = cw; cnv.height = ch;
+  const g = cnv.getContext('2d');
+  g.font = meas.font;
+  g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.shadowColor = color; g.shadowBlur = 14;
+  g.fillStyle = color;
+  g.fillText(text, cw / 2, ch / 2 + 2);
+  g.shadowBlur = 0;
+  g.fillText(text, cw / 2, ch / 2 + 2);
+  const tex = new THREE.CanvasTexture(cnv);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.anisotropy = 4;
+  const spr = new THREE.Sprite(new THREE.SpriteMaterial({
+    map: tex, transparent: true, depthWrite: false, depthTest: false,
+  }));
+  spr.scale.set(h * cw / ch, h, 1);
+  spr.renderOrder = 20;
+  return spr;
 };
 
 let piece;

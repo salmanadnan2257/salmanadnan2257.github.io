@@ -51,6 +51,41 @@
       position: absolute; inset: 0; display: none;
       place-items: center; text-align: center; padding: 24px;
     }
+    #lbl {
+      position: absolute; left: 12px; top: 12px; max-width: 44ch;
+      padding: 10px 14px; border-radius: 10px;
+      background: rgba(8, 8, 14, 0.55);
+      backdrop-filter: blur(6px);
+      pointer-events: none;
+    }
+    #lbl h1 {
+      font-size: 12px; font-weight: 600;
+      letter-spacing: 0.14em; text-transform: uppercase;
+      color: rgba(255, 255, 255, 0.95);
+    }
+    #lblSub { margin-top: 3px; opacity: 0.72; }
+    #lblPhase {
+      margin-top: 8px; min-height: 1.4em; color: #EFAF4E;
+      opacity: 1; transition: opacity 0.18s ease;
+    }
+    #legend {
+      position: absolute; right: 12px; top: 12px;
+      display: flex; flex-direction: column; gap: 5px;
+      padding: 9px 12px; border-radius: 10px;
+      background: rgba(8, 8, 14, 0.55);
+      backdrop-filter: blur(6px);
+      pointer-events: none; font-size: 11px;
+    }
+    #legend span { display: flex; align-items: center; gap: 7px; }
+    #legend i {
+      width: 9px; height: 9px; border-radius: 2px; flex: none;
+      background: var(--c); box-shadow: 0 0 6px var(--c);
+    }
+    @media (max-width: 640px) {
+      #lblSub { display: none; }
+      #lbl { max-width: 30ch; }
+      #legend { font-size: 10px; padding: 7px 9px; gap: 4px; }
+    }
     @media (max-width: 560px) {
       #hud label { display: none; }
     }
@@ -67,6 +102,17 @@
     </label>
     <button id="btnPng" type="button">Save PNG</button>
     <button id="btnFs" type="button" aria-pressed="false">Fullscreen</button>
+  </div>
+  <div id="lbl">
+    <h1>Fitness Climb</h1>
+    <p id="lblSub">Prompts evolve uphill: each generation resamples toward higher ground and elites cross over.</p>
+    <p id="lblPhase" aria-hidden="true"></p>
+  </div>
+  <div id="legend" role="list" aria-label="Legend">
+    <span role="listitem"><i style="--c:#EFAF4E"></i>Prompt (walker)</span>
+    <span role="listitem"><i style="--c:#D45BB0"></i>Elite</span>
+    <span role="listitem"><i style="--c:#F4EFE6"></i>Crossover spark</span>
+    <span role="listitem"><i style="--c:#3A3050"></i>Fitness landscape</span>
   </div>
   <p id="note" hidden>Motion is paused because your system prefers reduced motion.
      Press Play to animate.</p>
@@ -208,7 +254,7 @@ function createScene(THREE, ctx) {
       uMorph: shared.uMorph,
       uLow: { value: new THREE.Color(0x241E33) },
       uHigh: { value: new THREE.Color(0x4A3F66) },
-      uContour: { value: new THREE.Color(0x514768) },
+      uContour: { value: new THREE.Color(0x6E6390) },
       uFog: { value: new THREE.Color(BG) }
     },
     side: THREE.DoubleSide,
@@ -233,7 +279,7 @@ function createScene(THREE, ctx) {
         float hn = clamp((vH + 2.9) / 5.8, 0.0, 1.0);
         vec3 col = mix(uLow, uHigh, hn);
         float f = abs(fract(vH * 1.5) - 0.5);
-        float line = smoothstep(0.10, 0.02, f) * 0.45;
+        float line = smoothstep(0.10, 0.02, f) * 0.9;
         col += uContour * line;
         float d = length(vWp.xz);
         col = mix(col, uFog, smoothstep(9.5, 16.5, d));
@@ -247,7 +293,7 @@ function createScene(THREE, ctx) {
   const wTo = new Float32Array(WALKERS * 2);
   const wSeed = new Float32Array(WALKERS);
   const wElite = new Float32Array(WALKERS);
-  const BOUND = EXTENT * 0.45;
+  const BOUND = EXTENT * 0.30; // keep the population inside the orbiting frame
   for (let i = 0; i < WALKERS; i++) {
     const x = (Math.random() * 2 - 1) * BOUND;
     const z = (Math.random() * 2 - 1) * BOUND;
@@ -274,6 +320,7 @@ function createScene(THREE, ctx) {
     uniforms: wUniforms,
     transparent: true,
     depthWrite: false,
+    depthTest: false, // the population must read even when a ridge is in front
     blending: THREE.AdditiveBlending,
     vertexShader: `
       uniform float uTime;
@@ -298,10 +345,10 @@ function createScene(THREE, ctx) {
         float y = terrainH(xz, uMorph) + 0.10;
         y += sin(e * 3.14159265) * 0.5; // small airborne arc while resampling
         float pulse = 0.75 + 0.25 * sin(uTime * 3.0 + aSeed * 30.0);
-        vColor = mix(uAmber, uMagenta * (0.8 + 0.5 * pulse), aElite);
-        vAlpha = 0.85;
+        vColor = mix(uAmber * 1.4, uMagenta * (0.9 + 0.5 * pulse), aElite);
+        vAlpha = 1.0;
         vec4 mv = modelViewMatrix * vec4(xz.x, y, xz.y, 1.0);
-        gl_PointSize = uPx * (2.4 + 2.4 * aElite * pulse) * (120.0 / -mv.z);
+        gl_PointSize = uPx * (3.4 + 2.4 * aElite * pulse) * (120.0 / -mv.z);
         gl_Position = projectionMatrix * mv;
       }`,
     fragmentShader: `
@@ -320,15 +367,17 @@ function createScene(THREE, ctx) {
   const PAIRS = Math.floor(ELITES / 2);
   const sparkPos = new Float32Array(PAIRS * (SPARK_PTS - 1) * 2 * 3);
   const sparkGeo = new THREE.BufferGeometry();
-  sparkGeo.setAttribute('position', new THREE.Float32BufferAttribute(sparkPos, 3));
+  sparkGeo.setAttribute('position', new THREE.BufferAttribute(sparkPos, 3));
   const sparkMat = new THREE.LineBasicMaterial({
     color: 0xF4EFE6,
     transparent: true,
     opacity: 0,
     blending: THREE.AdditiveBlending,
-    depthWrite: false
+    depthWrite: false,
+    depthTest: false
   });
   const sparks = new THREE.LineSegments(sparkGeo, sparkMat);
+  sparks.frustumCulled = false; // arcs are rebuilt in place each generation
   sparks.visible = false;
   ctx.scene.add(sparks);
 
@@ -338,6 +387,12 @@ function createScene(THREE, ctx) {
   let swapped = true;
   let sparkT = -10;
   let eliteIdx = [];
+  let genCount = 0;             // real generation counter, drives the caption
+
+  // "elites" tag hovers over the elite cluster while it holds, fades on resample
+  const eliteTag = ctx.makeTag('elites', '#D45BB0', 0.75);
+  eliteTag.material.opacity = 0;
+  ctx.scene.add(eliteTag);
 
   function doGeneration(t) {
     const m = shared.uMorph.value;
@@ -368,6 +423,9 @@ function createScene(THREE, ctx) {
         const h = hillsJS(sx, sz, m);
         if (h > bh) { bh = h; bx = sx; bz = sz; }
       }
+      // mutation keeps the population a visible cloud instead of one point
+      bx = Math.max(-BOUND, Math.min(BOUND, bx + (Math.random() + Math.random() - 1) * 1.1));
+      bz = Math.max(-BOUND, Math.min(BOUND, bz + (Math.random() + Math.random() - 1) * 1.1));
       toArr[i * 2] = bx; toArr[i * 2 + 1] = bz;
       scored.push([bh, i]);
     }
@@ -411,6 +469,18 @@ function createScene(THREE, ctx) {
     sparkGeo.setDrawRange(0, o / 3);
     sparkT = t;
     sparks.visible = true;
+
+    // park the elites tag over the new elite centroid
+    if (eliteIdx.length) {
+      let cx = 0, cz = 0;
+      for (let k = 0; k < eliteIdx.length; k++) {
+        cx += toArr[eliteIdx[k] * 2];
+        cz += toArr[eliteIdx[k] * 2 + 1];
+      }
+      cx /= eliteIdx.length;
+      cz /= eliteIdx.length;
+      eliteTag.position.set(cx, hillsJS(cx, cz, m) + 2.6, cz);
+    }
   }
 
   ctx.camera.position.set(0, 9, 21);
@@ -425,6 +495,7 @@ function createScene(THREE, ctx) {
       if (t - genStart >= GEN_PERIOD) {
         genStart = t;
         swapped = false;
+        genCount++;
         doGeneration(t);
       }
       const gt = Math.min(1, (t - genStart) / GEN_TRAVEL);
@@ -433,6 +504,19 @@ function createScene(THREE, ctx) {
         swapped = true;
         spawnSparks(t);
       }
+
+      // live caption follows the generation state machine
+      let cap;
+      if (gt < 1) cap = 'Generation ' + genCount + ': resampled toward higher ground';
+      else if (t - sparkT < 1.6) cap = 'Elites ignite and exchange crossover sparks';
+      else cap = genCount % 2 === 0
+        ? 'The landscape drifts and the climb resumes'
+        : 'A population of prompts walks the fitness landscape';
+      ctx.caption(cap);
+
+      // elites tag fades in while the cluster holds, out during resample
+      const tagGoal = (swapped && gt >= 1) ? 0.75 : 0;
+      eliteTag.material.opacity += (tagGoal - eliteTag.material.opacity) * Math.min(1, dt * 4);
 
       // elite glow eases in and out instead of popping
       const el = wGeo.getAttribute('aElite');
@@ -493,6 +577,50 @@ const ctx = {
   renderer,
   quality,
   pointer: { x: 0, y: 0 },  /* smoothed, -1..1, y up */
+};
+
+/* Live phase caption: scenes call ctx.caption('...') each frame; the text
+   only touches the DOM when it changes, with a quick cross-fade. */
+const lblPhase = document.getElementById('lblPhase');
+let capText = null, capTimer = 0;
+ctx.caption = (s) => {
+  if (s === capText || !lblPhase) return;
+  capText = s;
+  lblPhase.style.opacity = '0';
+  clearTimeout(capTimer);
+  capTimer = setTimeout(() => {
+    lblPhase.textContent = capText;
+    lblPhase.style.opacity = '1';
+  }, 180);
+};
+
+/* Small floating text tag rendered to a canvas texture, for labelling
+   objects inside the 3D scene. Returns a sprite; scale is world height. */
+ctx.makeTag = (text, color, h = 0.42) => {
+  const pad = 18, fpx = 46;
+  const meas = document.createElement('canvas').getContext('2d');
+  meas.font = '600 ' + fpx + 'px ui-monospace, Menlo, Consolas, monospace';
+  const tw = Math.ceil(meas.measureText(text).width);
+  const cw = tw + pad * 2, ch = fpx + pad * 2;
+  const cnv = document.createElement('canvas');
+  cnv.width = cw; cnv.height = ch;
+  const g = cnv.getContext('2d');
+  g.font = meas.font;
+  g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.shadowColor = color; g.shadowBlur = 14;
+  g.fillStyle = color;
+  g.fillText(text, cw / 2, ch / 2 + 2);
+  g.shadowBlur = 0;
+  g.fillText(text, cw / 2, ch / 2 + 2);
+  const tex = new THREE.CanvasTexture(cnv);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.anisotropy = 4;
+  const spr = new THREE.Sprite(new THREE.SpriteMaterial({
+    map: tex, transparent: true, depthWrite: false, depthTest: false,
+  }));
+  spr.scale.set(h * cw / ch, h, 1);
+  spr.renderOrder = 20;
+  return spr;
 };
 
 let piece;

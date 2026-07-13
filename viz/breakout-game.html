@@ -51,6 +51,41 @@
       position: absolute; inset: 0; display: none;
       place-items: center; text-align: center; padding: 24px;
     }
+    #lbl {
+      position: absolute; left: 12px; top: 12px; max-width: 44ch;
+      padding: 10px 14px; border-radius: 10px;
+      background: rgba(8, 8, 14, 0.55);
+      backdrop-filter: blur(6px);
+      pointer-events: none;
+    }
+    #lbl h1 {
+      font-size: 12px; font-weight: 600;
+      letter-spacing: 0.14em; text-transform: uppercase;
+      color: rgba(255, 255, 255, 0.95);
+    }
+    #lblSub { margin-top: 3px; opacity: 0.72; }
+    #lblPhase {
+      margin-top: 8px; min-height: 1.4em; color: #7FC8E0;
+      opacity: 1; transition: opacity 0.18s ease;
+    }
+    #legend {
+      position: absolute; right: 12px; top: 12px;
+      display: flex; flex-direction: column; gap: 5px;
+      padding: 9px 12px; border-radius: 10px;
+      background: rgba(8, 8, 14, 0.55);
+      backdrop-filter: blur(6px);
+      pointer-events: none; font-size: 11px;
+    }
+    #legend span { display: flex; align-items: center; gap: 7px; }
+    #legend i {
+      width: 9px; height: 9px; border-radius: 2px; flex: none;
+      background: var(--c); box-shadow: 0 0 6px var(--c);
+    }
+    @media (max-width: 640px) {
+      #lblSub { display: none; }
+      #lbl { max-width: 30ch; }
+      #legend { font-size: 10px; padding: 7px 9px; gap: 4px; }
+    }
     @media (max-width: 560px) {
       #hud label { display: none; }
     }
@@ -67,6 +102,18 @@
     </label>
     <button id="btnPng" type="button">Save PNG</button>
     <button id="btnFs" type="button" aria-pressed="false">Fullscreen</button>
+  </div>
+  <div id="lbl">
+    <h1>The Perfect Run</h1>
+    <p id="lblSub">A Breakout rally that never misses: real reflections, falling shards, a wall that rebuilds.</p>
+    <p id="lblPhase" aria-hidden="true"></p>
+  </div>
+  <div id="legend" role="list" aria-label="Legend">
+    <span role="listitem"><i style="--c:#D86A88"></i>Brick (top rows)</span>
+    <span role="listitem"><i style="--c:#E8B45C"></i>Brick (low rows)</span>
+    <span role="listitem"><i style="--c:#7FC8E0"></i>Paddle</span>
+    <span role="listitem"><i style="--c:#F2F0E8"></i>Ball</span>
+    <span role="listitem"><i style="--c:#8A6AD0"></i>Shard</span>
   </div>
   <p id="note" hidden>Motion is paused because your system prefers reduced motion.
      Press Play to animate.</p>
@@ -317,6 +364,8 @@ function createScene(THREE, ctx) {
   let paddleX = 0;
   let phase = 'play';        // play | clear | rebuild
   let phaseT = 0;
+  let simT = 0;              // total simulated time, for caption beats
+  let lastPopT = -10;        // moment the last brick shattered
   let camDist = 14, camDistTarget = 14;
   let acc = 0;
 
@@ -338,6 +387,7 @@ function createScene(THREE, ctx) {
   }
 
   function killBrick(i) {
+    lastPopT = simT;
     alive[i] = 0; bScale[i] = 0; aliveCount--;
     setBrickMatrix(i, 0, 0); dirty.add(i);
     spawnShards(baseX[i], baseY[i], SHARDS_PER_BRICK, 1.2);
@@ -422,6 +472,7 @@ function createScene(THREE, ctx) {
   function update(t, dt) {
     dt = clamp(dt, 0, 0.05);
     phaseT += dt;
+    simT += dt;
 
     // fixed-step simulation
     acc += dt;
@@ -498,6 +549,15 @@ function createScene(THREE, ctx) {
     }
     bricks.instanceMatrix.needsUpdate = true;
 
+    // live caption follows the rally phases
+    let cap;
+    if (phase === 'clear') cap = 'Board cleared: the last brick falls in a quiet firework';
+    else if (phase === 'rebuild') cap = 'The wall rebuilds itself brick by brick';
+    else if (simT - lastPopT < 1.1) cap = 'A brick shatters into falling violet shards';
+    else if (aliveCount < N_BRICKS * 0.4) cap = 'The wall thins and the rally quickens';
+    else cap = 'The rally carves the wall bounce by bounce; the paddle never misses';
+    ctx.caption(cap);
+
     // camera: slow orbital swing plus pointer nudge, eased dolly on clear
     camDist += (camDistTarget - camDist) * (1 - Math.exp(-dt * 1.6));
     const a = Math.sin(t * 0.1) * 0.34 + ctx.pointer.x * 0.28;
@@ -542,6 +602,50 @@ const ctx = {
   renderer,
   quality,
   pointer: { x: 0, y: 0 },  /* smoothed, -1..1, y up */
+};
+
+/* Live phase caption: scenes call ctx.caption('...') each frame; the text
+   only touches the DOM when it changes, with a quick cross-fade. */
+const lblPhase = document.getElementById('lblPhase');
+let capText = null, capTimer = 0;
+ctx.caption = (s) => {
+  if (s === capText || !lblPhase) return;
+  capText = s;
+  lblPhase.style.opacity = '0';
+  clearTimeout(capTimer);
+  capTimer = setTimeout(() => {
+    lblPhase.textContent = capText;
+    lblPhase.style.opacity = '1';
+  }, 180);
+};
+
+/* Small floating text tag rendered to a canvas texture, for labelling
+   objects inside the 3D scene. Returns a sprite; scale is world height. */
+ctx.makeTag = (text, color, h = 0.42) => {
+  const pad = 18, fpx = 46;
+  const meas = document.createElement('canvas').getContext('2d');
+  meas.font = '600 ' + fpx + 'px ui-monospace, Menlo, Consolas, monospace';
+  const tw = Math.ceil(meas.measureText(text).width);
+  const cw = tw + pad * 2, ch = fpx + pad * 2;
+  const cnv = document.createElement('canvas');
+  cnv.width = cw; cnv.height = ch;
+  const g = cnv.getContext('2d');
+  g.font = meas.font;
+  g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.shadowColor = color; g.shadowBlur = 14;
+  g.fillStyle = color;
+  g.fillText(text, cw / 2, ch / 2 + 2);
+  g.shadowBlur = 0;
+  g.fillText(text, cw / 2, ch / 2 + 2);
+  const tex = new THREE.CanvasTexture(cnv);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.anisotropy = 4;
+  const spr = new THREE.Sprite(new THREE.SpriteMaterial({
+    map: tex, transparent: true, depthWrite: false, depthTest: false,
+  }));
+  spr.scale.set(h * cw / ch, h, 1);
+  spr.renderOrder = 20;
+  return spr;
 };
 
 let piece;

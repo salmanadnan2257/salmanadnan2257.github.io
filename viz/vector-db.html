@@ -51,6 +51,41 @@
       position: absolute; inset: 0; display: none;
       place-items: center; text-align: center; padding: 24px;
     }
+    #lbl {
+      position: absolute; left: 12px; top: 12px; max-width: 44ch;
+      padding: 10px 14px; border-radius: 10px;
+      background: rgba(8, 8, 14, 0.55);
+      backdrop-filter: blur(6px);
+      pointer-events: none;
+    }
+    #lbl h1 {
+      font-size: 12px; font-weight: 600;
+      letter-spacing: 0.14em; text-transform: uppercase;
+      color: rgba(255, 255, 255, 0.95);
+    }
+    #lblSub { margin-top: 3px; opacity: 0.72; }
+    #lblPhase {
+      margin-top: 8px; min-height: 1.4em; color: #FFD166;
+      opacity: 1; transition: opacity 0.18s ease;
+    }
+    #legend {
+      position: absolute; right: 12px; top: 12px;
+      display: flex; flex-direction: column; gap: 5px;
+      padding: 9px 12px; border-radius: 10px;
+      background: rgba(8, 8, 14, 0.55);
+      backdrop-filter: blur(6px);
+      pointer-events: none; font-size: 11px;
+    }
+    #legend span { display: flex; align-items: center; gap: 7px; }
+    #legend i {
+      width: 9px; height: 9px; border-radius: 2px; flex: none;
+      background: var(--c); box-shadow: 0 0 6px var(--c);
+    }
+    @media (max-width: 640px) {
+      #lblSub { display: none; }
+      #lbl { max-width: 30ch; }
+      #legend { font-size: 10px; padding: 7px 9px; gap: 4px; }
+    }
     @media (max-width: 560px) {
       #hud label { display: none; }
     }
@@ -67,6 +102,16 @@
     </label>
     <button id="btnPng" type="button">Save PNG</button>
     <button id="btnFs" type="button" aria-pressed="false">Fullscreen</button>
+  </div>
+  <div id="lbl">
+    <h1>HNSW Descent</h1>
+    <p id="lblSub">A nearest-neighbor search: greedy hops across the sparse top layer, then drop, then close in.</p>
+    <p id="lblPhase" aria-hidden="true"></p>
+  </div>
+  <div id="legend" role="list" aria-label="Legend">
+    <span role="listitem"><i style="--c:#3D4C8C"></i>Layer graph</span>
+    <span role="listitem"><i style="--c:#FFD166"></i>Search path</span>
+    <span role="listitem"><i style="--c:#E863A8"></i>Target vector</span>
   </div>
   <p id="note" hidden>Motion is paused because your system prefers reduced motion.
      Press Play to animate.</p>
@@ -303,6 +348,18 @@ function createScene(THREE, ctx) {
   const flare = makeMarker(0xFFD166, 1.05);
   const target = makeMarker(0xE863A8, 0.72);
 
+  // ---------- in-scene tags: layer names at the disc rims, target marker ----------
+  const LAYER_TAGS = ['layer 2, sparse', 'layer 1', 'layer 0, dense'];
+  for (let li = 0; li < 3; li++) {
+    const tag = ctx.makeTag(LAYER_TAGS[li], '#8FA2E8', 0.38);
+    tag.position.set(-(LAYERS[li].r + 1.3), LAYERS[li].y + 0.2, 0);
+    tag.material.opacity = 0.75;
+    root.add(tag);
+  }
+  const targetTag = ctx.makeTag('target', '#E863A8', 0.34);
+  targetTag.material.opacity = 0;
+  root.add(targetTag);
+
   // ---------- flare trail ----------
   const trailSegs = TRAIL_LEN - 1;
   const trailPos = new Float32Array(trailSegs * 2 * 3);
@@ -317,12 +374,13 @@ function createScene(THREE, ctx) {
     }
   }
   const trailGeo = new THREE.BufferGeometry();
-  const trailAttr = new THREE.Float32BufferAttribute(trailPos, 3);
+  const trailAttr = new THREE.BufferAttribute(trailPos, 3);
   trailGeo.setAttribute('position', trailAttr);
   trailGeo.setAttribute('color', new THREE.Float32BufferAttribute(trailCol, 3));
   const trail = new THREE.LineSegments(trailGeo, new THREE.LineBasicMaterial({
     vertexColors: true, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false
   }));
+  trail.frustumCulled = false; // trail starts collapsed at the origin, follows the flare
   root.add(trail);
   const hist = new Float32Array(TRAIL_LEN * 3);
 
@@ -508,6 +566,20 @@ function createScene(THREE, ctx) {
         }
       }
 
+      // live caption follows the search state machine
+      let cap;
+      if (state === 'idle') cap = 'Search done; the next query vector is placed';
+      else if (state === 'drop') cap = 'Layer drop: the path plunges to a denser graph';
+      else if (state === 'bloom') cap = 'Closing in: nearest neighbor found';
+      else if (curLayer === 0) cap = 'The query enters the sparse top layer, hopping greedily';
+      else if (curLayer === 1) cap = 'Greedy hops across the middle layer, closing the distance';
+      else cap = 'Fine hops through the dense bottom layer toward the target';
+      ctx.caption(cap);
+
+      // target tag rides the magenta marker and fades with it
+      targetTag.position.set(target.position.x, target.position.y + 0.55, target.position.z);
+      targetTag.material.opacity = target.material.uniforms.uAlpha.value * 0.85;
+
       // flare alpha ease, no pops
       const fm = flare.material.uniforms.uAlpha;
       fm.value += (flareGoal - fm.value) * Math.min(1, d * 6);
@@ -586,6 +658,50 @@ const ctx = {
   renderer,
   quality,
   pointer: { x: 0, y: 0 },  /* smoothed, -1..1, y up */
+};
+
+/* Live phase caption: scenes call ctx.caption('...') each frame; the text
+   only touches the DOM when it changes, with a quick cross-fade. */
+const lblPhase = document.getElementById('lblPhase');
+let capText = null, capTimer = 0;
+ctx.caption = (s) => {
+  if (s === capText || !lblPhase) return;
+  capText = s;
+  lblPhase.style.opacity = '0';
+  clearTimeout(capTimer);
+  capTimer = setTimeout(() => {
+    lblPhase.textContent = capText;
+    lblPhase.style.opacity = '1';
+  }, 180);
+};
+
+/* Small floating text tag rendered to a canvas texture, for labelling
+   objects inside the 3D scene. Returns a sprite; scale is world height. */
+ctx.makeTag = (text, color, h = 0.42) => {
+  const pad = 18, fpx = 46;
+  const meas = document.createElement('canvas').getContext('2d');
+  meas.font = '600 ' + fpx + 'px ui-monospace, Menlo, Consolas, monospace';
+  const tw = Math.ceil(meas.measureText(text).width);
+  const cw = tw + pad * 2, ch = fpx + pad * 2;
+  const cnv = document.createElement('canvas');
+  cnv.width = cw; cnv.height = ch;
+  const g = cnv.getContext('2d');
+  g.font = meas.font;
+  g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.shadowColor = color; g.shadowBlur = 14;
+  g.fillStyle = color;
+  g.fillText(text, cw / 2, ch / 2 + 2);
+  g.shadowBlur = 0;
+  g.fillText(text, cw / 2, ch / 2 + 2);
+  const tex = new THREE.CanvasTexture(cnv);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.anisotropy = 4;
+  const spr = new THREE.Sprite(new THREE.SpriteMaterial({
+    map: tex, transparent: true, depthWrite: false, depthTest: false,
+  }));
+  spr.scale.set(h * cw / ch, h, 1);
+  spr.renderOrder = 20;
+  return spr;
 };
 
 let piece;

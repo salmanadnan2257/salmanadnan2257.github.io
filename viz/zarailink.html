@@ -51,6 +51,41 @@
       position: absolute; inset: 0; display: none;
       place-items: center; text-align: center; padding: 24px;
     }
+    #lbl {
+      position: absolute; left: 12px; top: 12px; max-width: 44ch;
+      padding: 10px 14px; border-radius: 10px;
+      background: rgba(8, 8, 14, 0.55);
+      backdrop-filter: blur(6px);
+      pointer-events: none;
+    }
+    #lbl h1 {
+      font-size: 12px; font-weight: 600;
+      letter-spacing: 0.14em; text-transform: uppercase;
+      color: rgba(255, 255, 255, 0.95);
+    }
+    #lblSub { margin-top: 3px; opacity: 0.72; }
+    #lblPhase {
+      margin-top: 8px; min-height: 1.4em; color: #7FC4D8;
+      opacity: 1; transition: opacity 0.18s ease;
+    }
+    #legend {
+      position: absolute; right: 12px; top: 12px;
+      display: flex; flex-direction: column; gap: 5px;
+      padding: 9px 12px; border-radius: 10px;
+      background: rgba(8, 8, 14, 0.55);
+      backdrop-filter: blur(6px);
+      pointer-events: none; font-size: 11px;
+    }
+    #legend span { display: flex; align-items: center; gap: 7px; }
+    #legend i {
+      width: 9px; height: 9px; border-radius: 2px; flex: none;
+      background: var(--c); box-shadow: 0 0 6px var(--c);
+    }
+    @media (max-width: 640px) {
+      #lblSub { display: none; }
+      #lbl { max-width: 30ch; }
+      #legend { font-size: 10px; padding: 7px 9px; gap: 4px; }
+    }
     @media (max-width: 560px) {
       #hud label { display: none; }
     }
@@ -67,6 +102,16 @@
     </label>
     <button id="btnPng" type="button">Save PNG</button>
     <button id="btnFs" type="button" aria-pressed="false">Fullscreen</button>
+  </div>
+  <div id="lbl">
+    <h1>Field of Trade</h1>
+    <p id="lblSub">An agricultural trade platform: deals cross the sky, and every landed deal stirs the wheat.</p>
+    <p id="lblPhase" aria-hidden="true"></p>
+  </div>
+  <div id="legend" role="list" aria-label="Legend">
+    <span role="listitem"><i style="--c:#D9A441"></i>Wheat</span>
+    <span role="listitem"><i style="--c:#7FC4D8"></i>Trade arc</span>
+    <span role="listitem"><i style="--c:#F0E6C8"></i>Market node</span>
   </div>
   <p id="note" hidden>Motion is paused because your system prefers reduced motion.
      Press Play to animate.</p>
@@ -257,13 +302,13 @@ function createScene(THREE, ctx) {
           float r = length(dR) + 0.0001;
           float band = exp(-pow((r - uRingR) * 1.1, 2.0)) * uRingAmp;
           p.xz += (dR / r) * band * aH * bendW;
-          p.y += band * 0.16;
+          p.y += band * 0.2;
           // gold at the head, green at the base
           float hn = clamp(aH * aYF / 1.5, 0.0, 1.0);
           vec3 col = mix(vec3(0.24, 0.44, 0.24), vec3(0.90, 0.60, 0.20),
                          smoothstep(0.12, 0.95, hn));
           col *= 1.0 + 0.55 * gust + 0.15 * aShade;
-          col += vec3(0.45, 0.55, 0.5) * band * 0.6;
+          col += vec3(0.45, 0.55, 0.5) * band * 1.0;
           vCol = col;
           vec4 mv = modelViewMatrix * vec4(p, 1.0);
           // pre-dawn fog: fade with view depth
@@ -321,10 +366,10 @@ function createScene(THREE, ctx) {
           vec3 p = position;
           p.y += 0.16 * sin(uTime * 0.5 + aPhase);
           float hit = step(abs(aIdx - uFlash.x), 0.5) * uFlash.y;
-          vCol = vec3(0.941, 0.882, 0.70) * (1.12 + hit * 1.2);
-          vA = 0.75 + 0.2 * sin(uTime * 0.8 + aPhase) + hit * 0.5;
+          vCol = vec3(0.941, 0.882, 0.70) * (1.5 + hit * 1.3);
+          vA = 0.9 + 0.1 * sin(uTime * 0.8 + aPhase) + hit * 0.5;
           vec4 mv = modelViewMatrix * vec4(p, 1.0);
-          gl_PointSize = (12.0 + hit * 7.0) * uPx / (-mv.z * 30.0);
+          gl_PointSize = (15.0 + hit * 8.0) * uPx / (-mv.z * 30.0);
           gl_Position = projectionMatrix * mv;
         }
       `,
@@ -388,9 +433,9 @@ function createScene(THREE, ctx) {
           float d = fract(aT - uTime * uSpeed * aSpd + aPh);
           float wv = smoothstep(0.14, 0.0, d);
           vec3 sky = vec3(0.498, 0.769, 0.847);
-          vCol = sky * (0.55 + 1.6 * wv);
-          vA = 0.34 + 0.95 * wv;
-          gl_PointSize = (2.4 + 5.2 * wv) * uPx / (-mv.z * 30.0);
+          vCol = sky * (0.9 + 1.9 * wv);
+          vA = 0.55 + 1.0 * wv;
+          gl_PointSize = (3.1 + 6.2 * wv) * uPx / (-mv.z * 30.0);
           gl_Position = projectionMatrix * mv;
         }
       `,
@@ -434,6 +479,12 @@ function createScene(THREE, ctx) {
   ctx.camera.position.set(0, 3.6, 10.5);
   ctx.camera.lookAt(0, 1.4, -4);
 
+  // ---- tag one sky node as a market node
+  const nodeTag = ctx.makeTag('market node', '#F0E6C8', 0.52);
+  nodeTag.position.set(nodePos[0].x, nodePos[0].y + 0.7, nodePos[0].z);
+  nodeTag.material.opacity = 0.85;
+  ctx.scene.add(nodeTag);
+
   // deterministic node visit order for landings
   const order = [];
   {
@@ -470,6 +521,13 @@ function createScene(THREE, ctx) {
       // eased attack, then decay, so the node never blinks on at full amplitude
       const atk = Math.min(1, lt / 0.3);
       uFlash.value.set(order[ev % NODES], atk * atk * (3 - 2 * atk) * Math.exp(-lt * 1.6));
+
+      // live caption follows the landing schedule
+      let cap;
+      if (lt < 0.9) cap = 'A deal crosses the sky and lands at a market node';
+      else if (lt < RING_DUR) cap = 'The landing ring spreads and physically stirs the wheat';
+      else cap = 'The field settles; pulses keep traveling the trade arcs';
+      ctx.caption(cap);
     },
     resize() {
       uPx.value = ctx.renderer.domElement.height;
@@ -510,6 +568,50 @@ const ctx = {
   renderer,
   quality,
   pointer: { x: 0, y: 0 },  /* smoothed, -1..1, y up */
+};
+
+/* Live phase caption: scenes call ctx.caption('...') each frame; the text
+   only touches the DOM when it changes, with a quick cross-fade. */
+const lblPhase = document.getElementById('lblPhase');
+let capText = null, capTimer = 0;
+ctx.caption = (s) => {
+  if (s === capText || !lblPhase) return;
+  capText = s;
+  lblPhase.style.opacity = '0';
+  clearTimeout(capTimer);
+  capTimer = setTimeout(() => {
+    lblPhase.textContent = capText;
+    lblPhase.style.opacity = '1';
+  }, 180);
+};
+
+/* Small floating text tag rendered to a canvas texture, for labelling
+   objects inside the 3D scene. Returns a sprite; scale is world height. */
+ctx.makeTag = (text, color, h = 0.42) => {
+  const pad = 18, fpx = 46;
+  const meas = document.createElement('canvas').getContext('2d');
+  meas.font = '600 ' + fpx + 'px ui-monospace, Menlo, Consolas, monospace';
+  const tw = Math.ceil(meas.measureText(text).width);
+  const cw = tw + pad * 2, ch = fpx + pad * 2;
+  const cnv = document.createElement('canvas');
+  cnv.width = cw; cnv.height = ch;
+  const g = cnv.getContext('2d');
+  g.font = meas.font;
+  g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.shadowColor = color; g.shadowBlur = 14;
+  g.fillStyle = color;
+  g.fillText(text, cw / 2, ch / 2 + 2);
+  g.shadowBlur = 0;
+  g.fillText(text, cw / 2, ch / 2 + 2);
+  const tex = new THREE.CanvasTexture(cnv);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.anisotropy = 4;
+  const spr = new THREE.Sprite(new THREE.SpriteMaterial({
+    map: tex, transparent: true, depthWrite: false, depthTest: false,
+  }));
+  spr.scale.set(h * cw / ch, h, 1);
+  spr.renderOrder = 20;
+  return spr;
 };
 
 let piece;

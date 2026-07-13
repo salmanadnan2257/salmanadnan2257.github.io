@@ -51,6 +51,41 @@
       position: absolute; inset: 0; display: none;
       place-items: center; text-align: center; padding: 24px;
     }
+    #lbl {
+      position: absolute; left: 12px; top: 12px; max-width: 44ch;
+      padding: 10px 14px; border-radius: 10px;
+      background: rgba(8, 8, 14, 0.55);
+      backdrop-filter: blur(6px);
+      pointer-events: none;
+    }
+    #lbl h1 {
+      font-size: 12px; font-weight: 600;
+      letter-spacing: 0.14em; text-transform: uppercase;
+      color: rgba(255, 255, 255, 0.95);
+    }
+    #lblSub { margin-top: 3px; opacity: 0.72; }
+    #lblPhase {
+      margin-top: 8px; min-height: 1.4em; color: #3EC8B4;
+      opacity: 1; transition: opacity 0.18s ease;
+    }
+    #legend {
+      position: absolute; right: 12px; top: 12px;
+      display: flex; flex-direction: column; gap: 5px;
+      padding: 9px 12px; border-radius: 10px;
+      background: rgba(8, 8, 14, 0.55);
+      backdrop-filter: blur(6px);
+      pointer-events: none; font-size: 11px;
+    }
+    #legend span { display: flex; align-items: center; gap: 7px; }
+    #legend i {
+      width: 9px; height: 9px; border-radius: 2px; flex: none;
+      background: var(--c); box-shadow: 0 0 6px var(--c);
+    }
+    @media (max-width: 640px) {
+      #lblSub { display: none; }
+      #lbl { max-width: 30ch; }
+      #legend { font-size: 10px; padding: 7px 9px; gap: 4px; }
+    }
     @media (max-width: 560px) {
       #hud label { display: none; }
     }
@@ -67,6 +102,17 @@
     </label>
     <button id="btnPng" type="button">Save PNG</button>
     <button id="btnFs" type="button" aria-pressed="false">Fullscreen</button>
+  </div>
+  <div id="lbl">
+    <h1>Verse Constellations</h1>
+    <p id="lblSub">Balochi verses in embedding space, pulled into four clusters, one per poet.</p>
+    <p id="lblPhase" aria-hidden="true"></p>
+  </div>
+  <div id="legend" role="list" aria-label="Legend">
+    <span role="listitem"><i style="--c:#E4C590"></i>Verse embedding</span>
+    <span role="listitem"><i style="--c:#3EC8B4"></i>Cluster link</span>
+    <span role="listitem"><i style="--c:#C94F5E"></i>Accent verse</span>
+    <span role="listitem"><i style="--c:#8A84A0"></i>Distant verse</span>
   </div>
   <p id="note" hidden>Motion is paused because your system prefers reduced motion.
      Press Play to animate.</p>
@@ -102,8 +148,8 @@ function createScene(THREE, ctx) {
   const T_HOLD = 6.0;                   // constellations held
   const DRIFT_RADIUS = 6.0;             // radius of the drifting cloud
   const CLUSTER_RING = 3.7;             // ring radius the four clusters sit on
-  const CLUSTER_SIGMA = 1.05;           // spread of each cluster blob
-  const LINES_PER_CLUSTER = 26;         // sampled members joined by constellation lines
+  const CLUSTER_SIGMA = 1.35;           // spread of each cluster blob
+  const LINES_PER_CLUSTER = 12;         // sampled members joined by constellation lines
   const CAM_R = 13.0;                   // camera orbit radius
   const BG = 0x100C14;                  // desert night
   const HUES = [0x3EC8B4, 0xC94F5E, 0xE4C590, 0x8A84A0]; // one hue per poet
@@ -286,10 +332,10 @@ function createScene(THREE, ctx) {
         if (aCid > 2.5) cc = uCol3;
         vec3 dcol = mix(uDim, uSand, fract(aSeed * 7.31)) * (0.55 + 0.45 * tw);
         vColor = mix(dcol, cc * (0.85 + 0.30 * tw), m);
-        vAlpha = 0.45 + 0.30 * tw + 0.25 * m;
+        vAlpha = 0.45 + 0.30 * tw - 0.24 * m;
         vGlyph = floor(fract(aSeed * 13.7) * 4.0);
         vec4 mv = modelViewMatrix * vec4(p, 1.0);
-        gl_PointSize = uPx * (2.3 + 1.2 * m + 0.8 * tw) * (100.0 / -mv.z);
+        gl_PointSize = uPx * (2.3 + 0.3 * m + 0.8 * tw) * (100.0 / -mv.z);
         gl_Position = projectionMatrix * mv;
       }`,
     fragmentShader: `
@@ -314,8 +360,9 @@ function createScene(THREE, ctx) {
   const linePos = new Float32Array(MAX_SEG * 2 * 3);
   const lineCol = new Float32Array(MAX_SEG * 2 * 3);
   const lineGeo = new THREE.BufferGeometry();
-  lineGeo.setAttribute('position', new THREE.Float32BufferAttribute(linePos, 3));
-  lineGeo.setAttribute('color', new THREE.Float32BufferAttribute(lineCol, 3));
+  // BufferAttribute keeps these as the live arrays reassignClusters writes into
+  lineGeo.setAttribute('position', new THREE.BufferAttribute(linePos, 3));
+  lineGeo.setAttribute('color', new THREE.BufferAttribute(lineCol, 3));
   const lineMat = new THREE.LineBasicMaterial({
     vertexColors: true,
     transparent: true,
@@ -324,6 +371,7 @@ function createScene(THREE, ctx) {
     depthWrite: false
   });
   const lines = new THREE.LineSegments(lineGeo, lineMat);
+  lines.frustumCulled = false; // rebuilt every cycle
   group.add(lines);
 
   // Faint halo billboards, one per cluster.
@@ -357,6 +405,15 @@ function createScene(THREE, ctx) {
     h.scale.setScalar(CLUSTER_SIGMA * 5.2);
     group.add(h);
     halos.push(h);
+  }
+
+  // Poet tags, one per cluster; repositioned each cycle, faded with formation.
+  const poetTags = [];
+  for (let k = 0; k < CLUSTERS; k++) {
+    const tag = ctx.makeTag('poet ' + (k + 1), '#' + new THREE.Color(HUES[k]).getHexString(), 0.5);
+    tag.material.opacity = 0;
+    group.add(tag);
+    poetTags.push(tag);
   }
 
   // Cluster assignment, refreshed every cycle while fully dispersed.
@@ -393,11 +450,12 @@ function createScene(THREE, ctx) {
     for (let k = 0; k < CLUSTERS; k++) {
       const sx = [], sy = [], sz = [];
       for (let i = 0; i < COUNT && sx.length < LINES_PER_CLUSTER; i++) {
-        if (cid.array[i] === k && (i % 7) === 0) {
+        if (cid.array[i] === k && (i % 17) === 0) {
           sx.push(cl.array[i * 3]); sy.push(cl.array[i * 3 + 1]); sz.push(cl.array[i * 3 + 2]);
         }
       }
       const col = clusterHues[k];
+      const used = [];
       for (let a = 0; a < sx.length; a++) {
         let best = -1, bd = 1e9;
         for (let b = 0; b < sx.length; b++) {
@@ -407,17 +465,24 @@ function createScene(THREE, ctx) {
           if (d2 < bd) { bd = d2; best = b; }
         }
         if (best < 0) continue;
+        // skip mutual duplicates and overlong links so each cluster
+        // reads as a constellation of short strokes, not a tangle
+        const key = Math.min(a, best) * LINES_PER_CLUSTER + Math.max(a, best);
+        if (used.indexOf(key) >= 0 || bd > CLUSTER_SIGMA * CLUSTER_SIGMA * 2.6) continue;
+        used.push(key);
         const o = seg * 6;
         linePos[o] = sx[a]; linePos[o + 1] = sy[a]; linePos[o + 2] = sz[a];
         linePos[o + 3] = sx[best]; linePos[o + 4] = sy[best]; linePos[o + 5] = sz[best];
         for (let vtx = 0; vtx < 2; vtx++) {
-          lineCol[o + vtx * 3] = col.r;
-          lineCol[o + vtx * 3 + 1] = col.g;
-          lineCol[o + vtx * 3 + 2] = col.b;
+          // lifted above 1.0 so the links cut through the additive glyph glow
+          lineCol[o + vtx * 3] = col.r * 1.5 + 0.3;
+          lineCol[o + vtx * 3 + 1] = col.g * 1.5 + 0.3;
+          lineCol[o + vtx * 3 + 2] = col.b * 1.5 + 0.3;
         }
         seg++;
       }
       halos[k].position.copy(centers[k]);
+      poetTags[k].position.set(centers[k].x, centers[k].y + CLUSTER_SIGMA * 1.5, centers[k].z);
     }
     lineGeo.getAttribute('position').needsUpdate = true;
     lineGeo.getAttribute('color').needsUpdate = true;
@@ -454,16 +519,25 @@ function createScene(THREE, ctx) {
       // constellation lines ignite the moment clusters complete, then settle
       const formedFor = Math.max(0, phase - (T_DRIFT + T_GATHER));
       const ignite = smooth01((mixVal - 0.86) / 0.14);
-      lineMat.opacity = ignite * (0.30 + 0.45 * Math.exp(-formedFor * 1.4));
+      lineMat.opacity = ignite * (0.5 + 0.4 * Math.exp(-formedFor * 1.4));
 
       group.rotation.y = t * 0.015;
 
       // halos breathe with the formation; billboard in group-local space
       // (cancel the parent group rotation so they always face the camera)
       for (let k = 0; k < CLUSTERS; k++) {
-        halos[k].material.opacity = ignite * (0.10 + 0.03 * Math.sin(t * 0.7 + k * 1.7));
+        halos[k].material.opacity = ignite * (0.17 + 0.04 * Math.sin(t * 0.7 + k * 1.7));
         halos[k].quaternion.copy(group.quaternion).invert().multiply(ctx.camera.quaternion);
+        poetTags[k].material.opacity = smooth01((mixVal - 0.7) / 0.3) * 0.9;
       }
+
+      // live caption follows the cycle envelope
+      let cap;
+      if (phase < T_DRIFT) cap = 'Verse embeddings drift unclassified in embedding space';
+      else if (phase < T_DRIFT + T_GATHER) cap = 'The classifier pulls each verse toward its poet';
+      else if (phase < T_DRIFT + T_GATHER + T_HOLD) cap = 'Four poets, four constellations';
+      else cap = 'Released: the verses scatter and the next batch drifts in';
+      ctx.caption(cap);
 
       const a = t * 0.05 + ctx.pointer.x * 0.35;
       ctx.camera.position.set(
@@ -508,6 +582,50 @@ const ctx = {
   renderer,
   quality,
   pointer: { x: 0, y: 0 },  /* smoothed, -1..1, y up */
+};
+
+/* Live phase caption: scenes call ctx.caption('...') each frame; the text
+   only touches the DOM when it changes, with a quick cross-fade. */
+const lblPhase = document.getElementById('lblPhase');
+let capText = null, capTimer = 0;
+ctx.caption = (s) => {
+  if (s === capText || !lblPhase) return;
+  capText = s;
+  lblPhase.style.opacity = '0';
+  clearTimeout(capTimer);
+  capTimer = setTimeout(() => {
+    lblPhase.textContent = capText;
+    lblPhase.style.opacity = '1';
+  }, 180);
+};
+
+/* Small floating text tag rendered to a canvas texture, for labelling
+   objects inside the 3D scene. Returns a sprite; scale is world height. */
+ctx.makeTag = (text, color, h = 0.42) => {
+  const pad = 18, fpx = 46;
+  const meas = document.createElement('canvas').getContext('2d');
+  meas.font = '600 ' + fpx + 'px ui-monospace, Menlo, Consolas, monospace';
+  const tw = Math.ceil(meas.measureText(text).width);
+  const cw = tw + pad * 2, ch = fpx + pad * 2;
+  const cnv = document.createElement('canvas');
+  cnv.width = cw; cnv.height = ch;
+  const g = cnv.getContext('2d');
+  g.font = meas.font;
+  g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.shadowColor = color; g.shadowBlur = 14;
+  g.fillStyle = color;
+  g.fillText(text, cw / 2, ch / 2 + 2);
+  g.shadowBlur = 0;
+  g.fillText(text, cw / 2, ch / 2 + 2);
+  const tex = new THREE.CanvasTexture(cnv);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.anisotropy = 4;
+  const spr = new THREE.Sprite(new THREE.SpriteMaterial({
+    map: tex, transparent: true, depthWrite: false, depthTest: false,
+  }));
+  spr.scale.set(h * cw / ch, h, 1);
+  spr.renderOrder = 20;
+  return spr;
 };
 
 let piece;

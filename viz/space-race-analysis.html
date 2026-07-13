@@ -51,6 +51,41 @@
       position: absolute; inset: 0; display: none;
       place-items: center; text-align: center; padding: 24px;
     }
+    #lbl {
+      position: absolute; left: 12px; top: 12px; max-width: 44ch;
+      padding: 10px 14px; border-radius: 10px;
+      background: rgba(8, 8, 14, 0.55);
+      backdrop-filter: blur(6px);
+      pointer-events: none;
+    }
+    #lbl h1 {
+      font-size: 12px; font-weight: 600;
+      letter-spacing: 0.14em; text-transform: uppercase;
+      color: rgba(255, 255, 255, 0.95);
+    }
+    #lblSub { margin-top: 3px; opacity: 0.72; }
+    #lblPhase {
+      margin-top: 8px; min-height: 1.4em; color: #E8C468;
+      opacity: 1; transition: opacity 0.18s ease;
+    }
+    #legend {
+      position: absolute; right: 12px; top: 12px;
+      display: flex; flex-direction: column; gap: 5px;
+      padding: 9px 12px; border-radius: 10px;
+      background: rgba(8, 8, 14, 0.55);
+      backdrop-filter: blur(6px);
+      pointer-events: none; font-size: 11px;
+    }
+    #legend span { display: flex; align-items: center; gap: 7px; }
+    #legend i {
+      width: 9px; height: 9px; border-radius: 2px; flex: none;
+      background: var(--c); box-shadow: 0 0 6px var(--c);
+    }
+    @media (max-width: 640px) {
+      #lblSub { display: none; }
+      #lbl { max-width: 30ch; }
+      #legend { font-size: 10px; padding: 7px 9px; gap: 4px; }
+    }
     @media (max-width: 560px) {
       #hud label { display: none; }
     }
@@ -67,6 +102,17 @@
     </label>
     <button id="btnPng" type="button">Save PNG</button>
     <button id="btnFs" type="button" aria-pressed="false">Fullscreen</button>
+  </div>
+  <div id="lbl">
+    <h1>Launch Arcs</h1>
+    <p id="lblSub">Decades of launches leave the globe era by era: crimson USSR, ice-blue USA, then a gold multi-nation present.</p>
+    <p id="lblPhase" aria-hidden="true"></p>
+  </div>
+  <div id="legend" role="list" aria-label="Legend">
+    <span role="listitem"><i style="--c:#D6455A"></i>USSR launch</span>
+    <span role="listitem"><i style="--c:#6FB4E8"></i>USA launch</span>
+    <span role="listitem"><i style="--c:#E8C468"></i>Modern era launch</span>
+    <span role="listitem"><i style="--c:#D16B3D"></i>Failed launch</span>
   </div>
   <p id="note" hidden>Motion is paused because your system prefers reduced motion.
      Press Play to animate.</p>
@@ -155,9 +201,9 @@ function createScene(THREE, ctx) {
           float fc = dot(normalize((modelViewMatrix * vec4(normalize(position), 0.0)).xyz),
                          vec3(0.0, 0.0, 1.0));
           float facing = smoothstep(-0.5, 0.35, fc);
-          vCol = vec3(0.137, 0.165, 0.220) * 3.4;
-          vA = (0.5 + 0.14 * sin(uTime * 0.5 + aPhase)) * (0.18 + 0.82 * facing);
-          gl_PointSize = 3.0 * uPx / (-mv.z * 55.0);
+          vCol = vec3(0.137, 0.165, 0.220) * 4.6;
+          vA = (0.58 + 0.16 * sin(uTime * 0.5 + aPhase)) * (0.24 + 0.84 * facing);
+          gl_PointSize = 3.4 * uPx / (-mv.z * 55.0);
           gl_Position = projectionMatrix * mv;
         }
       `,
@@ -344,7 +390,7 @@ function createScene(THREE, ctx) {
             rad = uR + aAlt * 0.55 * sin(3.14159 * min(ue * 1.15, 1.0));
           }
           vec3 p = rotAxis(aSite, aAxis, ang) * rad;
-          float bright = mix(0.55, 2.2, pow(1.0 - aTrail, 2.0));
+          float bright = mix(0.85, 3.0, pow(1.0 - aTrail, 2.0));
           vec3 col = aCol;
           // brief ignition ramp so the head never blinks on at full amplitude
           float a = on * bright * smoothstep(0.0, 0.03, ue);
@@ -356,7 +402,7 @@ function createScene(THREE, ctx) {
           vCol = col * (1.0 + flare * 0.8);
           vA = a;
           vec4 mv = modelViewMatrix * vec4(p, 1.0);
-          gl_PointSize = (3.4 + 3.2 * pow(1.0 - aTrail, 2.0) + flare * 3.5)
+          gl_PointSize = (4.0 + 3.6 * pow(1.0 - aTrail, 2.0) + flare * 3.5)
                          * uPx / (-mv.z * 55.0);
           gl_Position = projectionMatrix * mv;
         }
@@ -428,9 +474,9 @@ function createScene(THREE, ctx) {
           // a small satellite spark circulates each ring
           float sat = smoothstep(0.05, 0.0, fract(aTh * 0.1591549 - uTime * 0.06 + aPhase));
           vCol = aCol;
-          vA = ain * aout * (0.42 + 0.10 * sin(uTime * 1.1 + aTh * 3.0) + sat * 0.7);
+          vA = ain * aout * (0.58 + 0.12 * sin(uTime * 1.1 + aTh * 3.0) + sat * 0.9);
           vec4 mv = modelViewMatrix * vec4(position, 1.0);
-          gl_PointSize = (2.8 + sat * 3.2) * uPx / (-mv.z * 55.0);
+          gl_PointSize = (3.3 + sat * 3.2) * uPx / (-mv.z * 55.0);
           gl_Position = projectionMatrix * mv;
         }
       `,
@@ -490,6 +536,16 @@ function createScene(THREE, ctx) {
       tmpC.copy(CRIM).lerp(ICE, duel).lerp(GOLD, w3);
       eraCol.value.copy(tmpC);
 
+      // era captions ride the same timeline the launch schedule is built on:
+      // dense early rivalry, a thinner middle, then the dense modern era
+      let cap;
+      if (t01 < 0.12) cap = 'The timeline opens: first launches climb, early attempts often fall back';
+      else if (t01 < 0.40) cap = 'Cold war rivalry: crimson USSR launches answered in USA ice blue';
+      else if (t01 < 0.72) cap = 'The cadence thins mid-timeline; every success adds a ring to the halo';
+      else if (t01 < 0.90) cap = 'Modern era: gold launches join from many nations at once';
+      else cap = 'The halo dims, and the timeline pass begins again';
+      ctx.caption(cap);
+
       // slow orbit, pointer nudges it
       const a = t * 0.045 + ctx.pointer.x * 0.45;
       const e = 0.22 + ctx.pointer.y * 0.28;
@@ -539,6 +595,50 @@ const ctx = {
   renderer,
   quality,
   pointer: { x: 0, y: 0 },  /* smoothed, -1..1, y up */
+};
+
+/* Live phase caption: scenes call ctx.caption('...') each frame; the text
+   only touches the DOM when it changes, with a quick cross-fade. */
+const lblPhase = document.getElementById('lblPhase');
+let capText = null, capTimer = 0;
+ctx.caption = (s) => {
+  if (s === capText || !lblPhase) return;
+  capText = s;
+  lblPhase.style.opacity = '0';
+  clearTimeout(capTimer);
+  capTimer = setTimeout(() => {
+    lblPhase.textContent = capText;
+    lblPhase.style.opacity = '1';
+  }, 180);
+};
+
+/* Small floating text tag rendered to a canvas texture, for labelling
+   objects inside the 3D scene. Returns a sprite; scale is world height. */
+ctx.makeTag = (text, color, h = 0.42) => {
+  const pad = 18, fpx = 46;
+  const meas = document.createElement('canvas').getContext('2d');
+  meas.font = '600 ' + fpx + 'px ui-monospace, Menlo, Consolas, monospace';
+  const tw = Math.ceil(meas.measureText(text).width);
+  const cw = tw + pad * 2, ch = fpx + pad * 2;
+  const cnv = document.createElement('canvas');
+  cnv.width = cw; cnv.height = ch;
+  const g = cnv.getContext('2d');
+  g.font = meas.font;
+  g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.shadowColor = color; g.shadowBlur = 14;
+  g.fillStyle = color;
+  g.fillText(text, cw / 2, ch / 2 + 2);
+  g.shadowBlur = 0;
+  g.fillText(text, cw / 2, ch / 2 + 2);
+  const tex = new THREE.CanvasTexture(cnv);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.anisotropy = 4;
+  const spr = new THREE.Sprite(new THREE.SpriteMaterial({
+    map: tex, transparent: true, depthWrite: false, depthTest: false,
+  }));
+  spr.scale.set(h * cw / ch, h, 1);
+  spr.renderOrder = 20;
+  return spr;
 };
 
 let piece;

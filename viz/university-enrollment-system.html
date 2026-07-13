@@ -51,6 +51,41 @@
       position: absolute; inset: 0; display: none;
       place-items: center; text-align: center; padding: 24px;
     }
+    #lbl {
+      position: absolute; left: 12px; top: 12px; max-width: 44ch;
+      padding: 10px 14px; border-radius: 10px;
+      background: rgba(8, 8, 14, 0.55);
+      backdrop-filter: blur(6px);
+      pointer-events: none;
+    }
+    #lbl h1 {
+      font-size: 12px; font-weight: 600;
+      letter-spacing: 0.14em; text-transform: uppercase;
+      color: rgba(255, 255, 255, 0.95);
+    }
+    #lblSub { margin-top: 3px; opacity: 0.72; }
+    #lblPhase {
+      margin-top: 8px; min-height: 1.4em; color: #E8B54F;
+      opacity: 1; transition: opacity 0.18s ease;
+    }
+    #legend {
+      position: absolute; right: 12px; top: 12px;
+      display: flex; flex-direction: column; gap: 5px;
+      padding: 9px 12px; border-radius: 10px;
+      background: rgba(8, 8, 14, 0.55);
+      backdrop-filter: blur(6px);
+      pointer-events: none; font-size: 11px;
+    }
+    #legend span { display: flex; align-items: center; gap: 7px; }
+    #legend i {
+      width: 9px; height: 9px; border-radius: 2px; flex: none;
+      background: var(--c); box-shadow: 0 0 6px var(--c);
+    }
+    @media (max-width: 640px) {
+      #lblSub { display: none; }
+      #lbl { max-width: 30ch; }
+      #legend { font-size: 10px; padding: 7px 9px; gap: 4px; }
+    }
     @media (max-width: 560px) {
       #hud label { display: none; }
     }
@@ -67,6 +102,17 @@
     </label>
     <button id="btnPng" type="button">Save PNG</button>
     <button id="btnFs" type="button" aria-pressed="false">Fullscreen</button>
+  </div>
+  <div id="lbl">
+    <h1>Seat Lattice</h1>
+    <p id="lblSub">Course registration filling a hall: gold seats, full sections, rerouted students.</p>
+    <p id="lblPhase" aria-hidden="true"></p>
+  </div>
+  <div id="legend" role="list" aria-label="Legend">
+    <span role="listitem"><i style="--c:#3C4A66"></i>Empty seat</span>
+    <span role="listitem"><i style="--c:#E8B54F"></i>Enrolled</span>
+    <span role="listitem"><i style="--c:#5D9BE8"></i>Enrollment pulse</span>
+    <span role="listitem"><i style="--c:#D96A5E"></i>Section full</span>
   </div>
   <p id="note" hidden>Motion is paused because your system prefers reduced motion.
      Press Play to animate.</p>
@@ -249,6 +295,20 @@ function createScene(THREE, ctx) {
     columns.push(cMesh);
   }
 
+  // ---- section tags above the four wedges
+  var SECTION_NAMES = ['section a', 'section b', 'section c', 'section d'];
+  for (var tg = 0; tg < N_WEDGES; tg++) {
+    var thtg = wedgeCenter(tg);
+    var tag = ctx.makeTag(SECTION_NAMES[tg], '#E8B54F', 0.62);
+    tag.position.set(
+      Math.sin(thtg) * (rMax + 0.4),
+      (N_ROWS - 1) * ROW_DY + 1.3,
+      Math.cos(thtg) * (rMax + 0.4)
+    );
+    tag.material.opacity = 0.8;
+    ctx.scene.add(tag);
+  }
+
   // ---- stage glow
   var stageGeo = new THREE.BufferGeometry();
   stageGeo.setAttribute('position', new THREE.Float32BufferAttribute([0, 0.4, 0], 3));
@@ -283,8 +343,8 @@ function createScene(THREE, ctx) {
   var pulsePos = new Float32Array(MAX_PULSES * 3);
   var pulseGlow = new Float32Array(MAX_PULSES);
   for (var pz = 0; pz < MAX_PULSES; pz++) pulsePos[pz * 3 + 1] = -999;
-  pulseGeo.setAttribute('position', new THREE.Float32BufferAttribute(pulsePos, 3));
-  pulseGeo.setAttribute('aGlow', new THREE.Float32BufferAttribute(pulseGlow, 1));
+  pulseGeo.setAttribute('position', new THREE.BufferAttribute(pulsePos, 3));
+  pulseGeo.setAttribute('aGlow', new THREE.BufferAttribute(pulseGlow, 1));
   var pulseMat = new THREE.ShaderMaterial({
     uniforms: { uColor: { value: COL_BLUE } },
     vertexShader: [
@@ -355,6 +415,17 @@ function createScene(THREE, ctx) {
   return {
     update: function (t, dt) {
       stageUniforms.uTime.value = t;
+
+      // live caption follows the enrollment state
+      var flashing = false;
+      for (var cf = 0; cf < N_WEDGES; cf++) if (colFlash[cf] > 0.45) flashing = true;
+      var fillFrac = totalFilled() / N_SEATS;
+      var cap;
+      if (turnover.active) cap = 'Semester turnover: the hall empties in one graceful wave';
+      else if (flashing) cap = 'A section is full: red flash, arrivals reroute to a neighbor';
+      else if (fillFrac < 0.2) cap = 'Enrollment pulses arrive along four conduits';
+      else cap = 'Seats fill in staggered ripples; capacity columns rise';
+      ctx.caption(cap);
 
       // spawn enrollment pulses (paused during turnover)
       if (!turnover.active && t > nextSpawn) {
@@ -518,6 +589,50 @@ const ctx = {
   renderer,
   quality,
   pointer: { x: 0, y: 0 },  /* smoothed, -1..1, y up */
+};
+
+/* Live phase caption: scenes call ctx.caption('...') each frame; the text
+   only touches the DOM when it changes, with a quick cross-fade. */
+const lblPhase = document.getElementById('lblPhase');
+let capText = null, capTimer = 0;
+ctx.caption = (s) => {
+  if (s === capText || !lblPhase) return;
+  capText = s;
+  lblPhase.style.opacity = '0';
+  clearTimeout(capTimer);
+  capTimer = setTimeout(() => {
+    lblPhase.textContent = capText;
+    lblPhase.style.opacity = '1';
+  }, 180);
+};
+
+/* Small floating text tag rendered to a canvas texture, for labelling
+   objects inside the 3D scene. Returns a sprite; scale is world height. */
+ctx.makeTag = (text, color, h = 0.42) => {
+  const pad = 18, fpx = 46;
+  const meas = document.createElement('canvas').getContext('2d');
+  meas.font = '600 ' + fpx + 'px ui-monospace, Menlo, Consolas, monospace';
+  const tw = Math.ceil(meas.measureText(text).width);
+  const cw = tw + pad * 2, ch = fpx + pad * 2;
+  const cnv = document.createElement('canvas');
+  cnv.width = cw; cnv.height = ch;
+  const g = cnv.getContext('2d');
+  g.font = meas.font;
+  g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.shadowColor = color; g.shadowBlur = 14;
+  g.fillStyle = color;
+  g.fillText(text, cw / 2, ch / 2 + 2);
+  g.shadowBlur = 0;
+  g.fillText(text, cw / 2, ch / 2 + 2);
+  const tex = new THREE.CanvasTexture(cnv);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.anisotropy = 4;
+  const spr = new THREE.Sprite(new THREE.SpriteMaterial({
+    map: tex, transparent: true, depthWrite: false, depthTest: false,
+  }));
+  spr.scale.set(h * cw / ch, h, 1);
+  spr.renderOrder = 20;
+  return spr;
 };
 
 let piece;

@@ -51,6 +51,41 @@
       position: absolute; inset: 0; display: none;
       place-items: center; text-align: center; padding: 24px;
     }
+    #lbl {
+      position: absolute; left: 12px; top: 12px; max-width: 44ch;
+      padding: 10px 14px; border-radius: 10px;
+      background: rgba(8, 8, 14, 0.55);
+      backdrop-filter: blur(6px);
+      pointer-events: none;
+    }
+    #lbl h1 {
+      font-size: 12px; font-weight: 600;
+      letter-spacing: 0.14em; text-transform: uppercase;
+      color: rgba(255, 255, 255, 0.95);
+    }
+    #lblSub { margin-top: 3px; opacity: 0.72; }
+    #lblPhase {
+      margin-top: 8px; min-height: 1.4em; color: #EA8A4A;
+      opacity: 1; transition: opacity 0.18s ease;
+    }
+    #legend {
+      position: absolute; right: 12px; top: 12px;
+      display: flex; flex-direction: column; gap: 5px;
+      padding: 9px 12px; border-radius: 10px;
+      background: rgba(8, 8, 14, 0.55);
+      backdrop-filter: blur(6px);
+      pointer-events: none; font-size: 11px;
+    }
+    #legend span { display: flex; align-items: center; gap: 7px; }
+    #legend i {
+      width: 9px; height: 9px; border-radius: 2px; flex: none;
+      background: var(--c); box-shadow: 0 0 6px var(--c);
+    }
+    @media (max-width: 640px) {
+      #lblSub { display: none; }
+      #lbl { max-width: 30ch; }
+      #legend { font-size: 10px; padding: 7px 9px; gap: 4px; }
+    }
     @media (max-width: 560px) {
       #hud label { display: none; }
     }
@@ -67,6 +102,17 @@
     </label>
     <button id="btnPng" type="button">Save PNG</button>
     <button id="btnFs" type="button" aria-pressed="false">Fullscreen</button>
+  </div>
+  <div id="lbl">
+    <h1>The Automation Web</h1>
+    <p id="lblSub">59 client workflows as one living graph: triggers fire, packets race, green means done.</p>
+    <p id="lblPhase" aria-hidden="true"></p>
+  </div>
+  <div id="legend" role="list" aria-label="Legend">
+    <span role="listitem"><i style="--c:#3A4148"></i>Workflow node</span>
+    <span role="listitem"><i style="--c:#EA8A4A"></i>Execution packet</span>
+    <span role="listitem"><i style="--c:#57B87A"></i>Success tick</span>
+    <span role="listitem"><i style="--c:#59636E"></i>Edge</span>
   </div>
   <p id="note" hidden>Motion is paused because your system prefers reduced motion.
      Press Play to animate.</p>
@@ -287,14 +333,26 @@ function createScene(THREE, ctx) {
   });
   root.add(new THREE.Points(trigGeo, trigMat));
 
+  // ---------- trigger tags ----------
+  // label two spawn nodes on roughly opposite sides of the web
+  const tagIdx = [0, Math.floor(triggers.length / 2)];
+  for (let i = 0; i < tagIdx.length; i++) {
+    const ti = triggers[tagIdx[i]];
+    if (ti === undefined) continue;
+    const tag = ctx.makeTag('trigger', '#EA8A4A', 0.3);
+    tag.position.copy(nodes[ti].p).y += 0.42;
+    tag.material.opacity = 0.6;
+    root.add(tag);
+  }
+
   // ---------- packet pool ----------
   const pPos = new Float32Array(PACKET_POOL * 3);
   const pAlpha = new Float32Array(PACKET_POOL);
   const pSize = new Float32Array(PACKET_POOL);
   const pktGeo = new THREE.BufferGeometry();
-  const pPosAttr = new THREE.Float32BufferAttribute(pPos, 3);
-  const pAlphaAttr = new THREE.Float32BufferAttribute(pAlpha, 1);
-  const pSizeAttr = new THREE.Float32BufferAttribute(pSize, 1);
+  const pPosAttr = new THREE.BufferAttribute(pPos, 3);
+  const pAlphaAttr = new THREE.BufferAttribute(pAlpha, 1);
+  const pSizeAttr = new THREE.BufferAttribute(pSize, 1);
   pktGeo.setAttribute('position', pPosAttr);
   pktGeo.setAttribute('aAlpha', pAlphaAttr);
   pktGeo.setAttribute('aSize', pSizeAttr);
@@ -323,7 +381,9 @@ function createScene(THREE, ctx) {
     `,
     transparent: true, depthWrite: false, blending: THREE.AdditiveBlending
   });
-  root.add(new THREE.Points(pktGeo, pktMat));
+  const pktPoints = new THREE.Points(pktGeo, pktMat);
+  pktPoints.frustumCulled = false; // pool starts at the origin, packets ride every edge
+  root.add(pktPoints);
 
   const pkt = [];
   const freeList = [];
@@ -348,8 +408,10 @@ function createScene(THREE, ctx) {
     if (out.length === 0) {
       flashG[n] = 1;
       flashO[n] = Math.min(flashO[n], 0.2); // keep the success tick clean green
+      sawSuccess = true;
       return;
     }
+    if (out.length >= 2) sawBranch = true;
     // branch into up to 3 children
     if (out.length <= 3) {
       for (let i = 0; i < out.length; i++) spawnPacket(out[i]);
@@ -380,6 +442,12 @@ function createScene(THREE, ctx) {
   let waveT = WAVE_PERIOD * 0.55; // first wave arrives sooner
   let waveActive = false;
   let waveAge = 0;
+  // caption event flags, set by fireNode, drained by update
+  let sawSuccess = false;
+  let sawBranch = false;
+  let capHold = 0;
+  let capCycle = 0;
+  let capNow = 'Packets spawn at trigger nodes and race the edges';
   const waveFired = triggers.map(function () { return false; });
   const trigDist = triggers.map(function (ti) { return nodes[ti].p.length(); });
 
@@ -437,6 +505,22 @@ function createScene(THREE, ctx) {
           wave.material.opacity = 0;
         }
       }
+
+      // live caption: the cron wave overrides, other beats rotate on a hold
+      capHold -= d;
+      if (waveActive) {
+        capNow = 'Cron tick: every trigger the wave crosses fires at once';
+        capHold = 3.2;
+      } else if (capHold <= 0) {
+        capCycle = (capCycle + 1) % 3;
+        if (capCycle === 1 && sawBranch) capNow = 'A branch splits the run mid-flight';
+        else if (capCycle === 2 && sawSuccess) capNow = 'A run terminates in a green success tick';
+        else capNow = 'Packets spawn at trigger nodes and race the edges';
+        capHold = 3.2;
+        sawSuccess = false;
+        sawBranch = false;
+      }
+      ctx.caption(capNow);
 
       // packets along edges
       for (let i = 0; i < PACKET_POOL; i++) {
@@ -532,6 +616,50 @@ const ctx = {
   renderer,
   quality,
   pointer: { x: 0, y: 0 },  /* smoothed, -1..1, y up */
+};
+
+/* Live phase caption: scenes call ctx.caption('...') each frame; the text
+   only touches the DOM when it changes, with a quick cross-fade. */
+const lblPhase = document.getElementById('lblPhase');
+let capText = null, capTimer = 0;
+ctx.caption = (s) => {
+  if (s === capText || !lblPhase) return;
+  capText = s;
+  lblPhase.style.opacity = '0';
+  clearTimeout(capTimer);
+  capTimer = setTimeout(() => {
+    lblPhase.textContent = capText;
+    lblPhase.style.opacity = '1';
+  }, 180);
+};
+
+/* Small floating text tag rendered to a canvas texture, for labelling
+   objects inside the 3D scene. Returns a sprite; scale is world height. */
+ctx.makeTag = (text, color, h = 0.42) => {
+  const pad = 18, fpx = 46;
+  const meas = document.createElement('canvas').getContext('2d');
+  meas.font = '600 ' + fpx + 'px ui-monospace, Menlo, Consolas, monospace';
+  const tw = Math.ceil(meas.measureText(text).width);
+  const cw = tw + pad * 2, ch = fpx + pad * 2;
+  const cnv = document.createElement('canvas');
+  cnv.width = cw; cnv.height = ch;
+  const g = cnv.getContext('2d');
+  g.font = meas.font;
+  g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.shadowColor = color; g.shadowBlur = 14;
+  g.fillStyle = color;
+  g.fillText(text, cw / 2, ch / 2 + 2);
+  g.shadowBlur = 0;
+  g.fillText(text, cw / 2, ch / 2 + 2);
+  const tex = new THREE.CanvasTexture(cnv);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.anisotropy = 4;
+  const spr = new THREE.Sprite(new THREE.SpriteMaterial({
+    map: tex, transparent: true, depthWrite: false, depthTest: false,
+  }));
+  spr.scale.set(h * cw / ch, h, 1);
+  spr.renderOrder = 20;
+  return spr;
 };
 
 let piece;

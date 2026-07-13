@@ -51,6 +51,41 @@
       position: absolute; inset: 0; display: none;
       place-items: center; text-align: center; padding: 24px;
     }
+    #lbl {
+      position: absolute; left: 12px; top: 12px; max-width: 44ch;
+      padding: 10px 14px; border-radius: 10px;
+      background: rgba(8, 8, 14, 0.55);
+      backdrop-filter: blur(6px);
+      pointer-events: none;
+    }
+    #lbl h1 {
+      font-size: 12px; font-weight: 600;
+      letter-spacing: 0.14em; text-transform: uppercase;
+      color: rgba(255, 255, 255, 0.95);
+    }
+    #lblSub { margin-top: 3px; opacity: 0.72; }
+    #lblPhase {
+      margin-top: 8px; min-height: 1.4em; color: #E8A13C;
+      opacity: 1; transition: opacity 0.18s ease;
+    }
+    #legend {
+      position: absolute; right: 12px; top: 12px;
+      display: flex; flex-direction: column; gap: 5px;
+      padding: 9px 12px; border-radius: 10px;
+      background: rgba(8, 8, 14, 0.55);
+      backdrop-filter: blur(6px);
+      pointer-events: none; font-size: 11px;
+    }
+    #legend span { display: flex; align-items: center; gap: 7px; }
+    #legend i {
+      width: 9px; height: 9px; border-radius: 2px; flex: none;
+      background: var(--c); box-shadow: 0 0 6px var(--c);
+    }
+    @media (max-width: 640px) {
+      #lblSub { display: none; }
+      #lbl { max-width: 30ch; }
+      #legend { font-size: 10px; padding: 7px 9px; gap: 4px; }
+    }
     @media (max-width: 560px) {
       #hud label { display: none; }
     }
@@ -67,6 +102,17 @@
     </label>
     <button id="btnPng" type="button">Save PNG</button>
     <button id="btnFs" type="button" aria-pressed="false">Fullscreen</button>
+  </div>
+  <div id="lbl">
+    <h1>Attention Loom</h1>
+    <p id="lblSub">Six transformer layers reading right to left, the way Urdu reads; the threads are attention.</p>
+    <p id="lblPhase" aria-hidden="true"></p>
+  </div>
+  <div id="legend" role="list" aria-label="Legend">
+    <span role="listitem"><i style="--c:#F2E9DA"></i>Token</span>
+    <span role="listitem"><i style="--c:#4FB8A8"></i>Attention thread</span>
+    <span role="listitem"><i style="--c:#E8A13C"></i>Head firing</span>
+    <span role="listitem"><i style="--c:#5C3A5E"></i>Layer plane</span>
   </div>
   <p id="note" hidden>Motion is paused because your system prefers reduced motion.
      Press Play to animate.</p>
@@ -212,7 +258,7 @@ function createScene(THREE, ctx) {
       '  float breathe = 0.75 + 0.25 * sin(uTime * 1.3 + aSeed * 6.2831);',
       '  vAlpha = edgeFade(u) * breathe;',
       '  vec4 mv = modelViewMatrix * vec4(x, y, z, 1.0);',
-      '  gl_PointSize = (9.0 + 5.0 * aSeed + 3.0 * warm) * (150.0 / -mv.z);',
+      '  gl_PointSize = (4.2 + 2.0 * aSeed + 1.4 * warm) * (150.0 / -mv.z);',
       '  gl_Position = projectionMatrix * mv;',
       '}'
     ].join('\n'),
@@ -221,8 +267,8 @@ function createScene(THREE, ctx) {
       'varying float vAlpha;',
       'void main(){',
       '  float d = length(gl_PointCoord - 0.5);',
-      '  float core = smoothstep(0.17, 0.03, d);',
-      '  float halo = smoothstep(0.5, 0.16, d) * 0.3;',
+      '  float core = smoothstep(0.3, 0.07, d);',
+      '  float halo = smoothstep(0.5, 0.22, d) * 0.16;',
       '  gl_FragColor = vec4(vColor, (core + halo) * vAlpha);',
       '}'
     ].join('\n'),
@@ -306,13 +352,13 @@ function createScene(THREE, ctx) {
       '  p.z += lift * uBulge * (0.6 + 0.4 * sin(aSeed * 6.2831));',
       '  p.y += lift * 0.12;',
       // attention weight breathes per thread, re-weaving softly
-      '  float w = 0.25 + 0.75 * pow(0.5 + 0.5 * sin(uTime * 0.55 + aSeed * 6.2831 + aRowB), 2.0);',
+      '  float w = 0.4 + 0.6 * pow(0.5 + 0.5 * sin(uTime * 0.55 + aSeed * 6.2831 + aRowB), 2.0);',
       // saffron head wave sweeping down through the layers, no wrap pop
       '  float waveRow = fract(uTime * uWaveSpeed) * 9.0 - 1.5;',
       '  float h = smoothstep(0.95, 0.0, abs((5.0 - (aRowB + 1.0)) - waveRow));',
       '  h *= step(uHeadFrac, fract(aSeed * 13.73));',
-      '  vColor = mix(uTeal, uSaffron, h);',
-      '  vAlpha = w * edgeFade(uA) * edgeFade(uB) * (0.16 + 0.5 * h);',
+      '  vColor = mix(uTeal * 1.45, uSaffron * 1.3, h);',
+      '  vAlpha = w * edgeFade(uA) * edgeFade(uB) * (0.42 + 0.45 * h);',
       '  gl_Position = projectionMatrix * modelViewMatrix * vec4(p, 1.0);',
       '}'
     ].join('\n'),
@@ -371,9 +417,36 @@ function createScene(THREE, ctx) {
   });
   group.add(new THREE.Points(dustGeo, dustMat));
 
+  // ---- in-scene tags: layer ends and reading direction
+  var tagL1 = ctx.makeTag('layer 1', '#C9A0C9', 0.52);
+  tagL1.position.set(-(SPAN_X + 0.8), Y0 + 0.05, 0.4);
+  tagL1.material.opacity = 0.85;
+  group.add(tagL1);
+  var tagL6 = ctx.makeTag('layer 6', '#C9A0C9', 0.52);
+  tagL6.position.set(-(SPAN_X + 0.8), Y0 + (N_ROWS - 1) * Y_STEP + 0.05, 0.4);
+  tagL6.material.opacity = 0.85;
+  group.add(tagL6);
+  var tagDir = ctx.makeTag('reads right to left', '#E8A13C', 0.42);
+  tagDir.position.set(0, Y0 + (N_ROWS - 1) * Y_STEP + 1.05, 0);
+  tagDir.material.opacity = 0.75;
+  group.add(tagDir);
+
   return {
     update: function (t, dt) {
       sharedUniforms.uTime.value = t;
+
+      // live caption: tied to the saffron head-firing wave
+      var wr = (t * WAVE_SPEED - Math.floor(t * WAVE_SPEED)) * 9.0 - 1.5;
+      var waveActive = wr >= -0.5 && wr <= 5.5;
+      var beat = Math.floor(t / 3.5) % 4;
+      var cap;
+      if (beat === 0) cap = 'Tokens stream right to left, the way Urdu reads';
+      else if (beat === 1) cap = 'Teal threads arc back: each token attends to earlier tokens';
+      else if (beat === 2) cap = 'The loom reweaves as the token stream advances';
+      else cap = waveActive
+          ? 'A saffron wave: attention heads firing down the stack'
+          : 'The loom reweaves as the token stream advances';
+      ctx.caption(cap);
 
       // meditative loom sway
       group.rotation.y = 0.05 * Math.sin(t * 0.07);
@@ -421,6 +494,50 @@ const ctx = {
   renderer,
   quality,
   pointer: { x: 0, y: 0 },  /* smoothed, -1..1, y up */
+};
+
+/* Live phase caption: scenes call ctx.caption('...') each frame; the text
+   only touches the DOM when it changes, with a quick cross-fade. */
+const lblPhase = document.getElementById('lblPhase');
+let capText = null, capTimer = 0;
+ctx.caption = (s) => {
+  if (s === capText || !lblPhase) return;
+  capText = s;
+  lblPhase.style.opacity = '0';
+  clearTimeout(capTimer);
+  capTimer = setTimeout(() => {
+    lblPhase.textContent = capText;
+    lblPhase.style.opacity = '1';
+  }, 180);
+};
+
+/* Small floating text tag rendered to a canvas texture, for labelling
+   objects inside the 3D scene. Returns a sprite; scale is world height. */
+ctx.makeTag = (text, color, h = 0.42) => {
+  const pad = 18, fpx = 46;
+  const meas = document.createElement('canvas').getContext('2d');
+  meas.font = '600 ' + fpx + 'px ui-monospace, Menlo, Consolas, monospace';
+  const tw = Math.ceil(meas.measureText(text).width);
+  const cw = tw + pad * 2, ch = fpx + pad * 2;
+  const cnv = document.createElement('canvas');
+  cnv.width = cw; cnv.height = ch;
+  const g = cnv.getContext('2d');
+  g.font = meas.font;
+  g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.shadowColor = color; g.shadowBlur = 14;
+  g.fillStyle = color;
+  g.fillText(text, cw / 2, ch / 2 + 2);
+  g.shadowBlur = 0;
+  g.fillText(text, cw / 2, ch / 2 + 2);
+  const tex = new THREE.CanvasTexture(cnv);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.anisotropy = 4;
+  const spr = new THREE.Sprite(new THREE.SpriteMaterial({
+    map: tex, transparent: true, depthWrite: false, depthTest: false,
+  }));
+  spr.scale.set(h * cw / ch, h, 1);
+  spr.renderOrder = 20;
+  return spr;
 };
 
 let piece;

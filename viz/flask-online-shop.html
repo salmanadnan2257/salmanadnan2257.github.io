@@ -51,6 +51,41 @@
       position: absolute; inset: 0; display: none;
       place-items: center; text-align: center; padding: 24px;
     }
+    #lbl {
+      position: absolute; left: 12px; top: 12px; max-width: 44ch;
+      padding: 10px 14px; border-radius: 10px;
+      background: rgba(8, 8, 14, 0.55);
+      backdrop-filter: blur(6px);
+      pointer-events: none;
+    }
+    #lbl h1 {
+      font-size: 12px; font-weight: 600;
+      letter-spacing: 0.14em; text-transform: uppercase;
+      color: rgba(255, 255, 255, 0.95);
+    }
+    #lblSub { margin-top: 3px; opacity: 0.72; }
+    #lblPhase {
+      margin-top: 8px; min-height: 1.4em; color: #EEC15E;
+      opacity: 1; transition: opacity 0.18s ease;
+    }
+    #legend {
+      position: absolute; right: 12px; top: 12px;
+      display: flex; flex-direction: column; gap: 5px;
+      padding: 9px 12px; border-radius: 10px;
+      background: rgba(8, 8, 14, 0.55);
+      backdrop-filter: blur(6px);
+      pointer-events: none; font-size: 11px;
+    }
+    #legend span { display: flex; align-items: center; gap: 7px; }
+    #legend i {
+      width: 9px; height: 9px; border-radius: 2px; flex: none;
+      background: var(--c); box-shadow: 0 0 6px var(--c);
+    }
+    @media (max-width: 640px) {
+      #lblSub { display: none; }
+      #lbl { max-width: 30ch; }
+      #legend { font-size: 10px; padding: 7px 9px; gap: 4px; }
+    }
     @media (max-width: 560px) {
       #hud label { display: none; }
     }
@@ -67,6 +102,17 @@
     </label>
     <button id="btnPng" type="button">Save PNG</button>
     <button id="btnFs" type="button" aria-pressed="false">Fullscreen</button>
+  </div>
+  <div id="lbl">
+    <h1>Checkout Orbit</h1>
+    <p id="lblSub">A storefront in orbit: products join the cart, gold wraps the checkout, a receipt departs.</p>
+    <p id="lblPhase" aria-hidden="true"></p>
+  </div>
+  <div id="legend" role="list" aria-label="Legend">
+    <span role="listitem"><i style="--c:#8E6AD8"></i>Product</span>
+    <span role="listitem"><i style="--c:#4EC0B0"></i>Product</span>
+    <span role="listitem"><i style="--c:#C8D0DC"></i>Cart line</span>
+    <span role="listitem"><i style="--c:#EEC15E"></i>Checkout gold</span>
   </div>
   <p id="note" hidden>Motion is paused because your system prefers reduced motion.
      Press Play to animate.</p>
@@ -179,11 +225,12 @@ function createScene(THREE, ctx) {
     const col = new Float32Array(count * 3);
     const size = new Float32Array(count);
     const alpha = new Float32Array(count);
-    geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
-    geo.setAttribute('aColor', new THREE.Float32BufferAttribute(col, 3));
-    geo.setAttribute('aSize', new THREE.Float32BufferAttribute(size, 1));
-    geo.setAttribute('aAlpha', new THREE.Float32BufferAttribute(alpha, 1));
+    geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    geo.setAttribute('aColor', new THREE.BufferAttribute(col, 3));
+    geo.setAttribute('aSize', new THREE.BufferAttribute(size, 1));
+    geo.setAttribute('aAlpha', new THREE.BufferAttribute(alpha, 1));
     const pts = new THREE.Points(geo, makeSpriteMat({ uPr: uPr }, SPRITE_VERT));
+    pts.frustumCulled = false; // sprites start at the origin and move every frame
     parent.add(pts);
     return { geo: geo, pos: pos, col: col, size: size, alpha: alpha };
   }
@@ -258,7 +305,7 @@ function createScene(THREE, ctx) {
   // ---- cart line ----
   const lineGeo = new THREE.BufferGeometry();
   const linePos = new Float32Array(LINE_SEGS * 2 * 3);
-  lineGeo.setAttribute('position', new THREE.Float32BufferAttribute(linePos, 3));
+  lineGeo.setAttribute('position', new THREE.BufferAttribute(linePos, 3));
   const lineMat = new THREE.LineBasicMaterial({
     color: COL_SILVER,
     transparent: true,
@@ -266,12 +313,24 @@ function createScene(THREE, ctx) {
     blending: THREE.AdditiveBlending,
     depthWrite: false
   });
-  ctx.scene.add(new THREE.LineSegments(lineGeo, lineMat));
+  const pullLine = new THREE.LineSegments(lineGeo, lineMat);
+  pullLine.frustumCulled = false; // curve starts collapsed at the origin
+  ctx.scene.add(pullLine);
 
   // ---- cart group: gold wrap thread rides the comet at launch ----
   const cartGroup = new THREE.Group();
   cartGroup.position.copy(CART_POS);
   ctx.scene.add(cartGroup);
+
+  // ---- floating tags ----
+  const storefrontTag = ctx.makeTag('storefront', '#EEC15E', 0.4);
+  storefrontTag.position.set(0, 1.55, 0);
+  storefrontTag.material.opacity = 0.8;
+  ctx.scene.add(storefrontTag);
+  const cartTag = ctx.makeTag('cart', '#C8D0DC', 0.34);
+  cartTag.position.set(CART_POS.x, CART_POS.y + 0.95, CART_POS.z);
+  cartTag.material.opacity = 0.75;
+  ctx.scene.add(cartTag);
 
   const threadPos = new Float32Array(THREAD_SEGS * 2 * 3);
   const threadT = new Float32Array(THREAD_SEGS * 2);
@@ -551,6 +610,19 @@ function createScene(THREE, ctx) {
           break;
       }
 
+      // live caption follows the checkout state machine
+      let cap;
+      if (state === ST_BROWSE) cap = 'Products orbit the storefront core';
+      else if (state === ST_REACH || state === ST_PULL) cap = 'The cart collects picks one by one';
+      else if (state === ST_WRAP || state === ST_PULSE) cap = 'Checkout: gold wraps the cart while payment lands';
+      else if (state === ST_LAUNCH) cap = 'Order away, a receipt comet departs';
+      else cap = 'The carousel replenishes for the next order';
+      ctx.caption(cap);
+
+      // the cart tag fades while the comet carries the cart away
+      const cartTagGoal = (state === ST_LAUNCH || state === ST_RESET) ? 0 : 0.75;
+      cartTag.material.opacity += (cartTagGoal - cartTag.material.opacity) * Math.min(1, dt * 5);
+
       // ---- orbs ----
       for (let i = 0; i < ORB_COUNT; i++) {
         const o = orbs[i];
@@ -705,6 +777,50 @@ const ctx = {
   renderer,
   quality,
   pointer: { x: 0, y: 0 },  /* smoothed, -1..1, y up */
+};
+
+/* Live phase caption: scenes call ctx.caption('...') each frame; the text
+   only touches the DOM when it changes, with a quick cross-fade. */
+const lblPhase = document.getElementById('lblPhase');
+let capText = null, capTimer = 0;
+ctx.caption = (s) => {
+  if (s === capText || !lblPhase) return;
+  capText = s;
+  lblPhase.style.opacity = '0';
+  clearTimeout(capTimer);
+  capTimer = setTimeout(() => {
+    lblPhase.textContent = capText;
+    lblPhase.style.opacity = '1';
+  }, 180);
+};
+
+/* Small floating text tag rendered to a canvas texture, for labelling
+   objects inside the 3D scene. Returns a sprite; scale is world height. */
+ctx.makeTag = (text, color, h = 0.42) => {
+  const pad = 18, fpx = 46;
+  const meas = document.createElement('canvas').getContext('2d');
+  meas.font = '600 ' + fpx + 'px ui-monospace, Menlo, Consolas, monospace';
+  const tw = Math.ceil(meas.measureText(text).width);
+  const cw = tw + pad * 2, ch = fpx + pad * 2;
+  const cnv = document.createElement('canvas');
+  cnv.width = cw; cnv.height = ch;
+  const g = cnv.getContext('2d');
+  g.font = meas.font;
+  g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.shadowColor = color; g.shadowBlur = 14;
+  g.fillStyle = color;
+  g.fillText(text, cw / 2, ch / 2 + 2);
+  g.shadowBlur = 0;
+  g.fillText(text, cw / 2, ch / 2 + 2);
+  const tex = new THREE.CanvasTexture(cnv);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.anisotropy = 4;
+  const spr = new THREE.Sprite(new THREE.SpriteMaterial({
+    map: tex, transparent: true, depthWrite: false, depthTest: false,
+  }));
+  spr.scale.set(h * cw / ch, h, 1);
+  spr.renderOrder = 20;
+  return spr;
 };
 
 let piece;

@@ -51,6 +51,41 @@
       position: absolute; inset: 0; display: none;
       place-items: center; text-align: center; padding: 24px;
     }
+    #lbl {
+      position: absolute; left: 12px; top: 12px; max-width: 44ch;
+      padding: 10px 14px; border-radius: 10px;
+      background: rgba(8, 8, 14, 0.55);
+      backdrop-filter: blur(6px);
+      pointer-events: none;
+    }
+    #lbl h1 {
+      font-size: 12px; font-weight: 600;
+      letter-spacing: 0.14em; text-transform: uppercase;
+      color: rgba(255, 255, 255, 0.95);
+    }
+    #lblSub { margin-top: 3px; opacity: 0.72; }
+    #lblPhase {
+      margin-top: 8px; min-height: 1.4em; color: #F0A85A;
+      opacity: 1; transition: opacity 0.18s ease;
+    }
+    #legend {
+      position: absolute; right: 12px; bottom: 56px;
+      display: flex; flex-direction: column; gap: 5px;
+      padding: 9px 12px; border-radius: 10px;
+      background: rgba(8, 8, 14, 0.55);
+      backdrop-filter: blur(6px);
+      pointer-events: none; font-size: 11px;
+    }
+    #legend span { display: flex; align-items: center; gap: 7px; }
+    #legend i {
+      width: 9px; height: 9px; border-radius: 2px; flex: none;
+      background: var(--c); box-shadow: 0 0 6px var(--c);
+    }
+    @media (max-width: 640px) {
+      #lblSub { display: none; }
+      #lbl { max-width: 30ch; }
+      #legend { font-size: 10px; padding: 7px 9px; gap: 4px; }
+    }
     @media (max-width: 560px) {
       #hud label { display: none; }
     }
@@ -67,6 +102,16 @@
     </label>
     <button id="btnPng" type="button">Save PNG</button>
     <button id="btnFs" type="button" aria-pressed="false">Fullscreen</button>
+  </div>
+  <div id="lbl">
+    <h1>Lantern Paws</h1>
+    <p id="lblSub">Every donation is a lantern; at its height it blooms into a paw print of stars.</p>
+    <p id="lblPhase" aria-hidden="true"></p>
+  </div>
+  <div id="legend" role="list" aria-label="Legend">
+    <span role="listitem"><i style="--c:#F0A85A"></i>Donation lantern</span>
+    <span role="listitem"><i style="--c:#F4E8D0"></i>Paw constellation</span>
+    <span role="listitem"><i style="--c:#E07A8A"></i>Heart glow</span>
   </div>
   <p id="note" hidden>Motion is paused because your system prefers reduced motion.
      Press Play to animate.</p>
@@ -103,7 +148,7 @@ function createScene(THREE, ctx) {
   const MOTES = Math.floor(160 * Q);   // drifting teal leaf motes
   const GROUND_PTS = Math.floor(500 * Q); // dim warm ground shimmer points
   const HEART_BPM_T = 1.7;         // seconds per heartbeat
-  const PAW_SCALE = 1.35;          // world size of a paw print
+  const PAW_SCALE = 1.6;           // world size of a paw print
   const BG = 0x130D14;
 
   ctx.scene.background = new THREE.Color(BG);
@@ -243,7 +288,7 @@ function createScene(THREE, ctx) {
               + position * breathe;
             a = smoothstep(0.0, 1.5, tl)
               * (1.0 - smoothstep(uRise - 0.8, uRise, tl)) * flick;
-            col = vec3(0.941, 0.659, 0.353) * (1.4 + 0.5 * flick);
+            col = vec3(0.941, 0.659, 0.353) * (2.1 + 0.75 * flick);
             sz = mix(14.0, 6.0, step(0.001, length(position)));
           } else if (aRole < 1.5) {
             // paw particle: blooms outward from the apex, twinkles, drifts, fades
@@ -258,10 +303,10 @@ function createScene(THREE, ctx) {
             float fade = 1.0 - smoothstep(uPawLife * 0.5, uPawLife, tp);
             p = vec3(aGround.x, 0.25 + aApex, aGround.y)
               + position * scale + vec3(dxz.x, drift * 0.05, dxz.y);
-            a = live * bloom * fade * twinkle * 1.1;
+            a = live * bloom * fade * twinkle * 1.6;
             col = mix(vec3(0.957, 0.910, 0.816), vec3(0.878, 0.478, 0.541), aSeed * 0.22)
-                * vec3(1.22, 1.12, 0.90);
-            sz = 4.2;
+                * vec3(1.83, 1.68, 1.35);
+            sz = 3.4;
           } else if (aRole < 2.5) {
             // leaf mote: slow lateral drift, fading at the edges
             float dir = sign(fract(aSeed * 13.0) - 0.5);
@@ -332,9 +377,19 @@ function createScene(THREE, ctx) {
   ctx.camera.position.set(0, 2.6, 11);
   ctx.camera.lookAt(0, 3.0, 0);
 
+  // lantern lifecycles are staggered every PERIOD / EVENTS seconds, so every
+  // beat is always on screen somewhere; the caption walks the cycle in order
+  const CAPS = [
+    'The ground pulses like a heartbeat',
+    'A donation rises as a lantern',
+    'At its apex it blooms into a paw print',
+    'Paws twinkle, linger, and join the night'
+  ];
+
   return {
     update(t, dt) {
       uTime.value = t;
+      ctx.caption(CAPS[Math.floor(t / 7) % CAPS.length]);
       // two-part heartbeat envelope, lub then dub
       const u = (t / HEART_BPM_T) % 1;
       uHeart.value =
@@ -383,6 +438,50 @@ const ctx = {
   renderer,
   quality,
   pointer: { x: 0, y: 0 },  /* smoothed, -1..1, y up */
+};
+
+/* Live phase caption: scenes call ctx.caption('...') each frame; the text
+   only touches the DOM when it changes, with a quick cross-fade. */
+const lblPhase = document.getElementById('lblPhase');
+let capText = null, capTimer = 0;
+ctx.caption = (s) => {
+  if (s === capText || !lblPhase) return;
+  capText = s;
+  lblPhase.style.opacity = '0';
+  clearTimeout(capTimer);
+  capTimer = setTimeout(() => {
+    lblPhase.textContent = capText;
+    lblPhase.style.opacity = '1';
+  }, 180);
+};
+
+/* Small floating text tag rendered to a canvas texture, for labelling
+   objects inside the 3D scene. Returns a sprite; scale is world height. */
+ctx.makeTag = (text, color, h = 0.42) => {
+  const pad = 18, fpx = 46;
+  const meas = document.createElement('canvas').getContext('2d');
+  meas.font = '600 ' + fpx + 'px ui-monospace, Menlo, Consolas, monospace';
+  const tw = Math.ceil(meas.measureText(text).width);
+  const cw = tw + pad * 2, ch = fpx + pad * 2;
+  const cnv = document.createElement('canvas');
+  cnv.width = cw; cnv.height = ch;
+  const g = cnv.getContext('2d');
+  g.font = meas.font;
+  g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.shadowColor = color; g.shadowBlur = 14;
+  g.fillStyle = color;
+  g.fillText(text, cw / 2, ch / 2 + 2);
+  g.shadowBlur = 0;
+  g.fillText(text, cw / 2, ch / 2 + 2);
+  const tex = new THREE.CanvasTexture(cnv);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.anisotropy = 4;
+  const spr = new THREE.Sprite(new THREE.SpriteMaterial({
+    map: tex, transparent: true, depthWrite: false, depthTest: false,
+  }));
+  spr.scale.set(h * cw / ch, h, 1);
+  spr.renderOrder = 20;
+  return spr;
 };
 
 let piece;

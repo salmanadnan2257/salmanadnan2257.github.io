@@ -51,6 +51,41 @@
       position: absolute; inset: 0; display: none;
       place-items: center; text-align: center; padding: 24px;
     }
+    #lbl {
+      position: absolute; left: 12px; top: 12px; max-width: 44ch;
+      padding: 10px 14px; border-radius: 10px;
+      background: rgba(8, 8, 14, 0.55);
+      backdrop-filter: blur(6px);
+      pointer-events: none;
+    }
+    #lbl h1 {
+      font-size: 12px; font-weight: 600;
+      letter-spacing: 0.14em; text-transform: uppercase;
+      color: rgba(255, 255, 255, 0.95);
+    }
+    #lblSub { margin-top: 3px; opacity: 0.72; }
+    #lblPhase {
+      margin-top: 8px; min-height: 1.4em; color: #52B8E8;
+      opacity: 1; transition: opacity 0.18s ease;
+    }
+    #legend {
+      position: absolute; right: 12px; top: 12px;
+      display: flex; flex-direction: column; gap: 5px;
+      padding: 9px 12px; border-radius: 10px;
+      background: rgba(8, 8, 14, 0.55);
+      backdrop-filter: blur(6px);
+      pointer-events: none; font-size: 11px;
+    }
+    #legend span { display: flex; align-items: center; gap: 7px; }
+    #legend i {
+      width: 9px; height: 9px; border-radius: 2px; flex: none;
+      background: var(--c); box-shadow: 0 0 6px var(--c);
+    }
+    @media (max-width: 640px) {
+      #lblSub { display: none; }
+      #lbl { max-width: 30ch; }
+      #legend { font-size: 10px; padding: 7px 9px; gap: 4px; }
+    }
     @media (max-width: 560px) {
       #hud label { display: none; }
     }
@@ -67,6 +102,18 @@
     </label>
     <button id="btnPng" type="button">Save PNG</button>
     <button id="btnFs" type="button" aria-pressed="false">Fullscreen</button>
+  </div>
+  <div id="lbl">
+    <h1>Shard and Stream</h1>
+    <p id="lblSub">One primary, two replicas, four partitions: WAL streams and partition-pruned queries.</p>
+    <p id="lblPhase" aria-hidden="true"></p>
+  </div>
+  <div id="legend" role="list" aria-label="Legend">
+    <span role="listitem"><i style="--c:#46608C"></i>Primary</span>
+    <span role="listitem"><i style="--c:#52B8E8"></i>WAL stream</span>
+    <span role="listitem"><i style="--c:#5FC98E"></i>Replica in sync</span>
+    <span role="listitem"><i style="--c:#D8C48A"></i>Partition seam</span>
+    <span role="listitem"><i style="--c:#E8C468"></i>Query dart</span>
   </div>
   <p id="note" hidden>Motion is paused because your system prefers reduced motion.
      Press Play to animate.</p>
@@ -101,7 +148,7 @@ function createScene(THREE, ctx) {
   var N_GROUPS = 4;                  // range partition groups (2 disks each)
   var DISK_GAP = 0.38;               // vertical spacing between disks
   var SPLIT_SEP = 0.62;              // extra per-group separation when split
-  var CYCLE = 20.0;                  // seconds per partition cycle
+  var CYCLE = 32.0;                  // seconds per partition cycle
   var N_WAL = Math.max(300, Math.floor(900 * q)); // WAL stream particles (both sides)
   var WAL_SPEED = 0.16;              // stream cycles per second
   var N_REPL_DISKS = 4;              // disks per replica
@@ -157,9 +204,9 @@ function createScene(THREE, ctx) {
   // ---- partition seam glows (between groups, visible only while split)
   var seamGeo = new THREE.BufferGeometry();
   var seamPos = new Float32Array((N_GROUPS - 1) * 3);
-  seamGeo.setAttribute('position', new THREE.Float32BufferAttribute(seamPos, 3));
+  seamGeo.setAttribute('position', new THREE.BufferAttribute(seamPos, 3));
   var seamGlow = new Float32Array(N_GROUPS - 1);
-  seamGeo.setAttribute('aGlow', new THREE.Float32BufferAttribute(seamGlow, 1));
+  seamGeo.setAttribute('aGlow', new THREE.BufferAttribute(seamGlow, 1));
   var seamMat = new THREE.ShaderMaterial({
     uniforms: { uColor: { value: COL_SAND } },
     vertexShader: [
@@ -305,8 +352,8 @@ function createScene(THREE, ctx) {
   var dartPos = new Float32Array(N_DARTS * 3);
   var dartGlow = new Float32Array(N_DARTS);
   for (var dd = 0; dd < N_DARTS; dd++) dartPos[dd * 3 + 1] = -999;
-  dartGeo.setAttribute('position', new THREE.Float32BufferAttribute(dartPos, 3));
-  dartGeo.setAttribute('aGlow', new THREE.Float32BufferAttribute(dartGlow, 1));
+  dartGeo.setAttribute('position', new THREE.BufferAttribute(dartPos, 3));
+  dartGeo.setAttribute('aGlow', new THREE.BufferAttribute(dartGlow, 1));
   var dartMat = new THREE.ShaderMaterial({
     uniforms: { uColor: { value: COL_GOLD } },
     vertexShader: [
@@ -357,6 +404,22 @@ function createScene(THREE, ctx) {
     return cy + (g - (N_GROUPS - 1) / 2) * SPLIT_SEP * e;
   }
 
+  // ---- role tags
+  var primaryTag = ctx.makeTag('primary', '#9FB6DC', 0.42);
+  primaryTag.position.set(0, 3.55, 0);
+  primaryTag.material.opacity = 0.8;
+  ctx.scene.add(primaryTag);
+  for (var tr = 0; tr < 2; tr++) {
+    var rTag = ctx.makeTag('replica', '#9FB6DC', 0.36);
+    rTag.position.set(tr === 0 ? -6.5 : 6.5, 0.5, 0);
+    rTag.material.opacity = 0.75;
+    ctx.scene.add(rTag);
+  }
+  var walTag = ctx.makeTag('wal', '#52B8E8', 0.34);
+  walTag.position.set(3.2, 3.05, 0.5);
+  walTag.material.opacity = 0.7;
+  ctx.scene.add(walTag);
+
   return {
     update: function (t, dt) {
       walUniforms.uTime.value = t;
@@ -393,6 +456,26 @@ function createScene(THREE, ctx) {
         replPulse[r] = pulse;
         meters[r].material.color.copy(COL_CYAN).lerp(COL_GREEN, pulse);
       }
+
+      // live caption follows the partition cycle; the WAL stream and the
+      // catch-up meters run continuously, so the merged stretches alternate
+      // between those two beats on a slow clock
+      var steady = Math.floor(t / 8) % 2 === 0
+        ? 'WAL particles stream from the primary to both replicas'
+        : 'Catch-up meters fill; a caught-up replica pulses green';
+      var cap;
+      if (tc < 5) {
+        cap = steady;
+      } else if (tc < 7) {
+        cap = 'The primary eases apart into four range partitions';
+      } else if (tc < 14) {
+        cap = 'Query darts prune: each touches only its target partition';
+      } else if (tc < 16) {
+        cap = 'The partitions merge back into one primary';
+      } else {
+        cap = steady;
+      }
+      ctx.caption(cap);
 
       // query darts: launch, dive into one pruned group, flash it
       if (t > nextDart) {
@@ -492,6 +575,50 @@ const ctx = {
   renderer,
   quality,
   pointer: { x: 0, y: 0 },  /* smoothed, -1..1, y up */
+};
+
+/* Live phase caption: scenes call ctx.caption('...') each frame; the text
+   only touches the DOM when it changes, with a quick cross-fade. */
+const lblPhase = document.getElementById('lblPhase');
+let capText = null, capTimer = 0;
+ctx.caption = (s) => {
+  if (s === capText || !lblPhase) return;
+  capText = s;
+  lblPhase.style.opacity = '0';
+  clearTimeout(capTimer);
+  capTimer = setTimeout(() => {
+    lblPhase.textContent = capText;
+    lblPhase.style.opacity = '1';
+  }, 180);
+};
+
+/* Small floating text tag rendered to a canvas texture, for labelling
+   objects inside the 3D scene. Returns a sprite; scale is world height. */
+ctx.makeTag = (text, color, h = 0.42) => {
+  const pad = 18, fpx = 46;
+  const meas = document.createElement('canvas').getContext('2d');
+  meas.font = '600 ' + fpx + 'px ui-monospace, Menlo, Consolas, monospace';
+  const tw = Math.ceil(meas.measureText(text).width);
+  const cw = tw + pad * 2, ch = fpx + pad * 2;
+  const cnv = document.createElement('canvas');
+  cnv.width = cw; cnv.height = ch;
+  const g = cnv.getContext('2d');
+  g.font = meas.font;
+  g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.shadowColor = color; g.shadowBlur = 14;
+  g.fillStyle = color;
+  g.fillText(text, cw / 2, ch / 2 + 2);
+  g.shadowBlur = 0;
+  g.fillText(text, cw / 2, ch / 2 + 2);
+  const tex = new THREE.CanvasTexture(cnv);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.anisotropy = 4;
+  const spr = new THREE.Sprite(new THREE.SpriteMaterial({
+    map: tex, transparent: true, depthWrite: false, depthTest: false,
+  }));
+  spr.scale.set(h * cw / ch, h, 1);
+  spr.renderOrder = 20;
+  return spr;
 };
 
 let piece;

@@ -51,6 +51,41 @@
       position: absolute; inset: 0; display: none;
       place-items: center; text-align: center; padding: 24px;
     }
+    #lbl {
+      position: absolute; left: 12px; top: 12px; max-width: 44ch;
+      padding: 10px 14px; border-radius: 10px;
+      background: rgba(8, 8, 14, 0.55);
+      backdrop-filter: blur(6px);
+      pointer-events: none;
+    }
+    #lbl h1 {
+      font-size: 12px; font-weight: 600;
+      letter-spacing: 0.14em; text-transform: uppercase;
+      color: rgba(255, 255, 255, 0.95);
+    }
+    #lblSub { margin-top: 3px; opacity: 0.72; }
+    #lblPhase {
+      margin-top: 8px; min-height: 1.4em; color: #F4C95D;
+      opacity: 1; transition: opacity 0.18s ease;
+    }
+    #legend {
+      position: absolute; right: 12px; top: 12px;
+      display: flex; flex-direction: column; gap: 5px;
+      padding: 9px 12px; border-radius: 10px;
+      background: rgba(8, 8, 14, 0.55);
+      backdrop-filter: blur(6px);
+      pointer-events: none; font-size: 11px;
+    }
+    #legend span { display: flex; align-items: center; gap: 7px; }
+    #legend i {
+      width: 9px; height: 9px; border-radius: 2px; flex: none;
+      background: var(--c); box-shadow: 0 0 6px var(--c);
+    }
+    @media (max-width: 640px) {
+      #lblSub { display: none; }
+      #lbl { max-width: 30ch; }
+      #legend { font-size: 10px; padding: 7px 9px; gap: 4px; }
+    }
     @media (max-width: 560px) {
       #hud label { display: none; }
     }
@@ -67,6 +102,18 @@
     </label>
     <button id="btnPng" type="button">Save PNG</button>
     <button id="btnFs" type="button" aria-pressed="false">Fullscreen</button>
+  </div>
+  <div id="lbl">
+    <h1>Consensus Ring</h1>
+    <p id="lblSub">Five Raft nodes replicating a log, surviving a live network partition.</p>
+    <p id="lblPhase" aria-hidden="true"></p>
+  </div>
+  <div id="legend" role="list" aria-label="Legend">
+    <span role="listitem"><i style="--c:#F4C95D"></i>Leader</span>
+    <span role="listitem"><i style="--c:#7C8DB0"></i>Follower</span>
+    <span role="listitem"><i style="--c:#6FD08C"></i>Log entry</span>
+    <span role="listitem"><i style="--c:#F8E0A0"></i>Heartbeat</span>
+    <span role="listitem"><i style="--c:#E0566B"></i>Partition</span>
   </div>
   <p id="note" hidden>Motion is paused because your system prefers reduced motion.
      Press Play to animate.</p>
@@ -180,6 +227,17 @@ function createScene(THREE, ctx) {
     nodeMesh.push(m);
   }
 
+  // ---------- floating tags ----------
+  const leaderTag = ctx.makeTag('leader', '#F4C95D', 0.46);
+  root.add(leaderTag);
+  const idTags = [];
+  for (let i = 0; i < N; i++) {
+    const tag = ctx.makeTag('node ' + (i + 1), '#93A2C4', 0.28);
+    tag.position.set(nodePos[i].x, -0.78, nodePos[i].z);
+    root.add(tag);
+    idTags.push(tag);
+  }
+
   // halos: one Points object, per-vertex color and size
   const haloPos = new Float32Array(N * 3);
   const haloCol = new Float32Array(N * 3);
@@ -257,11 +315,13 @@ function createScene(THREE, ctx) {
   const rpPos = new Float32Array(PART_POOL * 3);
   const rpAlpha = new Float32Array(PART_POOL);
   const rpGeo = new THREE.BufferGeometry();
-  const rpPosAttr = new THREE.Float32BufferAttribute(rpPos, 3);
-  const rpAlphaAttr = new THREE.Float32BufferAttribute(rpAlpha, 1);
+  // BufferAttribute (not Float32BufferAttribute) so the attribute shares rpPos
+  // and rpAlpha; the per-frame writes below must land in live GPU-bound memory
+  const rpPosAttr = new THREE.BufferAttribute(rpPos, 3);
+  const rpAlphaAttr = new THREE.BufferAttribute(rpAlpha, 1);
   rpGeo.setAttribute('position', rpPosAttr);
   rpGeo.setAttribute('aAlpha', rpAlphaAttr);
-  root.add(new THREE.Points(rpGeo, new THREE.ShaderMaterial({
+  const rpPoints = new THREE.Points(rpGeo, new THREE.ShaderMaterial({
     uniforms: { uColor: { value: GREEN.clone() } },
     vertexShader: `
       attribute float aAlpha;
@@ -283,7 +343,9 @@ function createScene(THREE, ctx) {
       }
     `,
     transparent: true, depthWrite: false, blending: THREE.AdditiveBlending
-  })));
+  }));
+  rpPoints.frustumCulled = false;
+  root.add(rpPoints);
   const parts = [];
   const partFree = [];
   for (let i = 0; i < PART_POOL; i++) {
@@ -444,6 +506,18 @@ function createScene(THREE, ctx) {
         leaderCount = shownCount[newLeader];
       }
 
+      // live caption follows the phase machine
+      const pc = phase();
+      let cap;
+      if (compacting) cap = 'Log compaction: the leader folds old entries into a snapshot';
+      else if (pc === 'NORMAL') cap = 'The leader heartbeats and replicates log entries to every follower';
+      else if (pc === 'CUT') cap = 'Fault injected: a partition cuts the leader off with a minority';
+      else if (pc === 'ELECT') cap = ignited ? 'The majority elects a new leader and resumes' : 'Leaderless: the majority side times out and votes';
+      else if (pc === 'STEADY2') cap = 'The new leader commits; the cut-off minority is stale';
+      else if (pc === 'HEAL') cap = 'The partition heals; the old leader steps down';
+      else cap = 'Stale nodes catch up from the new leader, log by log';
+      ctx.caption(cap);
+
       // heartbeats: silent while the cluster is leaderless
       const p = phase();
       const hbAllowed = p === 'NORMAL' || p === 'STEADY2' || p === 'HEAL' || p === 'CATCHUP' ||
@@ -533,6 +607,13 @@ function createScene(THREE, ctx) {
         gold[i] += (goldGoal[i] - gold[i]) * Math.min(1, d * 3.0);
         pulse[i] = Math.max(0, pulse[i] - d * 3.2);
       }
+
+      // the leader tag follows whichever node holds the most leadership gold
+      let li = 0;
+      for (let i = 1; i < N; i++) if (gold[i] > gold[li]) li = i;
+      leaderTag.position.set(nodePos[li].x, 0.92, nodePos[li].z);
+      leaderTag.material.opacity = Math.max(0, gold[li] * 1.25 - 0.25) * dim[li];
+      for (let i = 0; i < N; i++) idTags[i].material.opacity = 0.55 * dim[i];
 
       // election flicker on the majority side
       let flick = [0, 0, 0, 0, 0];
@@ -638,6 +719,50 @@ const ctx = {
   renderer,
   quality,
   pointer: { x: 0, y: 0 },  /* smoothed, -1..1, y up */
+};
+
+/* Live phase caption: scenes call ctx.caption('...') each frame; the text
+   only touches the DOM when it changes, with a quick cross-fade. */
+const lblPhase = document.getElementById('lblPhase');
+let capText = null, capTimer = 0;
+ctx.caption = (s) => {
+  if (s === capText || !lblPhase) return;
+  capText = s;
+  lblPhase.style.opacity = '0';
+  clearTimeout(capTimer);
+  capTimer = setTimeout(() => {
+    lblPhase.textContent = capText;
+    lblPhase.style.opacity = '1';
+  }, 180);
+};
+
+/* Small floating text tag rendered to a canvas texture, for labelling
+   objects inside the 3D scene. Returns a sprite; scale is world height. */
+ctx.makeTag = (text, color, h = 0.42) => {
+  const pad = 18, fpx = 46;
+  const meas = document.createElement('canvas').getContext('2d');
+  meas.font = '600 ' + fpx + 'px ui-monospace, Menlo, Consolas, monospace';
+  const tw = Math.ceil(meas.measureText(text).width);
+  const cw = tw + pad * 2, ch = fpx + pad * 2;
+  const cnv = document.createElement('canvas');
+  cnv.width = cw; cnv.height = ch;
+  const g = cnv.getContext('2d');
+  g.font = meas.font;
+  g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.shadowColor = color; g.shadowBlur = 14;
+  g.fillStyle = color;
+  g.fillText(text, cw / 2, ch / 2 + 2);
+  g.shadowBlur = 0;
+  g.fillText(text, cw / 2, ch / 2 + 2);
+  const tex = new THREE.CanvasTexture(cnv);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.anisotropy = 4;
+  const spr = new THREE.Sprite(new THREE.SpriteMaterial({
+    map: tex, transparent: true, depthWrite: false, depthTest: false,
+  }));
+  spr.scale.set(h * cw / ch, h, 1);
+  spr.renderOrder = 20;
+  return spr;
 };
 
 let piece;

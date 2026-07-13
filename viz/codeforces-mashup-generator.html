@@ -51,6 +51,41 @@
       position: absolute; inset: 0; display: none;
       place-items: center; text-align: center; padding: 24px;
     }
+    #lbl {
+      position: absolute; left: 12px; top: 12px; max-width: 44ch;
+      padding: 10px 14px; border-radius: 10px;
+      background: rgba(8, 8, 14, 0.55);
+      backdrop-filter: blur(6px);
+      pointer-events: none;
+    }
+    #lbl h1 {
+      font-size: 12px; font-weight: 600;
+      letter-spacing: 0.14em; text-transform: uppercase;
+      color: rgba(255, 255, 255, 0.95);
+    }
+    #lblSub { margin-top: 3px; opacity: 0.72; }
+    #lblPhase {
+      margin-top: 8px; min-height: 1.4em; color: #FFB454;
+      opacity: 1; transition: opacity 0.18s ease;
+    }
+    #legend {
+      position: absolute; right: 12px; top: 12px;
+      display: flex; flex-direction: column; gap: 5px;
+      padding: 9px 12px; border-radius: 10px;
+      background: rgba(8, 8, 14, 0.55);
+      backdrop-filter: blur(6px);
+      pointer-events: none; font-size: 11px;
+    }
+    #legend span { display: flex; align-items: center; gap: 7px; }
+    #legend i {
+      width: 9px; height: 9px; border-radius: 2px; flex: none;
+      background: var(--c); box-shadow: 0 0 6px var(--c);
+    }
+    @media (max-width: 640px) {
+      #lblSub { display: none; }
+      #lbl { max-width: 30ch; }
+      #legend { font-size: 10px; padding: 7px 9px; gap: 4px; }
+    }
     @media (max-width: 560px) {
       #hud label { display: none; }
     }
@@ -67,6 +102,18 @@
     </label>
     <button id="btnPng" type="button">Save PNG</button>
     <button id="btnFs" type="button" aria-pressed="false">Fullscreen</button>
+  </div>
+  <div id="lbl">
+    <h1>Rating Ladder</h1>
+    <p id="lblSub">Problems colored by Codeforces rating tier, picked into a six-slot contest that always ramps easy to hard.</p>
+    <p id="lblPhase" aria-hidden="true"></p>
+  </div>
+  <div id="legend" role="list" aria-label="Legend">
+    <span role="listitem"><i style="--c:#808080"></i>Low tier</span>
+    <span role="listitem"><i style="--c:#6699FF"></i>Mid tiers</span>
+    <span role="listitem"><i style="--c:#FF6B6B"></i>Red tier</span>
+    <span role="listitem"><i style="--c:#DBE8FF"></i>Selection beam</span>
+    <span role="listitem"><i style="--c:#FFB454"></i>Difficulty ramp</span>
   </div>
   <p id="note" hidden>Motion is paused because your system prefers reduced motion.
      Press Play to animate.</p>
@@ -108,7 +155,7 @@ function createScene(THREE, ctx) {
   const GLOW_TIME    = 2.2;    // ramp glow and hold
   const LAUNCH_TIME  = 1.5;    // contest published, shelf flies up
   const GAP_TIME     = 0.7;    // dark beat before the next contest
-  const SNOW_DIM     = 0.7;    // unselected orbs keep 70 percent of tier color
+  const SNOW_DIM     = 0.95;   // unselected orbs keep almost full tier color
   const SHELF_Z      = 2.3;    // shelf depth toward camera
   const CURVE_SEGS   = 60;     // difficulty curve resolution
 
@@ -182,9 +229,9 @@ function createScene(THREE, ctx) {
         p.z += cos(uTime * 0.33 + aSeed * 9.4) * 0.4;
         vColor = aColor;
         float tw = 0.75 + 0.25 * sin(uTime * 1.4 + aSeed * 31.0);
-        vAlpha = 0.85 * tw * smoothstep(0.0, 0.06, f) * (1.0 - smoothstep(0.85, 1.0, f));
+        vAlpha = 0.95 * tw * smoothstep(0.0, 0.06, f) * (1.0 - smoothstep(0.85, 1.0, f));
         vec4 mv = modelViewMatrix * vec4(p, 1.0);
-        gl_PointSize = (0.55 + aSeed * 0.55) * uPr * (150.0 / -mv.z);
+        gl_PointSize = (0.8 + aSeed * 0.75) * uPr * (150.0 / -mv.z);
         gl_Position = projectionMatrix * mv;
       }
     `,
@@ -231,7 +278,7 @@ function createScene(THREE, ctx) {
 
   const uFade = { value: 1 };
 
-  const markGeo = new THREE.BoxGeometry(0.62, 0.045, 0.34);
+  const markGeo = new THREE.BoxGeometry(0.74, 0.07, 0.42);
   const markMat = new THREE.MeshBasicMaterial({
     color: 0xffffff,
     transparent: true,
@@ -247,10 +294,12 @@ function createScene(THREE, ctx) {
   const selCol = new Float32Array(SLOTS * 3);
   const selSize = new Float32Array(SLOTS);
   const selAlpha = new Float32Array(SLOTS);
-  selGeo.setAttribute('position', new THREE.Float32BufferAttribute(selPos, 3));
-  selGeo.setAttribute('aColor', new THREE.Float32BufferAttribute(selCol, 3));
-  selGeo.setAttribute('aSize', new THREE.Float32BufferAttribute(selSize, 1));
-  selGeo.setAttribute('aAlpha', new THREE.Float32BufferAttribute(selAlpha, 1));
+  // BufferAttribute (not Float32BufferAttribute) so the JS arrays written
+  // each frame are the same arrays the GPU uploads from
+  selGeo.setAttribute('position', new THREE.BufferAttribute(selPos, 3));
+  selGeo.setAttribute('aColor', new THREE.BufferAttribute(selCol, 3));
+  selGeo.setAttribute('aSize', new THREE.BufferAttribute(selSize, 1));
+  selGeo.setAttribute('aAlpha', new THREE.BufferAttribute(selAlpha, 1));
   const selMat = new THREE.ShaderMaterial({
     uniforms: { uPr: uPr, uFade: uFade },
     vertexShader: `
@@ -274,7 +323,9 @@ function createScene(THREE, ctx) {
     depthWrite: false,
     blending: THREE.AdditiveBlending
   });
-  shelfGroup.add(new THREE.Points(selGeo, selMat));
+  const selPoints = new THREE.Points(selGeo, selMat);
+  selPoints.frustumCulled = false; // positions stream in every frame
+  shelfGroup.add(selPoints);
 
   // difficulty curve through the racked orbs
   const curveGeo = new THREE.BufferGeometry();
@@ -284,8 +335,8 @@ function createScene(THREE, ctx) {
     curveT[i * 2] = i / CURVE_SEGS;
     curveT[i * 2 + 1] = (i + 1) / CURVE_SEGS;
   }
-  curveGeo.setAttribute('position', new THREE.Float32BufferAttribute(curvePos, 3));
-  curveGeo.setAttribute('aT', new THREE.Float32BufferAttribute(curveT, 1));
+  curveGeo.setAttribute('position', new THREE.BufferAttribute(curvePos, 3));
+  curveGeo.setAttribute('aT', new THREE.BufferAttribute(curveT, 1));
   const uDraw = { value: 0 };
   const uGlow = { value: 0 };
   const curveMat = new THREE.ShaderMaterial({
@@ -315,7 +366,17 @@ function createScene(THREE, ctx) {
     depthWrite: false,
     blending: THREE.AdditiveBlending
   });
-  shelfGroup.add(new THREE.LineSegments(curveGeo, curveMat));
+  const curveLines = new THREE.LineSegments(curveGeo, curveMat);
+  curveLines.frustumCulled = false; // rebuilt for every contest
+  shelfGroup.add(curveLines);
+
+  // ---- in-scene tags riding on the shelf ----
+  const tagSlots = ctx.makeTag('contest slots', '#AFC2E0', 0.42);
+  shelfGroup.add(tagSlots);
+  const tagEasy = ctx.makeTag('easy', '#C9C9C9', 0.4);
+  shelfGroup.add(tagEasy);
+  const tagHard = ctx.makeTag('hard', '#FF7B7B', 0.4);
+  shelfGroup.add(tagHard);
 
   // ---- contest generation ----
   const slotWorld = []; // Vector3 per slot
@@ -388,6 +449,11 @@ function createScene(THREE, ctx) {
     }
     markMesh.instanceMatrix.needsUpdate = true;
     markMesh.instanceColor.needsUpdate = true;
+
+    // tags track this contest's slot layout
+    tagEasy.position.set(slotWorld[0].x, slotWorld[0].y - 0.8, SHELF_Z);
+    tagHard.position.set(slotWorld[SLOTS - 1].x, slotWorld[SLOTS - 1].y - 0.8, SHELF_Z);
+    tagSlots.position.set(0, Math.min(slotWorld[0].y, slotWorld[SLOTS - 1].y) - 1.45, SHELF_Z);
 
     // curve geometry through slot points
     const pts = [slotWorld[0]].concat(slotWorld).concat([slotWorld[SLOTS - 1]]);
@@ -507,6 +573,21 @@ function createScene(THREE, ctx) {
 
       beamMat.uniforms.uAlpha.value = beamAlpha;
 
+      // shelf tags fade with the slot markers
+      tagSlots.material.opacity = markFade * 0.75;
+      tagEasy.material.opacity = markFade * 0.85;
+      tagHard.material.opacity = markFade * 0.85;
+
+      // live caption follows the contest state machine
+      let cap;
+      if (state === ST_FADEIN) cap = 'Problems drift in, colored by Codeforces rating tier';
+      else if (state === ST_SWEEP) cap = 'The selection beam sweeps the field and picks a fair set';
+      else if (state === ST_SETTLE) cap = 'Six picks rack into an ascending difficulty ramp';
+      else if (state === ST_DRAW) cap = 'The difficulty curve draws through the picks, easy to hard';
+      else if (state === ST_GLOW) cap = 'A smooth easy-to-hard ramp: the mashup is ready';
+      else cap = 'The contest launches and a new one begins';
+      ctx.caption(cap);
+
       // advance pick animations and write the six orb vertices
       for (let i = 0; i < SLOTS; i++) {
         const p = picks[i];
@@ -515,7 +596,7 @@ function createScene(THREE, ctx) {
           const lt = t - p.t0;
           const k = Math.min(1, lt / 0.55);
           px = p.from.x; py = p.from.y; pz = p.from.z;
-          size = 0.55 + 0.6 * smooth01(k);
+          size = 0.75 + 1.15 * smooth01(k);
           alpha = smooth01(k);
           if (lt >= 0.55) { p.phase = 'glide'; p.t0 = t; }
         } else if (p.phase === 'glide') {
@@ -525,14 +606,14 @@ function createScene(THREE, ctx) {
           px = inv * inv * p.from.x + 2 * inv * k * p.ctrl.x + k * k * slotWorld[i].x;
           py = inv * inv * p.from.y + 2 * inv * k * p.ctrl.y + k * k * slotWorld[i].y;
           pz = inv * inv * p.from.z + 2 * inv * k * p.ctrl.z + k * k * slotWorld[i].z;
-          size = 1.15;
+          size = 1.9;
           alpha = 1;
           if (lt >= GLIDE_TIME) { p.phase = 'racked'; slotPulse[i] = 1; }
         } else if (p.phase === 'racked') {
           px = slotWorld[i].x;
           py = slotWorld[i].y + Math.sin(t * 1.6 + i * 1.1) * 0.03;
           pz = slotWorld[i].z;
-          size = 1.15 * (1 + 0.35 * slotPulse[i]) + 0.08 * Math.sin(t * 2.2 + i);
+          size = 1.9 * (1 + 0.35 * slotPulse[i]) + 0.1 * Math.sin(t * 2.2 + i);
           alpha = 1;
         }
         selPos[i * 3] = px; selPos[i * 3 + 1] = py; selPos[i * 3 + 2] = pz;
@@ -551,7 +632,7 @@ function createScene(THREE, ctx) {
 
       // slot marker glow: base slate, pulse on landing, all scaled by fades
       for (let i = 0; i < SLOTS; i++) {
-        const k = markFade * (0.55 + 0.9 * slotPulse[i] + uGlow.value * 0.2);
+        const k = markFade * (0.95 + 0.9 * slotPulse[i] + uGlow.value * 0.25);
         markMesh.setColorAt(i, colTmp.setRGB(0.5 * k, 0.6 * k, 0.82 * k).lerp(COL_GOLD, Math.min(1, slotPulse[i]) * 0.5 * markFade));
       }
       markMesh.instanceColor.needsUpdate = true;
@@ -600,6 +681,50 @@ const ctx = {
   renderer,
   quality,
   pointer: { x: 0, y: 0 },  /* smoothed, -1..1, y up */
+};
+
+/* Live phase caption: scenes call ctx.caption('...') each frame; the text
+   only touches the DOM when it changes, with a quick cross-fade. */
+const lblPhase = document.getElementById('lblPhase');
+let capText = null, capTimer = 0;
+ctx.caption = (s) => {
+  if (s === capText || !lblPhase) return;
+  capText = s;
+  lblPhase.style.opacity = '0';
+  clearTimeout(capTimer);
+  capTimer = setTimeout(() => {
+    lblPhase.textContent = capText;
+    lblPhase.style.opacity = '1';
+  }, 180);
+};
+
+/* Small floating text tag rendered to a canvas texture, for labelling
+   objects inside the 3D scene. Returns a sprite; scale is world height. */
+ctx.makeTag = (text, color, h = 0.42) => {
+  const pad = 18, fpx = 46;
+  const meas = document.createElement('canvas').getContext('2d');
+  meas.font = '600 ' + fpx + 'px ui-monospace, Menlo, Consolas, monospace';
+  const tw = Math.ceil(meas.measureText(text).width);
+  const cw = tw + pad * 2, ch = fpx + pad * 2;
+  const cnv = document.createElement('canvas');
+  cnv.width = cw; cnv.height = ch;
+  const g = cnv.getContext('2d');
+  g.font = meas.font;
+  g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.shadowColor = color; g.shadowBlur = 14;
+  g.fillStyle = color;
+  g.fillText(text, cw / 2, ch / 2 + 2);
+  g.shadowBlur = 0;
+  g.fillText(text, cw / 2, ch / 2 + 2);
+  const tex = new THREE.CanvasTexture(cnv);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.anisotropy = 4;
+  const spr = new THREE.Sprite(new THREE.SpriteMaterial({
+    map: tex, transparent: true, depthWrite: false, depthTest: false,
+  }));
+  spr.scale.set(h * cw / ch, h, 1);
+  spr.renderOrder = 20;
+  return spr;
 };
 
 let piece;

@@ -51,6 +51,41 @@
       position: absolute; inset: 0; display: none;
       place-items: center; text-align: center; padding: 24px;
     }
+    #lbl {
+      position: absolute; left: 12px; top: 12px; max-width: 44ch;
+      padding: 10px 14px; border-radius: 10px;
+      background: rgba(8, 8, 14, 0.55);
+      backdrop-filter: blur(6px);
+      pointer-events: none;
+    }
+    #lbl h1 {
+      font-size: 12px; font-weight: 600;
+      letter-spacing: 0.14em; text-transform: uppercase;
+      color: rgba(255, 255, 255, 0.95);
+    }
+    #lblSub { margin-top: 3px; opacity: 0.72; }
+    #lblPhase {
+      margin-top: 8px; min-height: 1.4em; color: #58C6E0;
+      opacity: 1; transition: opacity 0.18s ease;
+    }
+    #legend {
+      position: absolute; right: 12px; top: 12px;
+      display: flex; flex-direction: column; gap: 5px;
+      padding: 9px 12px; border-radius: 10px;
+      background: rgba(8, 8, 14, 0.55);
+      backdrop-filter: blur(6px);
+      pointer-events: none; font-size: 11px;
+    }
+    #legend span { display: flex; align-items: center; gap: 7px; }
+    #legend i {
+      width: 9px; height: 9px; border-radius: 2px; flex: none;
+      background: var(--c); box-shadow: 0 0 6px var(--c);
+    }
+    @media (max-width: 640px) {
+      #lblSub { display: none; }
+      #lbl { max-width: 30ch; }
+      #legend { font-size: 10px; padding: 7px 9px; gap: 4px; }
+    }
     @media (max-width: 560px) {
       #hud label { display: none; }
     }
@@ -67,6 +102,17 @@
     </label>
     <button id="btnPng" type="button">Save PNG</button>
     <button id="btnFs" type="button" aria-pressed="false">Fullscreen</button>
+  </div>
+  <div id="lbl">
+    <h1>Event Helix</h1>
+    <p id="lblSub">An agent run as an event log: every step is a bead, and a replay cursor proves the same run twice.</p>
+    <p id="lblPhase" aria-hidden="true"></p>
+  </div>
+  <div id="legend" role="list" aria-label="Legend">
+    <span role="listitem"><i style="--c:#B49AF4"></i>Event bead</span>
+    <span role="listitem"><i style="--c:#E8A84C"></i>Approval gate</span>
+    <span role="listitem"><i style="--c:#58C6E0"></i>Replay cursor</span>
+    <span role="listitem"><i style="--c:#FFFFFF"></i>Replay match</span>
   </div>
   <p id="note" hidden>Motion is paused because your system prefers reduced motion.
      Press Play to animate.</p>
@@ -100,7 +146,7 @@ function createScene(THREE, ctx) {
 
   // ---- tunables ----
   const BEAD_COUNT   = Math.max(90, Math.floor(400 * Q)); // event beads per run
-  const HELIX_RADIUS = 2.4;   // strand radius
+  const HELIX_RADIUS = 3.0;   // strand radius
   const HELIX_HEIGHT = 9.2;   // vertical span of one run
   const HELIX_TURNS  = 4.6;   // full turns bottom to top
   const GATE_EVERY   = 15;    // every Nth bead is an approval gate
@@ -112,7 +158,7 @@ function createScene(THREE, ctx) {
   const DRAIN_TIME   = 2.6;   // bottom-up drain duration
   const GAP_TIME     = 0.7;   // dark beat between runs
   const DUST_COUNT   = Math.floor(160 * Q); // ambient depth motes
-  const CAM_R        = 11.5;  // camera orbit radius
+  const CAM_R        = 9.6;   // camera orbit radius
   const GATE_RADIUS  = 0.55;  // approval ring radius
 
   const COL_BG = 0x0E0818;
@@ -209,10 +255,10 @@ function createScene(THREE, ctx) {
         vec3 base = mix(vec3(0.706, 0.604, 0.957), vec3(0.910, 0.659, 0.298), aGate);
         // once the replay ghost has landed here, hand the bead over to the cyan strand
         float handed = smoothstep(0.05, 0.16, w) * (1.0 - flash);
-        vColor = mix(base, vec3(1.0), flash * 0.85) * (0.85 + 0.35 * tw + head * 0.9 + flash * 0.7);
+        vColor = mix(base, vec3(1.0), flash * 0.85) * (1.05 + 0.4 * tw + head * 0.9 + flash * 0.7);
         vAlpha = appear * alive * mix(1.0, 0.3, handed);
         vec4 mv = modelViewMatrix * vec4(position, 1.0);
-        float size = (1.05 + aGate * 0.4) * (1.0 + head * 0.9 + flash * 0.7);
+        float size = (1.45 + aGate * 0.5) * (1.0 + head * 0.9 + flash * 0.7);
         gl_PointSize = size * uPr * (150.0 / -mv.z);
         gl_Position = projectionMatrix * mv;
       }
@@ -243,7 +289,7 @@ function createScene(THREE, ctx) {
         vColor = vec3(0.345, 0.776, 0.878) * (1.2 + head * 1.5 + aSeed * 0.0);
         vAlpha = appear * alive * settle;
         vec4 mv = modelViewMatrix * vec4(position, 1.0);
-        gl_PointSize = (0.7 + head * 0.9) * uPr * (150.0 / -mv.z);
+        gl_PointSize = (1.0 + head * 1.0) * uPr * (150.0 / -mv.z);
         gl_Position = projectionMatrix * mv;
       }
     `,
@@ -308,8 +354,8 @@ function createScene(THREE, ctx) {
       blending: THREE.AdditiveBlending
     });
   }
-  group.add(new THREE.LineSegments(lineGeo, makeLineMat(uWrite, 0x8578B8, 0.9, true)));
-  group.add(new THREE.LineSegments(lineGeo, makeLineMat(uReplay, 0x58C6E0, 0.6, false)));
+  group.add(new THREE.LineSegments(lineGeo, makeLineMat(uWrite, 0x9D8FD4, 1.0, true)));
+  group.add(new THREE.LineSegments(lineGeo, makeLineMat(uReplay, 0x58C6E0, 0.85, false)));
 
   // ---- approval gate rings (instanced tori, additive so black = hidden) ----
   const gates = [];
@@ -344,14 +390,29 @@ function createScene(THREE, ctx) {
   gateMesh.instanceColor.needsUpdate = true;
   group.add(gateMesh);
 
+  // ---- in-scene tags ----
+  const taggedGate = gates[Math.floor(gates.length / 2)];
+  const tagOut = (HELIX_RADIUS + 1.15) / HELIX_RADIUS;
+  const tagGate = ctx.makeTag('approval gate', '#E8A84C', 0.42);
+  helixPos(taggedGate.t, tmpV);
+  tagGate.position.set(tmpV.x * tagOut, tmpV.y + 0.05, tmpV.z * tagOut);
+  tagGate.material.opacity = 0;
+  group.add(tagGate);
+  const tagLog = ctx.makeTag('event log', '#B49AF4', 0.42);
+  helixPos(0.1, tmpV);
+  tagLog.position.set(tmpV.x * tagOut, tmpV.y + 0.6, tmpV.z * tagOut);
+  tagLog.material.opacity = 0;
+  group.add(tagLog);
+
   // ---- head sprites: live write head (lilac) and replay cursor (cyan) ----
   const headGeo = new THREE.BufferGeometry();
   const headPosArr = new Float32Array(2 * 3);
   const headColArr = new Float32Array(2 * 3);
   const headSizeArr = new Float32Array(2);
-  headGeo.setAttribute('position', new THREE.Float32BufferAttribute(headPosArr, 3));
-  headGeo.setAttribute('aColor', new THREE.Float32BufferAttribute(headColArr, 3));
-  headGeo.setAttribute('aSize', new THREE.Float32BufferAttribute(headSizeArr, 1));
+  // BufferAttribute keeps these as the live arrays update() writes into
+  headGeo.setAttribute('position', new THREE.BufferAttribute(headPosArr, 3));
+  headGeo.setAttribute('aColor', new THREE.BufferAttribute(headColArr, 3));
+  headGeo.setAttribute('aSize', new THREE.BufferAttribute(headSizeArr, 1));
   const headMat = new THREE.ShaderMaterial({
     uniforms: { uPr: uPr },
     vertexShader: `
@@ -373,7 +434,9 @@ function createScene(THREE, ctx) {
     depthWrite: false,
     blending: THREE.AdditiveBlending
   });
-  group.add(new THREE.Points(headGeo, headMat));
+  const headPoints = new THREE.Points(headGeo, headMat);
+  headPoints.frustumCulled = false; // heads travel the whole helix
+  group.add(headPoints);
 
   // ---- ambient dust motes for depth ----
   const dustPosArr = new Float32Array(DUST_COUNT * 3);
@@ -514,6 +577,23 @@ function createScene(THREE, ctx) {
       }
       gateMesh.instanceColor.needsUpdate = true;
 
+      // tags fade with the same appear and drain rules as what they name
+      tagGate.material.opacity = 0.85
+        * smooth01((uWrite.value - (taggedGate.t - 0.05)) / 0.05)
+        * smooth01((taggedGate.t - uDrain.value) / 0.06);
+      tagLog.material.opacity = 0.8
+        * smooth01((uWrite.value - 0.02) / 0.03)
+        * smooth01((0.1 - uDrain.value) / 0.06);
+
+      // live caption follows the run state machine
+      let cap;
+      if (phase === PH_WRITE) cap = 'The run appends events bead by bead, pausing at each amber gate for a human yes';
+      else if (phase === PH_HOLD_TOP) cap = 'Run complete: the log holds every step that happened';
+      else if (phase === PH_REPLAY) cap = 'Replay: a cyan cursor re-traverses the log deterministically';
+      else if (phase === PH_HOLD_PROOF) cap = 'Every ghost bead landed exactly on its original: the same run, twice';
+      else cap = 'The run drains away and a new one begins';
+      ctx.caption(cap);
+
       // head sprites
       const writeActive = phase === PH_WRITE ? 1 : 0;
       const replayActive = phase === PH_REPLAY ? 1 : 0;
@@ -575,6 +655,50 @@ const ctx = {
   renderer,
   quality,
   pointer: { x: 0, y: 0 },  /* smoothed, -1..1, y up */
+};
+
+/* Live phase caption: scenes call ctx.caption('...') each frame; the text
+   only touches the DOM when it changes, with a quick cross-fade. */
+const lblPhase = document.getElementById('lblPhase');
+let capText = null, capTimer = 0;
+ctx.caption = (s) => {
+  if (s === capText || !lblPhase) return;
+  capText = s;
+  lblPhase.style.opacity = '0';
+  clearTimeout(capTimer);
+  capTimer = setTimeout(() => {
+    lblPhase.textContent = capText;
+    lblPhase.style.opacity = '1';
+  }, 180);
+};
+
+/* Small floating text tag rendered to a canvas texture, for labelling
+   objects inside the 3D scene. Returns a sprite; scale is world height. */
+ctx.makeTag = (text, color, h = 0.42) => {
+  const pad = 18, fpx = 46;
+  const meas = document.createElement('canvas').getContext('2d');
+  meas.font = '600 ' + fpx + 'px ui-monospace, Menlo, Consolas, monospace';
+  const tw = Math.ceil(meas.measureText(text).width);
+  const cw = tw + pad * 2, ch = fpx + pad * 2;
+  const cnv = document.createElement('canvas');
+  cnv.width = cw; cnv.height = ch;
+  const g = cnv.getContext('2d');
+  g.font = meas.font;
+  g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.shadowColor = color; g.shadowBlur = 14;
+  g.fillStyle = color;
+  g.fillText(text, cw / 2, ch / 2 + 2);
+  g.shadowBlur = 0;
+  g.fillText(text, cw / 2, ch / 2 + 2);
+  const tex = new THREE.CanvasTexture(cnv);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.anisotropy = 4;
+  const spr = new THREE.Sprite(new THREE.SpriteMaterial({
+    map: tex, transparent: true, depthWrite: false, depthTest: false,
+  }));
+  spr.scale.set(h * cw / ch, h, 1);
+  spr.renderOrder = 20;
+  return spr;
 };
 
 let piece;

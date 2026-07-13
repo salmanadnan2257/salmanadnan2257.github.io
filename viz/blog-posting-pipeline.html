@@ -51,6 +51,41 @@
       position: absolute; inset: 0; display: none;
       place-items: center; text-align: center; padding: 24px;
     }
+    #lbl {
+      position: absolute; left: 12px; top: 12px; max-width: 44ch;
+      padding: 10px 14px; border-radius: 10px;
+      background: rgba(8, 8, 14, 0.55);
+      backdrop-filter: blur(6px);
+      pointer-events: none;
+    }
+    #lbl h1 {
+      font-size: 12px; font-weight: 600;
+      letter-spacing: 0.14em; text-transform: uppercase;
+      color: rgba(255, 255, 255, 0.95);
+    }
+    #lblSub { margin-top: 3px; opacity: 0.72; }
+    #lblPhase {
+      margin-top: 8px; min-height: 1.4em; color: #E8B45C;
+      opacity: 1; transition: opacity 0.18s ease;
+    }
+    #legend {
+      position: absolute; right: 12px; top: 12px;
+      display: flex; flex-direction: column; gap: 5px;
+      padding: 9px 12px; border-radius: 10px;
+      background: rgba(8, 8, 14, 0.55);
+      backdrop-filter: blur(6px);
+      pointer-events: none; font-size: 11px;
+    }
+    #legend span { display: flex; align-items: center; gap: 7px; }
+    #legend i {
+      width: 9px; height: 9px; border-radius: 2px; flex: none;
+      background: var(--c); box-shadow: 0 0 6px var(--c);
+    }
+    @media (max-width: 640px) {
+      #lblSub { display: none; }
+      #lbl { max-width: 30ch; }
+      #legend { font-size: 10px; padding: 7px 9px; gap: 4px; }
+    }
     @media (max-width: 560px) {
       #hud label { display: none; }
     }
@@ -67,6 +102,18 @@
     </label>
     <button id="btnPng" type="button">Save PNG</button>
     <button id="btnFs" type="button" aria-pressed="false">Fullscreen</button>
+  </div>
+  <div id="lbl">
+    <h1>Seven Stations</h1>
+    <p id="lblSub">The 7-step content pipeline: raw material in, publishable post out.</p>
+    <p id="lblPhase" aria-hidden="true"></p>
+  </div>
+  <div id="legend" role="list" aria-label="Legend">
+    <span role="listitem"><i style="--c:#EAF2F0"></i>Content particle</span>
+    <span role="listitem"><i style="--c:#55C6D2"></i>Early station</span>
+    <span role="listitem"><i style="--c:#66C89A"></i>Mid station</span>
+    <span role="listitem"><i style="--c:#E8B45C"></i>Late station</span>
+    <span role="listitem"><i style="--c:#E88C5A"></i>Final station</span>
   </div>
   <p id="note" hidden>Motion is paused because your system prefers reduced motion.
      Press Play to animate.</p>
@@ -111,12 +158,12 @@ function createScene(THREE, ctx) {
 
   // the spline, defined identically in JS and GLSL
   function curvePos(s, out) {
-    out.set(-11 + 22 * s, 1.5 * Math.sin(s * 4.4 + 0.6), 2.2 * Math.sin(s * 2.6 + 2.0));
+    out.set(-9.5 + 19 * s, 1.5 * Math.sin(s * 4.4 + 0.6), 2.2 * Math.sin(s * 2.6 + 2.0));
     return out;
   }
   const GLSL_CURVE = `
     vec3 curvePos(float s) {
-      return vec3(-11.0 + 22.0 * s, 1.5 * sin(s * 4.4 + 0.6), 2.2 * sin(s * 2.6 + 2.0));
+      return vec3(-9.5 + 19.0 * s, 1.5 * sin(s * 4.4 + 0.6), 2.2 * sin(s * 2.6 + 2.0));
     }
   `;
 
@@ -318,7 +365,7 @@ function createScene(THREE, ctx) {
       const sk = (k + 0.5) / RINGS;
       ringS.push(sk);
       const col = stationColorJS(k / (RINGS - 1));
-      const geo = new THREE.TorusGeometry(RING_R, 0.032, 8, 56);
+      const geo = new THREE.TorusGeometry(RING_R, 0.05, 8, 56);
       const mat = new THREE.MeshBasicMaterial({
         color: col, transparent: true, opacity: 0.3,
         blending: THREE.AdditiveBlending, depthWrite: false
@@ -332,6 +379,19 @@ function createScene(THREE, ctx) {
       mesh.quaternion.setFromUnitVectors(zAxis, tan);
       ctx.scene.add(mesh);
       ringMeshes.push(mesh);
+    }
+  }
+
+  // ---- step tags above the seven rings
+  {
+    const tp = new THREE.Vector3();
+    for (let k = 0; k < RINGS; k++) {
+      const col = '#' + stationColorJS(k / (RINGS - 1)).getHexString();
+      const tag = ctx.makeTag('step ' + (k + 1), col, 0.42);
+      curvePos(ringS[k], tp);
+      tag.position.set(tp.x, tp.y + RING_R + 0.55, tp.z);
+      tag.material.opacity = 0.8;
+      ctx.scene.add(tag);
     }
   }
 
@@ -357,18 +417,28 @@ function createScene(THREE, ctx) {
         }
         const pulse = Math.exp(-best * best * 900);
         const m = ringMeshes[k];
-        m.material.opacity = 0.24 + 0.62 * pulse;
+        m.material.opacity = 0.34 + 0.58 * pulse;
         const sc = 1 + 0.20 * pulse;
         m.scale.set(sc, sc, sc);
       }
 
-      // slow dolly along the side of the spline
-      const cp = 0.5 + 0.30 * Math.sin(t * 0.04);
+      // live caption follows one packet through the seven stations
+      const hero = (t * FLOW) % 1;
+      let cap;
+      if (hero < 0.14) cap = 'Raw content enters the stream, loose and scattered';
+      else if (hero < 0.43) cap = 'Early stations refine the flow, ring by ring';
+      else if (hero < 0.71) cap = 'Halfway: the stream is tighter and brighter than it entered';
+      else if (hero < 0.86) cap = 'Late stations polish the piece toward publish gold';
+      else cap = 'A finished post leaves the seventh gate';
+      ctx.caption(cap);
+
+      // slow dolly along the side of the spline, wide enough for all seven rings
+      const cp = 0.5 + 0.05 * Math.sin(t * 0.04);
       curvePos(cp, camEye);
       camEye.x += ctx.pointer.x * 1.4;
       camEye.y += 2.6 + ctx.pointer.y * 1.1;
-      camEye.z += 9.2;
-      curvePos(Math.min(1, cp + 0.10), camLook);
+      camEye.z += 16.0;
+      curvePos(Math.min(1, cp + 0.02), camLook);
       ctx.camera.position.copy(camEye);
       ctx.camera.lookAt(camLook.x, camLook.y, camLook.z);
     },
@@ -411,6 +481,50 @@ const ctx = {
   renderer,
   quality,
   pointer: { x: 0, y: 0 },  /* smoothed, -1..1, y up */
+};
+
+/* Live phase caption: scenes call ctx.caption('...') each frame; the text
+   only touches the DOM when it changes, with a quick cross-fade. */
+const lblPhase = document.getElementById('lblPhase');
+let capText = null, capTimer = 0;
+ctx.caption = (s) => {
+  if (s === capText || !lblPhase) return;
+  capText = s;
+  lblPhase.style.opacity = '0';
+  clearTimeout(capTimer);
+  capTimer = setTimeout(() => {
+    lblPhase.textContent = capText;
+    lblPhase.style.opacity = '1';
+  }, 180);
+};
+
+/* Small floating text tag rendered to a canvas texture, for labelling
+   objects inside the 3D scene. Returns a sprite; scale is world height. */
+ctx.makeTag = (text, color, h = 0.42) => {
+  const pad = 18, fpx = 46;
+  const meas = document.createElement('canvas').getContext('2d');
+  meas.font = '600 ' + fpx + 'px ui-monospace, Menlo, Consolas, monospace';
+  const tw = Math.ceil(meas.measureText(text).width);
+  const cw = tw + pad * 2, ch = fpx + pad * 2;
+  const cnv = document.createElement('canvas');
+  cnv.width = cw; cnv.height = ch;
+  const g = cnv.getContext('2d');
+  g.font = meas.font;
+  g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.shadowColor = color; g.shadowBlur = 14;
+  g.fillStyle = color;
+  g.fillText(text, cw / 2, ch / 2 + 2);
+  g.shadowBlur = 0;
+  g.fillText(text, cw / 2, ch / 2 + 2);
+  const tex = new THREE.CanvasTexture(cnv);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.anisotropy = 4;
+  const spr = new THREE.Sprite(new THREE.SpriteMaterial({
+    map: tex, transparent: true, depthWrite: false, depthTest: false,
+  }));
+  spr.scale.set(h * cw / ch, h, 1);
+  spr.renderOrder = 20;
+  return spr;
 };
 
 let piece;

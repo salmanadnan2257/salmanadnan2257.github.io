@@ -51,6 +51,41 @@
       position: absolute; inset: 0; display: none;
       place-items: center; text-align: center; padding: 24px;
     }
+    #lbl {
+      position: absolute; left: 12px; top: 12px; max-width: 44ch;
+      padding: 10px 14px; border-radius: 10px;
+      background: rgba(8, 8, 14, 0.55);
+      backdrop-filter: blur(6px);
+      pointer-events: none;
+    }
+    #lbl h1 {
+      font-size: 12px; font-weight: 600;
+      letter-spacing: 0.14em; text-transform: uppercase;
+      color: rgba(255, 255, 255, 0.95);
+    }
+    #lblSub { margin-top: 3px; opacity: 0.72; }
+    #lblPhase {
+      margin-top: 8px; min-height: 1.4em; color: #4FB89A;
+      opacity: 1; transition: opacity 0.18s ease;
+    }
+    #legend {
+      position: absolute; right: 12px; top: 12px;
+      display: flex; flex-direction: column; gap: 5px;
+      padding: 9px 12px; border-radius: 10px;
+      background: rgba(8, 8, 14, 0.55);
+      backdrop-filter: blur(6px);
+      pointer-events: none; font-size: 11px;
+    }
+    #legend span { display: flex; align-items: center; gap: 7px; }
+    #legend i {
+      width: 9px; height: 9px; border-radius: 2px; flex: none;
+      background: var(--c); box-shadow: 0 0 6px var(--c);
+    }
+    @media (max-width: 640px) {
+      #lblSub { display: none; }
+      #lbl { max-width: 30ch; }
+      #legend { font-size: 10px; padding: 7px 9px; gap: 4px; }
+    }
     @media (max-width: 560px) {
       #hud label { display: none; }
     }
@@ -67,6 +102,16 @@
     </label>
     <button id="btnPng" type="button">Save PNG</button>
     <button id="btnFs" type="button" aria-pressed="false">Fullscreen</button>
+  </div>
+  <div id="lbl">
+    <h1>The Fitting Surface</h1>
+    <p id="lblSub">Least squares, live: the plane settles onto the earnings data until the residuals nearly vanish.</p>
+    <p id="lblPhase" aria-hidden="true"></p>
+  </div>
+  <div id="legend" role="list" aria-label="Legend">
+    <span role="listitem"><i style="--c:#EAE6D8"></i>Data point</span>
+    <span role="listitem"><i style="--c:#4FB89A"></i>Fitted surface</span>
+    <span role="listitem"><i style="--c:#E87A5A"></i>Residual</span>
   </div>
   <p id="note" hidden>Motion is paused because your system prefers reduced motion.
      Press Play to animate.</p>
@@ -198,9 +243,9 @@ function createScene(THREE, ctx) {
         float warm = smoothstep(1.1, 0.1, abs(p.y - surf));
         float tw = 0.8 + 0.2 * sin(uTime * 0.9 + aSeed * 17.0);
         vColor = mix(uChalk * 0.85, uWarm, warm * 0.65) * tw;
-        vAlpha = 0.85;
+        vAlpha = 0.75;
         vec4 mv = modelViewMatrix * vec4(p, 1.0);
-        gl_PointSize = uPx * (2.5 + warm * 0.9) * (110.0 / -mv.z);
+        gl_PointSize = uPx * (1.75 + warm * 0.6) * (110.0 / -mv.z);
         gl_Position = projectionMatrix * mv;
       }`,
     fragmentShader: `
@@ -208,7 +253,7 @@ function createScene(THREE, ctx) {
       varying float vAlpha;
       void main(){
         float d = length(gl_PointCoord - 0.5);
-        float alpha = smoothstep(0.5, 0.08, d) * vAlpha;
+        float alpha = smoothstep(0.46, 0.14, d) * vAlpha;
         if (alpha < 0.02) discard;
         gl_FragColor = vec4(vColor, alpha);
       }`
@@ -334,6 +379,20 @@ function createScene(THREE, ctx) {
     color: 0x2A3A32, transparent: true, opacity: 0.7
   })));
 
+  // Axis tags: the two regressors on the ground, the response up the vertical.
+  const axSchool = ctx.makeTag('schooling', '#9FBFAF', 0.35);
+  axSchool.position.set(GH + 0.7, GY + 0.25, 0);
+  axSchool.material.opacity = 0.8;
+  ctx.scene.add(axSchool);
+  const axExp = ctx.makeTag('experience', '#9FBFAF', 0.35);
+  axExp.position.set(0, GY + 0.25, GH + 0.7);
+  axExp.material.opacity = 0.8;
+  ctx.scene.add(axExp);
+  const axEarn = ctx.makeTag('earnings', '#9FBFAF', 0.35);
+  axEarn.position.set(-GH - 0.4, 2.4, -GH - 0.4);
+  axEarn.material.opacity = 0.8;
+  ctx.scene.add(axEarn);
+
   // Fill the point / line attribute arrays from dataA and dataB.
   function fillAttrs() {
     const pa = pGeo.getAttribute('position').array;
@@ -423,6 +482,14 @@ function createScene(THREE, ctx) {
         sMat.uniforms.uGlow.value = 1.0 - smooth01(u * 1.5);
       }
 
+      // live caption from the fit cycle
+      let cap;
+      if (phase < T_FIT * 0.3) cap = 'A candidate plane ripples over the scatter';
+      else if (phase < T_FIT) cap = 'Iterating toward the least-squares fit; residuals shrink';
+      else if (phase < T_FIT + T_HOLD) cap = 'Fit settled; residuals breathe near zero';
+      else cap = 'A fresh sample draws in; the plane will refit';
+      ctx.caption(cap);
+
       const a = t * 0.045 + ctx.pointer.x * 0.5;
       ctx.camera.position.set(
         Math.sin(a) * 12.5,
@@ -466,6 +533,50 @@ const ctx = {
   renderer,
   quality,
   pointer: { x: 0, y: 0 },  /* smoothed, -1..1, y up */
+};
+
+/* Live phase caption: scenes call ctx.caption('...') each frame; the text
+   only touches the DOM when it changes, with a quick cross-fade. */
+const lblPhase = document.getElementById('lblPhase');
+let capText = null, capTimer = 0;
+ctx.caption = (s) => {
+  if (s === capText || !lblPhase) return;
+  capText = s;
+  lblPhase.style.opacity = '0';
+  clearTimeout(capTimer);
+  capTimer = setTimeout(() => {
+    lblPhase.textContent = capText;
+    lblPhase.style.opacity = '1';
+  }, 180);
+};
+
+/* Small floating text tag rendered to a canvas texture, for labelling
+   objects inside the 3D scene. Returns a sprite; scale is world height. */
+ctx.makeTag = (text, color, h = 0.42) => {
+  const pad = 18, fpx = 46;
+  const meas = document.createElement('canvas').getContext('2d');
+  meas.font = '600 ' + fpx + 'px ui-monospace, Menlo, Consolas, monospace';
+  const tw = Math.ceil(meas.measureText(text).width);
+  const cw = tw + pad * 2, ch = fpx + pad * 2;
+  const cnv = document.createElement('canvas');
+  cnv.width = cw; cnv.height = ch;
+  const g = cnv.getContext('2d');
+  g.font = meas.font;
+  g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.shadowColor = color; g.shadowBlur = 14;
+  g.fillStyle = color;
+  g.fillText(text, cw / 2, ch / 2 + 2);
+  g.shadowBlur = 0;
+  g.fillText(text, cw / 2, ch / 2 + 2);
+  const tex = new THREE.CanvasTexture(cnv);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.anisotropy = 4;
+  const spr = new THREE.Sprite(new THREE.SpriteMaterial({
+    map: tex, transparent: true, depthWrite: false, depthTest: false,
+  }));
+  spr.scale.set(h * cw / ch, h, 1);
+  spr.renderOrder = 20;
+  return spr;
 };
 
 let piece;

@@ -51,6 +51,41 @@
       position: absolute; inset: 0; display: none;
       place-items: center; text-align: center; padding: 24px;
     }
+    #lbl {
+      position: absolute; left: 12px; top: 12px; max-width: 44ch;
+      padding: 10px 14px; border-radius: 10px;
+      background: rgba(8, 8, 14, 0.55);
+      backdrop-filter: blur(6px);
+      pointer-events: none;
+    }
+    #lbl h1 {
+      font-size: 12px; font-weight: 600;
+      letter-spacing: 0.14em; text-transform: uppercase;
+      color: rgba(255, 255, 255, 0.95);
+    }
+    #lblSub { margin-top: 3px; opacity: 0.72; }
+    #lblPhase {
+      margin-top: 8px; min-height: 1.4em; color: #E86A8A;
+      opacity: 1; transition: opacity 0.18s ease;
+    }
+    #legend {
+      position: absolute; right: 12px; top: 12px;
+      display: flex; flex-direction: column; gap: 5px;
+      padding: 9px 12px; border-radius: 10px;
+      background: rgba(8, 8, 14, 0.55);
+      backdrop-filter: blur(6px);
+      pointer-events: none; font-size: 11px;
+    }
+    #legend span { display: flex; align-items: center; gap: 7px; }
+    #legend i {
+      width: 9px; height: 9px; border-radius: 2px; flex: none;
+      background: var(--c); box-shadow: 0 0 6px var(--c);
+    }
+    @media (max-width: 640px) {
+      #lblSub { display: none; }
+      #lbl { max-width: 30ch; }
+      #legend { font-size: 10px; padding: 7px 9px; gap: 4px; }
+    }
     @media (max-width: 560px) {
       #hud label { display: none; }
     }
@@ -67,6 +102,17 @@
     </label>
     <button id="btnPng" type="button">Save PNG</button>
     <button id="btnFs" type="button" aria-pressed="false">Fullscreen</button>
+  </div>
+  <div id="lbl">
+    <h1>Filmstrip Flow</h1>
+    <p id="lblSub">Video frames ride the ribbon: review in rose, approve in green, publish in a burst.</p>
+    <p id="lblPhase" aria-hidden="true"></p>
+  </div>
+  <div id="legend" role="list" aria-label="Legend">
+    <span role="listitem"><i style="--c:#2E2C3A"></i>Frame</span>
+    <span role="listitem"><i style="--c:#E86A8A"></i>In review</span>
+    <span role="listitem"><i style="--c:#58C98A"></i>Approved</span>
+    <span role="listitem"><i style="--c:#F0E9D8"></i>Caption dash</span>
   </div>
   <p id="note" hidden>Motion is paused because your system prefers reduced motion.
      Press Play to animate.</p>
@@ -409,6 +455,7 @@ function createScene(THREE, ctx) {
   }
 
   let nextRev = 4;
+  let capRevUntil = -1;   // while set, the caption reports the revision send-back
   ctx.camera.position.set(0, 2.6, 13);
   ctx.camera.lookAt(0, 0.3, 0);
 
@@ -426,7 +473,7 @@ function createScene(THREE, ctx) {
 
       // occasionally send a reviewing frame back down the ribbon
       if (t > nextRev) {
-        nextRev = t + REV_EVERY + Math.random() * 5;
+        nextRev = t + REV_EVERY * 4 + Math.random() * 6;
         for (const fr of frames) {
           const def = loopDefs[fr.r];
           let u = (fr.i / FRAMES + def.phase + t * def.speed + fr.shift) % 1;
@@ -434,6 +481,7 @@ function createScene(THREE, ctx) {
           if (!fr.rev && u > REVIEW_AT && u < 0.58) {
             fr.rev = { t0: t };
             fr.baseShift = fr.shift;
+            capRevUntil = t + 3.4;
             break;
           }
         }
@@ -521,6 +569,18 @@ function createScene(THREE, ctx) {
         m.instanceColor.needsUpdate = true;
       }
 
+      // live caption: the occasional send-back overrides a slow tour of the pipeline
+      let cap;
+      if (t < capRevUntil) cap = 'Revision requested: one frame slides back down the ribbon';
+      else {
+        const beat = Math.floor(t / 7) % 4;
+        if (beat === 0) cap = 'Frames ride the ribbon toward human review';
+        else if (beat === 1) cap = 'In review: the rose edge waits on a human look';
+        else if (beat === 2) cap = 'Approved: green edge, and a caption dash grows in beneath';
+        else cap = 'Publish: finished frames leave the ribbon in green bursts';
+      }
+      ctx.caption(cap);
+
       const a = t * 0.045 + ctx.pointer.x * 0.35;
       ctx.camera.position.set(
         Math.sin(a) * 13,
@@ -565,6 +625,50 @@ const ctx = {
   renderer,
   quality,
   pointer: { x: 0, y: 0 },  /* smoothed, -1..1, y up */
+};
+
+/* Live phase caption: scenes call ctx.caption('...') each frame; the text
+   only touches the DOM when it changes, with a quick cross-fade. */
+const lblPhase = document.getElementById('lblPhase');
+let capText = null, capTimer = 0;
+ctx.caption = (s) => {
+  if (s === capText || !lblPhase) return;
+  capText = s;
+  lblPhase.style.opacity = '0';
+  clearTimeout(capTimer);
+  capTimer = setTimeout(() => {
+    lblPhase.textContent = capText;
+    lblPhase.style.opacity = '1';
+  }, 180);
+};
+
+/* Small floating text tag rendered to a canvas texture, for labelling
+   objects inside the 3D scene. Returns a sprite; scale is world height. */
+ctx.makeTag = (text, color, h = 0.42) => {
+  const pad = 18, fpx = 46;
+  const meas = document.createElement('canvas').getContext('2d');
+  meas.font = '600 ' + fpx + 'px ui-monospace, Menlo, Consolas, monospace';
+  const tw = Math.ceil(meas.measureText(text).width);
+  const cw = tw + pad * 2, ch = fpx + pad * 2;
+  const cnv = document.createElement('canvas');
+  cnv.width = cw; cnv.height = ch;
+  const g = cnv.getContext('2d');
+  g.font = meas.font;
+  g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.shadowColor = color; g.shadowBlur = 14;
+  g.fillStyle = color;
+  g.fillText(text, cw / 2, ch / 2 + 2);
+  g.shadowBlur = 0;
+  g.fillText(text, cw / 2, ch / 2 + 2);
+  const tex = new THREE.CanvasTexture(cnv);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.anisotropy = 4;
+  const spr = new THREE.Sprite(new THREE.SpriteMaterial({
+    map: tex, transparent: true, depthWrite: false, depthTest: false,
+  }));
+  spr.scale.set(h * cw / ch, h, 1);
+  spr.renderOrder = 20;
+  return spr;
 };
 
 let piece;
