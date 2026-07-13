@@ -86,6 +86,18 @@
             <p>A second base run (2026-07-08) added CC-100 Urdu and upsampled Wikipedia, about 7.7x more training tokens, on a rented A100 for roughly $13. Held-out perplexity improved from 38.02 to 28.93. Cloze accuracy moved from 34.9% to 39.5%, inside the small eval set's own noise margin, reported honestly rather than oversold. Real numbers and real sample generations from both runs are below.</p>
           </div>
         </div>
+      <figure class="proj-media proj-viz">
+        <div class="proj-viz__frame">
+          <iframe src="../viz/urdu-slm.html" title="Interactive 3D visualization: Urdu Language Model" loading="lazy" allow="fullscreen"></iframe>
+        </div>
+        <figcaption>Attention Loom: tokens stream right to left, the way Urdu reads, weaving attention as they go. Live and interactive, it follows your pointer. <a href="../viz/urdu-slm.html" target="_blank" rel="noopener">Open full screen</a></figcaption>
+      </figure>
+
+      <figure class="proj-media">
+        <img src="../assets/screenshots/urdu-slm.webp" alt="Training and validation cross-entropy loss curve from a real 500-step CPU proof run of urdu-slm." loading="lazy" decoding="async" width="960" height="600">
+        <figcaption>UrduLM tiny (13M params), 4.1M tokens.</figcaption>
+      </figure>
+
       <div class="proj-stats">
           <div class="proj-stat"><b>5.23x</b><span>fewer tokens than GPT-2 on Urdu</span></div>
           <div class="proj-stat"><b>28.93</b><span>held-out perplexity, base model v2</span></div>
@@ -93,17 +105,6 @@
           <div class="proj-stat"><b>2.5B</b><span>tokens, v2 corpus, ~$13 total</span></div>
       </div>
 
-      <figure class="proj-media">
-        <img src="../assets/screenshots/urdu-slm.webp" alt="Training and validation cross-entropy loss curve from a real 500-step CPU proof run of urdu-slm." loading="lazy" decoding="async" width="960" height="600">
-        <figcaption>UrduLM tiny (13M params), 4.1M tokens.</figcaption>
-      </figure>
-
-      <figure class="proj-media proj-viz">
-        <div class="proj-viz__frame">
-          <iframe src="../viz/urdu-slm.html" title="Interactive 3D visualization: Urdu Language Model" loading="lazy" allow="fullscreen"></iframe>
-        </div>
-        <figcaption>Attention Loom: tokens stream right to left, the way Urdu reads, weaving attention as they go. Live and interactive, it follows your pointer. <a href="../viz/urdu-slm.html" target="_blank" rel="noopener">Open full screen</a></figcaption>
-      </figure>
     </div>
   </section>
 
@@ -177,7 +178,6 @@
   </div>
 
 </main>
-
 
 <section class="book" id="book-a-call" aria-labelledby="book-title">
   <div class="wrap book__inner">

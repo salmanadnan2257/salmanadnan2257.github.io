@@ -86,6 +86,18 @@
             <p>Runs GPT-2 family models on CPU. Hugging Face is used only to download weights; the forward pass, attention, cache, and scheduler are all implemented here. The benchmarks are single-machine CPU numbers and are honest about what they are.</p>
           </div>
         </div>
+      <figure class="proj-media proj-viz">
+        <div class="proj-viz__frame">
+          <iframe src="../viz/inference-engine.html" title="Interactive 3D visualization: LLM Inference Engine" loading="lazy" allow="fullscreen"></iframe>
+        </div>
+        <figcaption>Paged Attention: token streams thread a lattice of KV-cache pages while speculative ghosts race ahead. Live and interactive, it follows your pointer. <a href="../viz/inference-engine.html" target="_blank" rel="noopener">Open full screen</a></figcaption>
+      </figure>
+
+      <figure class="proj-media">
+        <img src="../assets/screenshots/inference-engine.webp" alt="Two-panel chart of inference-engine's real serving-sweep benchmark: throughput scaling and time-to-first-token cost of batching." loading="lazy" decoding="async" width="1200" height="733">
+        <figcaption>Measured on an 8-core CPU: peak throughput hits 2.8x the single-request baseline.</figcaption>
+      </figure>
+
       <div class="proj-stats">
           <div class="proj-stat"><b>~3e-5</b><span>max logit diff vs transformers</span></div>
           <div class="proj-stat"><b>~2.8x</b><span>batched vs sequential throughput</span></div>
@@ -93,17 +105,6 @@
           <div class="proj-stat"><b>16 tok</b><span>KV cache block size</span></div>
       </div>
 
-      <figure class="proj-media">
-        <img src="../assets/screenshots/inference-engine.webp" alt="Two-panel chart of inference-engine's real serving-sweep benchmark: throughput scaling and time-to-first-token cost of batching." loading="lazy" decoding="async" width="1200" height="733">
-        <figcaption>Measured on an 8-core CPU: peak throughput hits 2.8x the single-request baseline.</figcaption>
-      </figure>
-
-      <figure class="proj-media proj-viz">
-        <div class="proj-viz__frame">
-          <iframe src="../viz/inference-engine.html" title="Interactive 3D visualization: LLM Inference Engine" loading="lazy" allow="fullscreen"></iframe>
-        </div>
-        <figcaption>Paged Attention: token streams thread a lattice of KV-cache pages while speculative ghosts race ahead. Live and interactive, it follows your pointer. <a href="../viz/inference-engine.html" target="_blank" rel="noopener">Open full screen</a></figcaption>
-      </figure>
     </div>
   </section>
 
@@ -173,7 +174,6 @@
   </div>
 
 </main>
-
 
 <section class="book" id="book-a-call" aria-labelledby="book-title">
   <div class="wrap book__inner">

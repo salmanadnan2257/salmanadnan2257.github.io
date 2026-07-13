@@ -86,23 +86,24 @@
             <p>Built solo by Salman Adnan for an Enterprise Software Development course against course-provided scaffolding; his work is the solution SQL, the replication setup, the routing app, and the analysis. Docker was unavailable on the latest machine, so the numbers come from the original course Docker runs.</p>
           </div>
         </div>
-      <div class="proj-stats">
-          <div class="proj-stat"><b>35 -&gt; 0.5 ms</b><span>email match after indexing</span></div>
-          <div class="proj-stat"><b>9,154 -&gt; 975</b><span>buffer blocks after pruning</span></div>
-          <div class="proj-stat"><b>5 / 5</b><span>replica routing tests</span></div>
-      </div>
-
-      <figure class="proj-media">
-        <img src="../assets/screenshots/postgres-scaling-lab.webp" alt="Real terminal output of EXPLAIN ANALYZE before and after adding an index, on a live local Postgres cluster." loading="lazy" decoding="async" width="1400" height="868">
-        <figcaption>A real query dropped from 75ms to 0.1ms after indexing (about 650x).</figcaption>
-      </figure>
-
       <figure class="proj-media proj-viz">
         <div class="proj-viz__frame">
           <iframe src="../viz/postgres-scaling-lab.html" title="Interactive 3D visualization: Postgres Scaling Lab" loading="lazy" allow="fullscreen"></iframe>
         </div>
         <figcaption>Shard and Stream: the monolith splits, the WAL streams, the replicas catch up. Live and interactive, it follows your pointer. <a href="../viz/postgres-scaling-lab.html" target="_blank" rel="noopener">Open full screen</a></figcaption>
       </figure>
+
+      <figure class="proj-media">
+        <img src="../assets/screenshots/postgres-scaling-lab.webp" alt="Real terminal output of EXPLAIN ANALYZE before and after adding an index, on a live local Postgres cluster." loading="lazy" decoding="async" width="1400" height="868">
+        <figcaption>A real query dropped from 75ms to 0.1ms after indexing (about 650x).</figcaption>
+      </figure>
+
+      <div class="proj-stats">
+          <div class="proj-stat"><b>35 -&gt; 0.5 ms</b><span>email match after indexing</span></div>
+          <div class="proj-stat"><b>9,154 -&gt; 975</b><span>buffer blocks after pruning</span></div>
+          <div class="proj-stat"><b>5 / 5</b><span>replica routing tests</span></div>
+      </div>
+
     </div>
   </section>
 
@@ -149,7 +150,6 @@
   </div>
 
 </main>
-
 
 <section class="book" id="book-a-call" aria-labelledby="book-title">
   <div class="wrap book__inner">

@@ -42,11 +42,6 @@
     }
     #hud label { display: flex; align-items: center; gap: 6px; }
     #hud input[type="range"] { width: 72px; accent-color: #F0A85A; }
-    #note {
-      position: absolute; left: 12px; bottom: 12px; max-width: 46ch;
-      padding: 8px 12px; border-radius: 10px;
-      background: rgba(8, 8, 14, 0.65);
-    }
     #err {
       position: absolute; inset: 0; display: none;
       place-items: center; text-align: center; padding: 24px;
@@ -113,8 +108,6 @@
     <span role="listitem"><i style="--c:#F4E8D0"></i>Paw constellation</span>
     <span role="listitem"><i style="--c:#E07A8A"></i>Heart glow</span>
   </div>
-  <p id="note" hidden>Motion is paused because your system prefers reduced motion.
-     Press Play to animate.</p>
   <div id="err"><p>This visualization needs WebGL, which is unavailable here.<br>
      A screenshot of it lives on the project page.</p></div>
 </div>
@@ -411,7 +404,6 @@ const canvas = document.getElementById('c');
 const btnPlay = document.getElementById('btnPlay');
 const speedEl = document.getElementById('speed');
 const btnPng = document.getElementById('btnPng');
-const note = document.getElementById('note');
 
 let renderer;
 try {
@@ -517,15 +509,12 @@ let speed = 1;
 let t = 0;
 let last = performance.now();
 
-const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
 function setPlayUi() {
   btnPlay.textContent = userPaused ? 'Play' : 'Pause';
   btnPlay.setAttribute('aria-pressed', String(userPaused));
 }
 btnPlay.addEventListener('click', () => {
   userPaused = !userPaused;
-  note.hidden = true;
   setPlayUi();
   if (!userPaused) { last = performance.now(); loop(last); }
 });
@@ -582,16 +571,8 @@ function loop(now) {
   raf = requestAnimationFrame(loop);
 }
 
-if (reduceMotion) {
-  /* Advance to a composed moment, render one still frame, and wait. */
-  for (let i = 0; i < 240; i++) { t += 1 / 60; piece.update(t, 1 / 60); }
-  renderer.render(ctx.scene, camera);
-  userPaused = true;
-  note.hidden = false;
-  setPlayUi();
-} else {
-  loop(performance.now());
-}
+/* Always autoplay; the Pause button is the opt-out. */
+loop(performance.now());
 </script>
 </body>
 </html>

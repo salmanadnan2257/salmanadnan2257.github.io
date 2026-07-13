@@ -86,6 +86,18 @@
             <p>A three-turn booking conversation was driven through a real HMAC-SHA1-signed request (the same algorithm Twilio uses, computed from the real auth token) over a public internet tunnel, ending in a real row written to the SQLite calendar. The live phone number itself was left untouched throughout.</p>
           </div>
         </div>
+      <figure class="proj-media proj-viz">
+        <div class="proj-viz__frame">
+          <iframe src="../viz/voice-agent.html" title="Interactive 3D visualization: Voice Appointment Agent" loading="lazy" allow="fullscreen"></iframe>
+        </div>
+        <figcaption>Voiceprint Torus: two voices take turns around the ring until a slot clicks into place. Live and interactive, it follows your pointer. <a href="../viz/voice-agent.html" target="_blank" rel="noopener">Open full screen</a></figcaption>
+      </figure>
+
+      <figure class="proj-media">
+        <img src="../assets/screenshots/voice-agent.webp" alt="Terminal output from a real run of voice-agent's 25-scenario scripted evaluation suite, all passing." loading="lazy" decoding="async" width="1200" height="800">
+        <figcaption>25/25 scripted scenarios passed; no live Twilio/Gemini calls needed for this suite.</figcaption>
+      </figure>
+
       <div class="proj-stats">
           <div class="proj-stat"><b>54 / 54</b><span>tests passing</span></div>
           <div class="proj-stat"><b>25 / 25</b><span>scripted scenarios</span></div>
@@ -93,17 +105,6 @@
           <div class="proj-stat"><b>&lt;$0.01</b><span>total real API cost</span></div>
       </div>
 
-      <figure class="proj-media">
-        <img src="../assets/screenshots/voice-agent.webp" alt="Terminal output from a real run of voice-agent's 25-scenario scripted evaluation suite, all passing." loading="lazy" decoding="async" width="1200" height="800">
-        <figcaption>25/25 scripted scenarios passed; no live Twilio/Gemini calls needed for this suite.</figcaption>
-      </figure>
-
-      <figure class="proj-media proj-viz">
-        <div class="proj-viz__frame">
-          <iframe src="../viz/voice-agent.html" title="Interactive 3D visualization: Voice Appointment Agent" loading="lazy" allow="fullscreen"></iframe>
-        </div>
-        <figcaption>Voiceprint Torus: two voices take turns around the ring until a slot clicks into place. Live and interactive, it follows your pointer. <a href="../viz/voice-agent.html" target="_blank" rel="noopener">Open full screen</a></figcaption>
-      </figure>
     </div>
   </section>
 
@@ -181,7 +182,6 @@
   </div>
 
 </main>
-
 
 <section class="book" id="book-a-call" aria-labelledby="book-title">
   <div class="wrap book__inner">
