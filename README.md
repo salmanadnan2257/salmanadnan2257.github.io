@@ -20,6 +20,24 @@ deploy.sh           rsync to the VPS, gated on [deploy] in the latest commit mes
 The absolute base URL is `https://salmanadnan.com`. It appears in `robots.txt`, `sitemap.xml`, and
 the head of every HTML file. If the domain ever moves, change it in all three places together.
 
+**The rsync deliberately does not use `--delete`, and must not.** The four client demos that the
+"Try the live demo" buttons point at (`/demo/agency-blog-saas/`, `/demo/blog-posting-pipeline/`,
+`/demo/reelflow-studio/`, `/demo/zarailink/`) live only on the VPS; they are built from the
+`*-demo` folders in the Portfolio and are not in this repo. `--delete` would wipe them and break
+those four buttons.
+
+The cost of that is stale files accumulating on the server, so check for them after a rename or a
+move. Two were found and removed on 2026-07-14, both dating from 2026-07-08 and both still carrying
+the old `salmanadnan2257.github.io` canonical: a full stale copy of the old homepage at
+`/projects/index.html` (a crawlable duplicate homepage pointing search engines at the dead domain)
+and an orphaned `/cpp-ray-tracer.html` at the site root. Backups are in `/root/backups/` on the VPS.
+To audit:
+
+```bash
+ssh da 'grep -rl "salmanadnan2257.github.io" /root/salmanadnan.com --include=*.html --include=*.xml --include=*.txt'
+ssh da 'ls /root/salmanadnan.com/projects/*.html | wc -l'   # must be 38
+```
+
 ## Tests
 
 The checks drive a real headless Chrome. They are not wired to CI; run them by hand.
