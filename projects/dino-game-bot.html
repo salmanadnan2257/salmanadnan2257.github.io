@@ -76,6 +76,10 @@
       <p class="proj-kicker">dino-game-bot</p>
       <h1 id="proj-title" class="proj-title">Dino Game Bot</h1>
       <p class="proj-lede">A script that plays Chrome's offline Dino game by watching the screen and pressing space at the right moment, using screen capture and pixel inspection rather than reading any game state or the DOM.</p>
+      <div class="proj-plain">
+        <span class="proj-plain__label">In plain English</span>
+        <p>When Chrome loses its internet connection it offers a little game where a dinosaur runs along and has to jump over cacti, and this script is built to play that game by itself. It never peeks inside the game; it only looks at the dots on the screen, the way a person looks at them, and when something appears in the small patch of screen just ahead of the dinosaur it presses the space bar to jump. The screen-reading half is tested, including the trick of coping when the game flips to night colours, but actually launching the real game on a machine with Chrome and watching the bot clear obstacles has not been done here. The patch of screen it watches is also measured for one specific screen and window layout, so it is tuned to that exact setup and nothing else.</p>
+      </div>
       <div class="proj-actions">
         <a class="btn btn--primary" href="https://github.com/salmanadnan2257/dino-game-bot" rel="noopener" target="_blank">View code on GitHub</a>
         <a class="btn btn--ghost" href="../index.html#work">All projects</a>
@@ -90,7 +94,7 @@
         <div class="proj-viz__frame">
           <iframe src="../viz/dino-game-bot.html" title="Interactive 3D visualization: Dino Game Bot" loading="lazy" allow="fullscreen"></iframe>
         </div>
-        <figcaption>Vision Runner: the beam sees the cactus, the box locks on, the dino hops. Live and interactive, it follows your pointer. <a href="../viz/dino-game-bot.html" target="_blank" rel="noopener">Open full screen</a></figcaption>
+        <figcaption>Vision Runner: the beam sees the cactus, the box locks on, the dino hops. Live and interactive: drag it to orbit, scroll or pinch to zoom. <a href="../viz/dino-game-bot.html" target="_blank" rel="noopener">Open full screen</a></figcaption>
       </figure>
 
       <figure class="proj-media">

@@ -76,6 +76,10 @@
       <p class="proj-kicker">prompt-evolution-ga</p>
       <h1 id="proj-title" class="proj-title">Prompt Evolution GA</h1>
       <p class="proj-lede">A genetic algorithm that evolves system-level instruction prompts for LLM code generation. Each candidate prompt is scored by an objective fitness function: how many real test cases the generated C++ passes.</p>
+      <div class="proj-plain">
+        <span class="proj-plain__label">In plain English</span>
+        <p>When you ask an AI to write a computer program for you, the exact wording of your instructions changes how good the answer is. This project hunts for better wording automatically: it starts with five sets of instructions written by hand, then mixes and tweaks them over and over across generations, the way breeding passes traits along and keeps what works. Scoring is not a matter of opinion; every candidate's instructions are used to write real code, that code is actually run against real test cases, and the score is simply how many of them it passes. The honest finding, reported as it came out, is that the best hand-written instruction held its own against everything the automatic search came up with.</p>
+      </div>
       <div class="proj-actions">
         <a class="btn btn--primary" href="https://github.com/salmanadnan2257/prompt-evolution-ga" rel="noopener" target="_blank">View code on GitHub</a>
         <a class="btn btn--ghost" href="../index.html#work">All projects</a>
@@ -90,7 +94,7 @@
         <div class="proj-viz__frame">
           <iframe src="../viz/prompt-evolution-ga.html" title="Interactive 3D visualization: Prompt Evolution GA" loading="lazy" allow="fullscreen"></iframe>
         </div>
-        <figcaption>Fitness Climb: each generation the swarm settles higher on the landscape. Live and interactive, it follows your pointer. <a href="../viz/prompt-evolution-ga.html" target="_blank" rel="noopener">Open full screen</a></figcaption>
+        <figcaption>Fitness Climb: each generation the swarm settles higher on the landscape. Live and interactive: drag it to orbit, scroll or pinch to zoom. <a href="../viz/prompt-evolution-ga.html" target="_blank" rel="noopener">Open full screen</a></figcaption>
       </figure>
 
       <figure class="proj-media">

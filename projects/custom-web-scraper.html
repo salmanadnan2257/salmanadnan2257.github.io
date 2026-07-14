@@ -76,6 +76,10 @@
       <p class="proj-kicker">custom-web-scraper</p>
       <h1 id="proj-title" class="proj-title">Web Element Inspector</h1>
       <p class="proj-lede">A desktop GUI for pulling elements off a live web page without writing a scraping script for each new site. Type a URL, pick one of seven Selenium locator strategies, and the tool drives a real Chrome browser to find every matching element, landing results in a sortable table with a "Highlight in Browser" button to confirm the match visually.</p>
+      <div class="proj-plain">
+        <span class="proj-plain__label">In plain English</span>
+        <p>To pull a particular thing off a web page, say every link on it or every heading, you would normally have to write a small program for that one page, then another for the next page. This is a desktop tool that turns the job into pointing and clicking: type in the address, choose how you want to search for the item, and it drives a real Chrome browser to find every match and list them in a table, with a "Highlight in Browser" button that draws an outline around what it found on the actual page. What was checked here is the machinery around that: the table-building and the error messages are unit tested, and the whole window was run against a stand-in browser. A live scrape against a real site is not demonstrated on this page, because the sandbox it was checked in has no internet access.</p>
+      </div>
       <div class="proj-actions">
         <a class="btn btn--primary" href="https://github.com/salmanadnan2257/custom-web-scraper" rel="noopener" target="_blank">View code on GitHub</a>
         <a class="btn btn--ghost" href="../index.html#work">All projects</a>
@@ -90,7 +94,7 @@
         <div class="proj-viz__frame">
           <iframe src="../viz/custom-web-scraper.html" title="Interactive 3D visualization: Web Element Inspector" loading="lazy" allow="fullscreen"></iframe>
         </div>
-        <figcaption>DOM Constellation: the locator sweeps the tree and the matched element lights up. Live and interactive, it follows your pointer. <a href="../viz/custom-web-scraper.html" target="_blank" rel="noopener">Open full screen</a></figcaption>
+        <figcaption>DOM Constellation: the locator sweeps the tree and the matched element lights up. Live and interactive: drag it to orbit, scroll or pinch to zoom. <a href="../viz/custom-web-scraper.html" target="_blank" rel="noopener">Open full screen</a></figcaption>
       </figure>
 
       <figure class="proj-media">

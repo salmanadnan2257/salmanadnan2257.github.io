@@ -76,6 +76,10 @@
       <p class="proj-kicker">postgres-scaling-lab</p>
       <h1 id="proj-title" class="proj-title">Postgres Scaling Lab</h1>
       <p class="proj-lede">A three-part study of scaling a single PostgreSQL node before reaching for NoSQL: find slow queries and index them, partition a time-series table, then add streaming read replicas with read and write routing in the application.</p>
+      <div class="proj-plain">
+        <span class="proj-plain__label">In plain English</span>
+        <p>A database is where a piece of software keeps all its information, and when it starts feeling slow the tempting move is to throw it away and buy a different kind. This is a study of how much speed you can get out of the one you already have. Adding an index, which works like the index at the back of a book that sends you straight to the right page instead of making you read every page, took one common lookup from 35 milliseconds down to 0.5. It also reports an honest failure: one of the reorganisations made a different kind of lookup about 70 percent slower, and knowing that trade-off before you commit to it is the whole point.</p>
+      </div>
       <div class="proj-actions">
         <a class="btn btn--primary" href="https://github.com/salmanadnan2257/postgres-scaling-lab" rel="noopener" target="_blank">View code on GitHub</a>
         <a class="btn btn--ghost" href="../index.html#work">All projects</a>
@@ -90,12 +94,12 @@
         <div class="proj-viz__frame">
           <iframe src="../viz/postgres-scaling-lab.html" title="Interactive 3D visualization: Postgres Scaling Lab" loading="lazy" allow="fullscreen"></iframe>
         </div>
-        <figcaption>Shard and Stream: the monolith splits, the WAL streams, the replicas catch up. Live and interactive, it follows your pointer. <a href="../viz/postgres-scaling-lab.html" target="_blank" rel="noopener">Open full screen</a></figcaption>
+        <figcaption>Shard and Stream: the monolith splits, the WAL streams, the replicas catch up. Live and interactive: drag it to orbit, scroll or pinch to zoom. <a href="../viz/postgres-scaling-lab.html" target="_blank" rel="noopener">Open full screen</a></figcaption>
       </figure>
 
       <figure class="proj-media">
         <img src="../assets/screenshots/postgres-scaling-lab.webp" alt="Real terminal output of EXPLAIN ANALYZE before and after adding an index, on a live local Postgres cluster." loading="lazy" decoding="async" width="1400" height="868">
-        <figcaption>A real query dropped from 75ms to 0.1ms after indexing (about 650x).</figcaption>
+        <figcaption>A scratch local Postgres cluster running this repo's own schema (100k users, 500k orders) and its <code>idx_users_email</code> index: the email lookup goes from a 75.1 ms sequential scan to a 0.115 ms index scan. The 35 ms to 0.5 ms figure quoted below is the same query measured on the original course Docker setup; different machine, same fix.</figcaption>
       </figure>
 
       <div class="proj-stats">

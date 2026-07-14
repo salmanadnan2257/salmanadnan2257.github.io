@@ -76,6 +76,10 @@
       <p class="proj-kicker">urdu-slm</p>
       <h1 id="proj-title" class="proj-title">Urdu Language Model, from scratch</h1>
       <p class="proj-lede">A small Urdu language model trained from scratch: the full stack, from raw public text to a decoder-only transformer, built for a low-resource language that off-the-shelf tokenizers and models handle poorly.</p>
+      <div class="proj-plain">
+        <span class="proj-plain__label">In plain English</span>
+        <p>The AI tools that read and write text are built mostly around English, and they handle Urdu badly, chopping its words into far more little pieces than they need to. This project builds one for Urdu instead, from the ground up: collecting and cleaning millions of pages of freely available Urdu text, teaching the program to split Urdu into sensible pieces, then training it on a rented high-powered computer for about $13. The splitting worked, it needs roughly a fifth of the pieces that a well-known English-first tool spends on the same Urdu passage. The finished model writes fluent Urdu in the correct script, but it is small, it still wanders off topic and gets facts wrong, and this page reports that with the numbers rather than hiding it.</p>
+      </div>
       <div class="proj-actions">
         <a class="btn btn--primary" href="https://github.com/salmanadnan2257/urdu-slm" rel="noopener" target="_blank">View code on GitHub</a>
         <a class="btn btn--ghost" href="../index.html#work">All projects</a>
@@ -90,7 +94,7 @@
         <div class="proj-viz__frame">
           <iframe src="../viz/urdu-slm.html" title="Interactive 3D visualization: Urdu Language Model" loading="lazy" allow="fullscreen"></iframe>
         </div>
-        <figcaption>Attention Loom: tokens stream right to left, the way Urdu reads, weaving attention as they go. Live and interactive, it follows your pointer. <a href="../viz/urdu-slm.html" target="_blank" rel="noopener">Open full screen</a></figcaption>
+        <figcaption>Attention Loom: tokens stream right to left, the way Urdu reads, weaving attention as they go. Live and interactive: drag it to orbit, scroll or pinch to zoom. <a href="../viz/urdu-slm.html" target="_blank" rel="noopener">Open full screen</a></figcaption>
       </figure>
 
       <figure class="proj-media">
@@ -100,7 +104,6 @@
 
       <div class="proj-stats">
           <div class="proj-stat"><b>5.23x</b><span>fewer tokens than GPT-2 on Urdu</span></div>
-          <div class="proj-stat"><b>28.93</b><span>held-out perplexity, base model v2</span></div>
           <div class="proj-stat"><b>99.75%</b><span>generations in correct Urdu script</span></div>
           <div class="proj-stat"><b>2.5B</b><span>tokens, v2 corpus, ~$13 total</span></div>
       </div>

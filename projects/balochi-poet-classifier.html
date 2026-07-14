@@ -76,6 +76,10 @@
       <p class="proj-kicker">balochi-poet-classifier</p>
       <h1 id="proj-title" class="proj-title">Balochi Poet Classifier <span class="badge badge--purple">Team</span></h1>
       <p class="proj-lede">Authorship attribution for Balochi poetry: given a single couplet, predict which of three poets wrote it, by fine-tuning xlm-roberta-base for 3-way sequence classification. Balochi is a low-resource language with almost no prior computational work, which is the point.</p>
+      <div class="proj-plain">
+        <span class="proj-plain__label">In plain English</span>
+        <p>Given two lines of Balochi poetry, can a computer work out which of three poets wrote them? That is what this university team project set out to test, using a collection of 1,670 verses gathered from an archive and from published books, then checked by hand. Balochi is a language that has almost no computer tools built for it, so even assembling the labelled poetry is part of the contribution. Salman built the part that cleans up the verses and teaches the computer to tell the poets apart; the teaching step needs a faster machine than the one he had, so no success rate is claimed yet.</p>
+      </div>
       <div class="proj-actions">
         <a class="btn btn--primary" href="https://github.com/salmanadnan2257/balochi-poet-classifier" rel="noopener" target="_blank">View code on GitHub</a>
         <a class="btn btn--ghost" href="../index.html#work">All projects</a>
@@ -90,7 +94,7 @@
         <div class="proj-viz__frame">
           <iframe src="../viz/balochi-poet-classifier.html" title="Interactive 3D visualization: Balochi Poet Classifier" loading="lazy" allow="fullscreen"></iframe>
         </div>
-        <figcaption>Verse Constellations: scattered verses find their poets, drift apart, and find them again. Live and interactive, it follows your pointer. <a href="../viz/balochi-poet-classifier.html" target="_blank" rel="noopener">Open full screen</a></figcaption>
+        <figcaption>Verse Constellations: scattered verses find their poets, drift apart, and find them again. Live and interactive: drag it to orbit, scroll or pinch to zoom. <a href="../viz/balochi-poet-classifier.html" target="_blank" rel="noopener">Open full screen</a></figcaption>
       </figure>
 
       <figure class="proj-media">
@@ -101,7 +105,6 @@
       <div class="proj-stats">
           <div class="proj-stat"><b>1,670</b><span>labelled couplets</span></div>
           <div class="proj-stat"><b>3</b><span>poets classified</span></div>
-          <div class="proj-stat"><b>70/15/15</b><span>stratified split</span></div>
           <div class="proj-stat"><b>~278M</b><span>XLM-R parameters</span></div>
       </div>
 

@@ -76,6 +76,10 @@
       <p class="proj-kicker">agent-runtime</p>
       <h1 id="proj-title" class="proj-title">Agent Runtime</h1>
       <p class="proj-lede">An event-sourced runtime for tool-using LLM agents, with the operations layer that agent demos usually skip: deterministic replay, crash-safe resume, an approval gate for side effects, config-driven failure injection, and a YAML scenario suite that regression-tests agent behavior between model versions.</p>
+      <div class="proj-plain">
+        <span class="proj-plain__label">In plain English</span>
+        <p>This is the record-keeping and safety layer that wraps an AI assistant once it is handed real tools and told to go do things: read a file, draft an email, put something on a calendar. Every step it takes is written down in a log, so the whole run can be played back later exactly as it happened; it has to stop and ask a person before doing anything with real consequences; and if the computer crashes halfway through, it picks up where it left off without repeating what it already did. All of that is held in place by 93 tests. Those tests run against a stand-in model that answers from a script rather than a live one, because no API keys were available, so nothing here has been proved against a real AI service and this page says so plainly.</p>
+      </div>
       <div class="proj-actions">
         <a class="btn btn--primary" href="https://github.com/salmanadnan2257/agent-runtime" rel="noopener" target="_blank">View code on GitHub</a>
         <a class="btn btn--ghost" href="../index.html#work">All projects</a>
@@ -90,7 +94,7 @@
         <div class="proj-viz__frame">
           <iframe src="../viz/agent-runtime.html" title="Interactive 3D visualization: Agent Runtime" loading="lazy" allow="fullscreen"></iframe>
         </div>
-        <figcaption>Event Helix: a run is written once, then replayed into a perfectly identical ghost. Live and interactive, it follows your pointer. <a href="../viz/agent-runtime.html" target="_blank" rel="noopener">Open full screen</a></figcaption>
+        <figcaption>Event Helix: a run is written once, then replayed into a perfectly identical ghost. Live and interactive: drag it to orbit, scroll or pinch to zoom. <a href="../viz/agent-runtime.html" target="_blank" rel="noopener">Open full screen</a></figcaption>
       </figure>
 
       <figure class="proj-media">
@@ -101,7 +105,6 @@
       <div class="proj-stats">
           <div class="proj-stat"><b>93</b><span>tests, all offline</span></div>
           <div class="proj-stat"><b>byte-identical</b><span>deterministic replay</span></div>
-          <div class="proj-stat"><b>24</b><span>YAML regression scenarios</span></div>
           <div class="proj-stat"><b>1</b><span>side effect on crash-resume</span></div>
       </div>
 

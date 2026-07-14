@@ -75,6 +75,10 @@
       <p class="proj-kicker">reelflow-studio</p>
       <h1 id="proj-title" class="proj-title">ReelFlow Studio</h1>
       <p class="proj-lede">A single-file operator console for a set of n8n automation workflows: video approval and publishing, LinkedIn content generation, and a scripting agent. The browser talks directly to n8n webhooks, with retry logic so a flaky workflow run never silently drops an approval.</p>
+      <div class="proj-plain">
+        <span class="proj-plain__label">In plain English</span>
+        <p>A client of Salman's agency runs its video publishing through a chain of automated steps that had no screen a person could actually look at, so approving a video meant reaching into the machinery. This is the missing screen: one page with a button for each decision, review the video, caption it, publish it, schedule it. The real work is in the fact that those automated steps sometimes stall or die halfway, so every button is built to try again up to six times and to count a job as done only once the automation reports back that it finished, which is the design meant to stop an approval from quietly disappearing. That design has not been put through a full run against the client's live system on this page, because the system is private, so the demo linked here runs the same loop on a made-up queue of videos instead.</p>
+      </div>
       <div class="proj-actions">
         <a class="btn btn--primary" href="/demo/reelflow-studio/" rel="noopener">Try the live demo</a>
         <a class="btn btn--ghost" href="../index.html#work">All projects</a>
@@ -89,7 +93,7 @@
         <div class="proj-viz__frame">
           <iframe src="../viz/reelflow-studio.html" title="Interactive 3D visualization: ReelFlow Studio" loading="lazy" allow="fullscreen"></iframe>
         </div>
-        <figcaption>Filmstrip Flow: frames ride the ribbon, take their captions, and ship. Live and interactive, it follows your pointer. <a href="../viz/reelflow-studio.html" target="_blank" rel="noopener">Open full screen</a></figcaption>
+        <figcaption>Filmstrip Flow: frames ride the ribbon, take their captions, and ship. Live and interactive: drag it to orbit, scroll or pinch to zoom. <a href="../viz/reelflow-studio.html" target="_blank" rel="noopener">Open full screen</a></figcaption>
       </figure>
 
       <figure class="proj-media">

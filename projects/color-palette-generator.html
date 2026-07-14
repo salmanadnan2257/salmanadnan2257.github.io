@@ -76,6 +76,10 @@
       <p class="proj-kicker">color-palette-generator</p>
       <h1 id="proj-title" class="proj-title">Color Palette Generator</h1>
       <p class="proj-lede">A Flask web app that extracts the dominant colors from an uploaded image and renders them as a set of swatch cards (hex, RGB, share of the image) next to a preview of the source image. It computes the 10 most frequent exact RGB values with <code>numpy.unique</code>, with no database, no external API calls, and no state shared between visitors.</p>
+      <div class="proj-plain">
+        <span class="proj-plain__label">In plain English</span>
+        <p>Drop in a picture and this page shows you the ten colours that appear in it most, how much of the image each one covers, and the exact code for each colour so you can copy it and use it somewhere else. It is useful if you are choosing colours for a website, a poster, or a mood board and want them to match a photo you already like. It is entirely self-contained: nothing is sent off to another company's service and nothing is stored, so one person's picture can never turn up in someone else's results.</p>
+      </div>
       <div class="proj-actions">
         <a class="btn btn--primary" href="https://github.com/salmanadnan2257/color-palette-generator" rel="noopener" target="_blank">View code on GitHub</a>
         <a class="btn btn--ghost" href="../index.html#work">All projects</a>
@@ -90,7 +94,7 @@
         <div class="proj-viz__frame">
           <iframe src="../viz/color-palette-generator.html" title="Interactive 3D visualization: Color Palette Generator" loading="lazy" allow="fullscreen"></iframe>
         </div>
-        <figcaption>K-means Bloom: a pixel cloud finds its five true colors and hangs them up. Live and interactive, it follows your pointer. <a href="../viz/color-palette-generator.html" target="_blank" rel="noopener">Open full screen</a></figcaption>
+        <figcaption>Swatch Bloom: an abstract piece, not the algorithm. A pixel cloud gathers into swatch bars and hangs them up as a palette card. The app itself is simpler: it counts every exact RGB value with numpy and returns the ten most common. Live and interactive: drag it to orbit, scroll or pinch to zoom. <a href="../viz/color-palette-generator.html" target="_blank" rel="noopener">Open full screen</a></figcaption>
       </figure>
 
       <figure class="proj-media">

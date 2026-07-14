@@ -76,6 +76,10 @@
       <p class="proj-kicker">voice-agent</p>
       <h1 id="proj-title" class="proj-title">Voice Appointment Agent</h1>
       <p class="proj-lede">A phone agent that answers a real Twilio line and books, reschedules, or cancels appointments in natural conversation. Gemini handles the language, a SQLite calendar handles real conflict detection, and the whole multi-turn flow has been proven end to end over a real public tunnel with a genuine Twilio signature, not just unit-tested in isolation.</p>
+      <div class="proj-plain">
+        <span class="proj-plain__label">In plain English</span>
+        <p>A phone line that answers itself. Someone calls, speaks normally, and this program books, moves, or cancels their appointment: it asks for whatever details are missing, checks the appointment book so it never gives away a slot that is already taken, reads the booking back for confirmation before saving it, and passes the caller to a human message if it still cannot understand them after a few tries. The kind of place that would want this is a small clinic or salon whose phone keeps ringing while everyone is busy. It was proved by running a real three-turn booking conversation over the open internet that ended with a real appointment written into the calendar; what it has not yet faced is a real human voice, and this page says so plainly.</p>
+      </div>
       <div class="proj-actions">
         <a class="btn btn--primary" href="https://github.com/salmanadnan2257/voice-agent" rel="noopener" target="_blank">View code on GitHub</a>
         <a class="btn btn--ghost" href="../index.html#work">All projects</a>
@@ -90,7 +94,7 @@
         <div class="proj-viz__frame">
           <iframe src="../viz/voice-agent.html" title="Interactive 3D visualization: Voice Appointment Agent" loading="lazy" allow="fullscreen"></iframe>
         </div>
-        <figcaption>Voiceprint Torus: two voices take turns around the ring until a slot clicks into place. Live and interactive, it follows your pointer. <a href="../viz/voice-agent.html" target="_blank" rel="noopener">Open full screen</a></figcaption>
+        <figcaption>Voiceprint Torus: two voices take turns around the ring until a slot clicks into place. Live and interactive: drag it to orbit, scroll or pinch to zoom. <a href="../viz/voice-agent.html" target="_blank" rel="noopener">Open full screen</a></figcaption>
       </figure>
 
       <figure class="proj-media">
@@ -102,7 +106,6 @@
           <div class="proj-stat"><b>54 / 54</b><span>tests passing</span></div>
           <div class="proj-stat"><b>25 / 25</b><span>scripted scenarios</span></div>
           <div class="proj-stat"><b>3-turn</b><span>real signed booking, verified</span></div>
-          <div class="proj-stat"><b>&lt;$0.01</b><span>total real API cost</span></div>
       </div>
 
     </div>

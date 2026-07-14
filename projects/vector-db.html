@@ -76,6 +76,10 @@
       <p class="proj-kicker">vector-db</p>
       <h1 id="proj-title" class="proj-title">Vector Database Engine</h1>
       <p class="proj-lede">A vector database engine written from scratch in Python, built around an HNSW index implemented directly from the paper rather than wrapping a library. Approximate nearest-neighbor search with configurable recall, exact brute-force ground truth, metadata-filtered kNN, crash-safe WAL persistence, and a small HTTP server.</p>
+      <div class="proj-plain">
+        <span class="proj-plain__label">In plain English</span>
+        <p>This is the kind of search tool that finds things by meaning rather than by matching exact words, the way a librarian can hand you a book that is about what you asked for even though you never said its title. It was built from the ground up, working from the original research paper instead of using a ready-made library, then tested against 17,000 real pieces of text: it found the right matches at least as often as FAISS, an established library that professionals use, though FAISS is the faster tool by a wide margin, answering each search roughly 10 to 13 times quicker and preparing its search index in seconds where this one needs about 20 minutes, because FAISS is written in a faster programming language. It also writes down every change as it happens, so that when a test deliberately kills the program mid-write, nothing is lost.</p>
+      </div>
       <div class="proj-actions">
         <a class="btn btn--primary" href="https://github.com/salmanadnan2257/vector-db" rel="noopener" target="_blank">View code on GitHub</a>
         <a class="btn btn--ghost" href="../index.html#work">All projects</a>
@@ -84,7 +88,7 @@
         <div class="proj-viz__frame">
           <iframe src="../viz/vector-db.html" title="Interactive 3D visualization: Vector Database Engine" loading="lazy" allow="fullscreen"></iframe>
         </div>
-        <figcaption>HNSW Descent: a greedy search hops the sparse top layer, then drops and closes in. Live and interactive, it follows your pointer. <a href="../viz/vector-db.html" target="_blank" rel="noopener">Open full screen</a></figcaption>
+        <figcaption>HNSW Descent: a greedy search hops the sparse top layer, then drops and closes in. Live and interactive: drag it to orbit, scroll or pinch to zoom. <a href="../viz/vector-db.html" target="_blank" rel="noopener">Open full screen</a></figcaption>
       </figure>
 
       <figure class="proj-media">
@@ -93,7 +97,6 @@
       </figure>
 
       <div class="proj-stats">
-          <div class="proj-stat"><b>25</b><span>tests passing</span></div>
           <div class="proj-stat"><b>0.9997</b><span>recall@10 at efSearch 320</span></div>
           <div class="proj-stat"><b>matches FAISS</b><span>recall at matched params</span></div>
           <div class="proj-stat"><b>17,000</b><span>vectors indexed (768-dim)</span></div>

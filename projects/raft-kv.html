@@ -76,6 +76,10 @@
       <p class="proj-kicker">raft-kv</p>
       <h1 id="proj-title" class="proj-title">Raft Consensus KV Store</h1>
       <p class="proj-lede">A distributed key-value store with Raft consensus implemented from scratch in Python, plus a deterministic simulation harness that runs thousands of seeded chaos schedules against the real consensus code, and a from-scratch linearizability checker that verifies the client histories those runs produce.</p>
+      <div class="proj-plain">
+        <span class="proj-plain__label">In plain English</span>
+        <p>Important information is usually kept on several computers at once, so that if one of them dies, nothing is lost. The hard part is keeping them in agreement, rather like a team that has to maintain one shared to-do list while the phone lines keep cutting out and people keep leaving the room mid-sentence; whatever happens, they must never end up with two different lists that both look correct. This project builds that agreement from scratch and then attacks it on purpose, putting a group of machines through thousands of randomly generated disasters: lost messages, machines crashing, the network sliced in half. Across 5,000 of those runs, covering 564,170 recorded reads and writes, the stored data never once contradicted itself.</p>
+      </div>
       <div class="proj-actions">
         <a class="btn btn--primary" href="https://github.com/salmanadnan2257/raft-kv" rel="noopener" target="_blank">View code on GitHub</a>
         <a class="btn btn--ghost" href="../index.html#work">All projects</a>
@@ -84,19 +88,18 @@
         <div class="proj-viz__frame">
           <iframe src="../viz/raft-kv.html" title="Interactive 3D visualization: Raft Consensus KV Store" loading="lazy" allow="fullscreen"></iframe>
         </div>
-        <figcaption>Consensus Ring: heartbeats, replication, a partition, an election, and the cluster heals. Live and interactive, it follows your pointer. <a href="../viz/raft-kv.html" target="_blank" rel="noopener">Open full screen</a></figcaption>
+        <figcaption>Consensus Ring: heartbeats, replication, a partition, an election, and the cluster heals. Live and interactive: drag it to orbit, scroll or pinch to zoom. <a href="../viz/raft-kv.html" target="_blank" rel="noopener">Open full screen</a></figcaption>
       </figure>
 
       <figure class="proj-media">
         <img src="../assets/screenshots/raft-kv.webp" alt="Terminal output from a real pytest run and a 150-seed chaos simulation of raft-kv, all passing with zero linearizability violations." loading="lazy" decoding="async" width="1200" height="800">
-        <figcaption>56 tests passed; 150-seed chaos sweep, 16,604 client ops, 0 failures.</figcaption>
+        <figcaption>The suite is 57 tests; this run deselects the one slow sweep, so 56 pass here. Below it: a 150-seed chaos sweep, 16,604 client ops, 0 failures.</figcaption>
       </figure>
 
       <div class="proj-stats">
           <div class="proj-stat"><b>57</b><span>tests passing</span></div>
           <div class="proj-stat"><b>5,000</b><span>seed chaos sweep</span></div>
           <div class="proj-stat"><b>564,170</b><span>client ops, 0 violations</span></div>
-          <div class="proj-stat"><b>0</b><span>runtime dependencies</span></div>
       </div>
 
     </div>

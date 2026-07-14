@@ -76,6 +76,10 @@
       <p class="proj-kicker">sqlmill</p>
       <h1 id="proj-title" class="proj-title">SQL Database Engine</h1>
       <p class="proj-lede">A relational database engine written from scratch in Python: a hand-written SQL parser, a cost-based planner, B+tree storage on slotted 4KB pages, a write-ahead log with real crash recovery, and MVCC snapshot-isolation transactions. The core uses only the standard library.</p>
+      <div class="proj-plain">
+        <span class="proj-plain__label">In plain English</span>
+        <p>A database is the filing cabinet a program keeps its information in. This is one built from scratch, and the hard part is making sure that if the power cuts out in the middle of a write, nothing is lost or scrambled when it starts back up. It was tested by killing it 300 times at random moments; every time, the data came back intact, and 8,504 pieces of finished work were confirmed still there. As a second check, 300 questions were put to both this database and to SQLite, a long-established database that ships with Python, and all 300 answers matched.</p>
+      </div>
       <div class="proj-actions">
         <a class="btn btn--primary" href="https://github.com/salmanadnan2257/sqlmill" rel="noopener" target="_blank">View code on GitHub</a>
         <a class="btn btn--ghost" href="../index.html#work">All projects</a>
@@ -84,7 +88,7 @@
         <div class="proj-viz__frame">
           <iframe src="../viz/sqlmill.html" title="Interactive 3D visualization: SQL Database Engine" loading="lazy" allow="fullscreen"></iframe>
         </div>
-        <figcaption>B+tree Pulse: queries descend the tree, range scans sweep the leaves, the WAL never stops. Live and interactive, it follows your pointer. <a href="../viz/sqlmill.html" target="_blank" rel="noopener">Open full screen</a></figcaption>
+        <figcaption>B+tree Pulse: queries descend the tree, range scans sweep the leaves, the WAL never stops. Live and interactive: drag it to orbit, scroll or pinch to zoom. <a href="../viz/sqlmill.html" target="_blank" rel="noopener">Open full screen</a></figcaption>
       </figure>
 
       <figure class="proj-media">
@@ -93,7 +97,6 @@
       </figure>
 
       <div class="proj-stats">
-          <div class="proj-stat"><b>85</b><span>tests passing</span></div>
           <div class="proj-stat"><b>300 / 300</b><span>SIGKILL crash rounds</span></div>
           <div class="proj-stat"><b>300 / 300</b><span>queries match SQLite</span></div>
           <div class="proj-stat"><b>8,504</b><span>committed txns verified durable</span></div>

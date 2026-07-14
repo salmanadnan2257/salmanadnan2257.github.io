@@ -76,6 +76,10 @@
       <p class="proj-kicker">disappearing-text-app</p>
       <h1 id="proj-title" class="proj-title">Disappearing Text</h1>
       <p class="proj-lede">A tiny desktop toy: type into a text box and watch it dissolve. A ring drains and the text color fades toward the background over a countdown that resets on every keystroke; stop typing and the box clears itself once the ring runs out.</p>
+      <div class="proj-plain">
+        <span class="proj-plain__label">In plain English</span>
+        <p>A small desktop toy. You type into a box, and if you stop typing the words slowly fade until the box wipes itself clean; a ring above the box drains like an egg timer and shifts from blue to red so you can see the deadline coming, and typing a letter, a number, or a punctuation mark puts it back to full, while keys that add no text, such as the arrows, backspace, and shift, leave the countdown running. You choose how long a pause you are allowed, anywhere from two to fifteen seconds. It was built to practice one specific thing: taking a countdown that normally happens invisibly, behind the scenes, and turning it into something a person can actually watch.</p>
+      </div>
       <div class="proj-actions">
         <a class="btn btn--primary" href="https://github.com/salmanadnan2257/disappearing-text-app" rel="noopener" target="_blank">View code on GitHub</a>
         <a class="btn btn--ghost" href="../index.html#work">All projects</a>
@@ -90,7 +94,7 @@
         <div class="proj-viz__frame">
           <iframe src="../viz/disappearing-text-app.html" title="Interactive 3D visualization: Disappearing Text" loading="lazy" allow="fullscreen"></iframe>
         </div>
-        <figcaption>Fading Words: keep writing or watch the sentence return to ash. Live and interactive, it follows your pointer. <a href="../viz/disappearing-text-app.html" target="_blank" rel="noopener">Open full screen</a></figcaption>
+        <figcaption>Fading Words: keep writing or watch the sentence return to ash. Live and interactive: drag it to orbit, scroll or pinch to zoom. <a href="../viz/disappearing-text-app.html" target="_blank" rel="noopener">Open full screen</a></figcaption>
       </figure>
 
       <figure class="proj-media">
@@ -126,7 +130,7 @@
       </section>
       <section class="proj-section">
         <h2>Verification</h2>
-        <div class="proj-callout"><p>The `<Key>` handler filters to `event.char.isprintable()` so arrows, backspace, and modifier keys don't reset the fade timer, verified by design against tkinter's default Text widget handling. The ring and text fade are both driven off the same `remaining` fraction each tick, so they always agree with each other and with when the box actually clears. `Canvas.delete("all")` plus a full redraw every 40ms was confirmed to run flicker-free at the ring's small 64x64 size.</p></div>
+        <div class="proj-callout"><p>The `&lt;Key&gt;` handler filters to `event.char.isprintable()` so arrows, backspace, and modifier keys don't reset the fade timer, verified by design against tkinter's default Text widget handling. The ring and text fade are both driven off the same `remaining` fraction each tick, so they always agree with each other and with when the box actually clears. `Canvas.delete("all")` plus a full redraw every 40ms was confirmed to run flicker-free at the ring's small 64x64 size.</p></div>
       </section>
       <section class="proj-section">
         <h2>Tech stack</h2>

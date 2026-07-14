@@ -76,6 +76,10 @@
       <p class="proj-kicker">flask-todo-list</p>
       <h1 id="proj-title" class="proj-title">Flask TODO List</h1>
       <p class="proj-lede">A small multi-user TODO list web app built with Flask, SQLAlchemy, and Flask-Login. Each user registers an account, logs in, and keeps their own private list of tasks, managed through an AJAX interface that falls back cleanly to plain form posts.</p>
+      <div class="proj-plain">
+        <span class="proj-plain__label">In plain English</span>
+        <p>A to-do list you use in a web browser. Each person makes their own account and only ever sees their own tasks; you add a task, tick it off, or delete it, and the page updates on the spot without reloading, though it still works for someone whose browser blocks that kind of instant updating. The part worth knowing is what was wrong before: passwords were being saved as plain readable words, so anyone who got hold of the stored data could read them straight off. Now only a scrambled version is ever kept, and an old readable password no longer gets you in.</p>
+      </div>
       <div class="proj-actions">
         <a class="btn btn--primary" href="https://github.com/salmanadnan2257/flask-todo-list" rel="noopener" target="_blank">View code on GitHub</a>
         <a class="btn btn--ghost" href="../index.html#work">All projects</a>
@@ -90,7 +94,7 @@
         <div class="proj-viz__frame">
           <iframe src="../viz/flask-todo-list.html" title="Interactive 3D visualization: Flask TODO List" loading="lazy" allow="fullscreen"></iframe>
         </div>
-        <figcaption>Done and Gone: a check lands, the card glows, and it leaves as dust. Live and interactive, it follows your pointer. <a href="../viz/flask-todo-list.html" target="_blank" rel="noopener">Open full screen</a></figcaption>
+        <figcaption>Done and Gone: a check lands, the card glows, and it leaves as dust. Live and interactive: drag it to orbit, scroll or pinch to zoom. <a href="../viz/flask-todo-list.html" target="_blank" rel="noopener">Open full screen</a></figcaption>
       </figure>
 
       <figure class="proj-media">

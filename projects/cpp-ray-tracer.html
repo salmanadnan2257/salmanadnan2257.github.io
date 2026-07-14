@@ -76,6 +76,10 @@
       <p class="proj-kicker">cpp-ray-tracer</p>
       <h1 id="proj-title" class="proj-title">C++ Ray Tracer <span class="badge badge--purple">Team</span></h1>
       <p class="proj-lede">A CPU ray tracer in C++17 whose showcase scene, Crystal Cavern, is a procedurally generated cave of 1.29 million triangles rendered at 1920x1080 with Whitted recursive tracing, a reflective floor, Phong crystals, and multiple shadow-casting lights.</p>
+      <div class="proj-plain">
+        <span class="proj-plain__label">In plain English</span>
+        <p>This program draws a picture of a scene that does not exist by following rays of light around it, which is roughly how animated films get their believable shadows and reflections. The showcase scene is a crystal cave built out of 1.29 million tiny triangles, and one full-size picture of it takes about nine minutes to draw. The hard part is that testing every ray of light against every single triangle is hopelessly slow, so the shapes are grouped in a way that lets the program skip nearly all of them, which is where almost all the speed came from. It was a three-person university project; Salman wrote the part that decides how each surface catches the light, whether it looks dull, glossy, or mirror-like.</p>
+      </div>
       <div class="proj-actions">
         <a class="btn btn--primary" href="https://github.com/salmanadnan2257/cpp-ray-tracer" rel="noopener" target="_blank">View code on GitHub</a>
         <a class="btn btn--ghost" href="../index.html#work">All projects</a>
@@ -90,7 +94,7 @@
         <div class="proj-viz__frame">
           <iframe src="../viz/cpp-ray-tracer.html" title="Interactive 3D visualization: C++ Ray Tracer" loading="lazy" allow="fullscreen"></iframe>
         </div>
-        <figcaption>Rays Made Visible: reflect, refract, scatter. The renderer's inner life, animated. Live and interactive, it follows your pointer. <a href="../viz/cpp-ray-tracer.html" target="_blank" rel="noopener">Open full screen</a></figcaption>
+        <figcaption>Rays Made Visible: reflect, refract, scatter. The renderer's inner life, animated. Live and interactive: drag it to orbit, scroll or pinch to zoom. <a href="../viz/cpp-ray-tracer.html" target="_blank" rel="noopener">Open full screen</a></figcaption>
       </figure>
 
       <figure class="proj-media">

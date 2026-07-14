@@ -491,17 +491,35 @@ a { color: inherit; text-decoration: none; }
   border-radius: 999px;
   background: var(--cream-2);
 }
+/* The card is one big link, so its call to action is a styled span, not a
+   nested button. It carries the card's accent so the eye lands on it. */
 .pcard__go {
   margin-top: auto;
-  font-weight: 700;
-  font-size: 0.92rem;
+  align-self: flex-start;
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  justify-content: center;
+  gap: 10px;
+  font-weight: 800;
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  padding: 13px 22px;
+  color: #000;
+  background: var(--accent, var(--coral));
+  border: 3px solid var(--ink);
+  box-shadow: 5px 5px 0 var(--ink);
+  transition: transform .12s ease-out, box-shadow .12s ease-out;
 }
+.pcard:hover .pcard__go, .pcard:focus-visible .pcard__go {
+  transform: translate(-2px, -2px);
+  box-shadow: 7px 7px 0 var(--ink);
+}
+.pcard:active .pcard__go { transform: translate(3px, 3px); box-shadow: 0 0 0 var(--ink); }
 .pcard:hover .pcard__go span, .pcard:focus-visible .pcard__go span { transform: translateX(4px); }
 .pcard__go span { transition: transform .14s ease; display: inline-block; }
 @media (prefers-reduced-motion: reduce) {
+  .pcard:hover .pcard__go, .pcard:focus-visible .pcard__go { transform: none; box-shadow: 5px 5px 0 var(--ink); }
   .pcard:hover .pcard__go span, .pcard:focus-visible .pcard__go span { transform: none; }
 }
 
@@ -552,13 +570,33 @@ a { color: inherit; text-decoration: none; }
 .mini .badge { font-size: 9px; padding: 2px 7px; margin-left: 4px; }
 .mini__go {
   margin-top: auto;
-  font-weight: 700;
-  font-size: 0.82rem;
-  color: var(--ink);
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-weight: 800;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 10px 16px;
+  color: #000;
+  background: var(--accent, var(--yellow));
+  border: 3px solid var(--ink);
+  box-shadow: 4px 4px 0 var(--ink);
+  transition: transform .12s ease-out, box-shadow .12s ease-out;
 }
+.mini:hover .mini__go, .mini:focus-visible .mini__go {
+  transform: translate(-2px, -2px);
+  box-shadow: 6px 6px 0 var(--ink);
+}
+.mini:active .mini__go { transform: translate(2px, 2px); box-shadow: 0 0 0 var(--ink); }
 .mini:hover .mini__go span, .mini:focus-visible .mini__go span { transform: translateX(3px); }
 .mini__go span { display: inline-block; transition: transform .12s ease; }
-@media (prefers-reduced-motion: reduce) { .mini:hover .mini__go span, .mini:focus-visible .mini__go span { transform: none; } }
+@media (prefers-reduced-motion: reduce) {
+  .mini:hover .mini__go, .mini:focus-visible .mini__go { transform: none; box-shadow: 4px 4px 0 var(--ink); }
+  .mini:hover .mini__go span, .mini:focus-visible .mini__go span { transform: none; }
+}
 
 /* ---------- Process ---------- */
 .steps {
@@ -758,6 +796,28 @@ a { color: inherit; text-decoration: none; }
   max-width: 62ch;
   margin: 0 0 26px;
 }
+/* Plain English first. A visitor who does not write software should be able to
+   read one box and know what this thing is and who it helps, before meeting a
+   single technical term. */
+.proj-plain {
+  max-width: 62ch;
+  margin: 0 0 26px;
+  padding: 18px 20px;
+  background: var(--cream);
+  border: 3px solid var(--ink);
+  box-shadow: 5px 5px 0 var(--ink);
+}
+.proj-plain__label {
+  display: block;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+.proj-plain p { margin: 0; font-size: 1.02rem; line-height: 1.6; }
+
 .proj-actions { display: flex; flex-wrap: wrap; gap: 14px; margin-bottom: 28px; }
 .proj-note {
   display: flex;

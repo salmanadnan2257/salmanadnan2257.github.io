@@ -76,6 +76,10 @@
       <p class="proj-kicker">earnings-regression</p>
       <h1 id="proj-title" class="proj-title">Earnings Regression</h1>
       <p class="proj-lede">A multivariable linear regression that predicts hourly earnings from years of schooling and years of work experience, using a 2,000-row subset of the NLSY97 (National Longitudinal Survey of Youth 1997-2011), served through an interactive Plotly/Flask dashboard as well as a plain headless script.</p>
+      <div class="proj-plain">
+        <span class="proj-plain__label">In plain English</span>
+        <p>Does staying in school longer, or working more years, mean a higher hourly wage? This takes a public survey of American young people and draws a best-fit trend line through it: move two sliders, years of schooling and years of work, and it predicts an hourly wage. The honest answer it produces is that those two facts alone barely predict anything; with only 492 usable survey answers, the model does very slightly worse than simply guessing the average wage for everyone. That failed result is shown on the page rather than quietly dropped, which is really the point of it.</p>
+      </div>
       <div class="proj-actions">
         <a class="btn btn--primary" href="https://github.com/salmanadnan2257/earnings-regression" rel="noopener" target="_blank">View code on GitHub</a>
         <a class="btn btn--ghost" href="../index.html#work">All projects</a>
@@ -90,7 +94,7 @@
         <div class="proj-viz__frame">
           <iframe src="../viz/earnings-regression.html" title="Interactive 3D visualization: Earnings Regression" loading="lazy" allow="fullscreen"></iframe>
         </div>
-        <figcaption>The Fitting Surface: the plane ripples over the scatter until the residuals give in. Live and interactive, it follows your pointer. <a href="../viz/earnings-regression.html" target="_blank" rel="noopener">Open full screen</a></figcaption>
+        <figcaption>The Fitting Surface: the plane ripples over the scatter until the residuals give in. Live and interactive: drag it to orbit, scroll or pinch to zoom. <a href="../viz/earnings-regression.html" target="_blank" rel="noopener">Open full screen</a></figcaption>
       </figure>
 
       <figure class="proj-media">
