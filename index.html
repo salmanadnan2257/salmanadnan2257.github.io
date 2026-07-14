@@ -35,6 +35,13 @@
   <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
   <link rel="stylesheet" href="styles.css?v=20260714">
 
+  <!-- The only inline script on the page. It marks the document as scripted BEFORE
+       first paint, which is what lets the project wall ship expanded in the HTML (so
+       a crawler and a JS-less visitor get all 38 projects) while a scripted visitor
+       sees it collapsed behind the "See all 38 projects" button with no flash of the
+       full grid and no layout shift. -->
+  <script>document.documentElement.className += " js";</script>
+
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
@@ -90,8 +97,27 @@
       <div class="hero__copy">
         <p class="eyebrow">Software Engineer</p>
         <h1 id="hero-title" class="hero__title">
+          <!-- Two cursor glyphs flanking the headline, pointing inward at the words and
+               bobbing in opposite phase. Decoration and nothing else: aria-hidden, never
+               focusable, never a link, and pointer-events: none, so it can never become a
+               control a visitor clicks at and nothing happens. Absolutely positioned, so
+               it costs no layout and cannot shift the headline. It is shown only where
+               there is real room for it (>= 1240px) and never on a phone, and it holds
+               still for anyone who asked for reduced motion. -->
+          <span class="cursor-nudge cursor-nudge--l" aria-hidden="true">
+            <svg viewBox="0 0 26 33" width="30" height="38" focusable="false" role="presentation">
+              <path d="M3 2 L3 25.5 L9.2 19.8 L12.7 28 L16.6 26.2 L13.2 18.3 L21 18 Z" transform="translate(2.6 2.6)" fill="var(--coral)"/>
+              <path d="M3 2 L3 25.5 L9.2 19.8 L12.7 28 L16.6 26.2 L13.2 18.3 L21 18 Z" fill="var(--cream)" stroke="var(--ink)" stroke-width="2.4" stroke-linejoin="round"/>
+            </svg>
+          </span>
           I build the software a business runs on:
           <span class="word-rotator" aria-live="polite"><span class="word-rotator__word" data-words="websites,web apps,automations,AI tools">websites</span></span>.
+          <span class="cursor-nudge cursor-nudge--r" aria-hidden="true">
+            <svg viewBox="0 0 26 33" width="30" height="38" focusable="false" role="presentation">
+              <path d="M3 2 L3 25.5 L9.2 19.8 L12.7 28 L16.6 26.2 L13.2 18.3 L21 18 Z" transform="translate(2.6 2.6)" fill="var(--yellow)"/>
+              <path d="M3 2 L3 25.5 L9.2 19.8 L12.7 28 L16.6 26.2 L13.2 18.3 L21 18 Z" fill="var(--cream)" stroke="var(--ink)" stroke-width="2.4" stroke-linejoin="round"/>
+            </svg>
+          </span>
         </h1>
         <p class="hero__lead">
           Companies hire me to build the things their business depends on, and to keep them
@@ -123,19 +149,6 @@
         <span class="photo-badge">Founder, Digitalise Agency</span>
       </div>
     </div>
-
-    <!-- Background switcher. Sits in normal flow (no absolute positioning, no CLS)
-         and is hidden by default; script.js reveals it only once the canvas is
-         actually running, so nobody is offered a control that does nothing. -->
-    <div class="wrap hero__bgbar" id="hero-bgbar" hidden>
-      <span class="hero__bgbar-label">Background</span>
-      <div class="bgswitch" role="group" aria-label="Header background style">
-        <button class="bgswitch__pick" type="button" data-bg="grid" aria-pressed="false">Live grid</button>
-        <button class="bgswitch__pick" type="button" data-bg="deploy" aria-pressed="false">Deploy line</button>
-        <button class="bgswitch__pick" type="button" data-bg="print" aria-pressed="false">Misregistration</button>
-      </div>
-      <span class="hero__bgbar-note" id="hero-bgnote" hidden>Reduced motion: showing each background still</span>
-    </div>
   </section>
 
   <!-- START HERE: the live, draggable 3D stage.
@@ -162,26 +175,40 @@
           </div>
           <div class="stage__frame" id="stage-frame">
             <img class="stage__poster" id="stage-poster"
-                 src="assets/screenshots/sqlmill.webp"
-                 alt="Benchmark charts for the SQL Database Engine"
+                 src="assets/screenshots/trade-intelligence-copilot.webp"
+                 alt="Evaluation results chart for Trade Intelligence Copilot"
                  width="1200" height="733" decoding="async">
           </div>
         </div>
         <figcaption class="stage__caption" id="stage-caption">
-          <strong>SQL Database Engine.</strong> B+tree Pulse: a search dives down the index to one row, a scan sweeps sideways across many, and every change goes into a safety journal first, so a crash loses nothing.
+          <strong>Trade Intelligence Copilot.</strong> Signal Routes: a question fans out in gold across the world's trade lanes, the answer streams home in coral, and a scoring pass checks every answer as it lands.
         </figcaption>
       </figure>
 
+      <!-- Revealed once a visitor has actually held and turned the model for a moment.
+           A hand already on the thing is the warmest moment on the page, so this is where
+           the invitation to open that exact project belongs. It sits BELOW the canvas and
+           never over it. Its text is rebuilt from the rail's own data, so it always names
+           whichever system is loaded. Collapsed, not absent: see script.js. -->
+      <div class="stage__convert" id="stage-convert">
+        <p class="stage__convert-copy" id="stage-convert-copy"></p>
+        <a class="btn btn--primary" id="stage-convert-cta" href="projects/trade-intelligence-copilot.html">Open it &rarr;</a>
+        <button class="stage__convert-x" id="stage-convert-x" type="button" aria-label="Dismiss this suggestion">&times;</button>
+      </div>
+
+      <!-- The rail is picked on two axes at once: the scene has to stop a stranger who
+           has just landed, and the project underneath it has to survive an interview.
+           Every number below is the one its own project page reports. -->
       <div class="stage__rail" role="group" aria-label="Choose which system runs in 3D">
         <button class="stage__pick is-on" type="button" aria-pressed="true"
-                data-viz="sqlmill"
-                data-title="SQL Database Engine"
-                data-shot="assets/screenshots/sqlmill.webp"
-                data-alt="Benchmark charts for the SQL Database Engine"
-                data-caption="B+tree Pulse: a search dives down the index to one row, a scan sweeps sideways across many, and every change goes into a safety journal first, so a crash loses nothing."
-                data-cta="Killed 300 times, it never lost a byte">
-          <span class="stage__pick-name">SQL Database Engine</span>
-          <span class="stage__pick-num">300 / 300 crash rounds</span>
+                data-viz="trade-intelligence-copilot"
+                data-title="Trade Intelligence Copilot"
+                data-shot="assets/screenshots/trade-intelligence-copilot.webp"
+                data-alt="Evaluation results chart for Trade Intelligence Copilot"
+                data-caption="Signal Routes: a question fans out in gold across the world's trade lanes, the answer streams home in coral, and a scoring pass checks every answer as it lands."
+                data-cta="Watch it refuse to answer">
+          <span class="stage__pick-name">Trade Intelligence Copilot</span>
+          <span class="stage__pick-num">15 / 15 SQL answers correct</span>
         </button>
 
         <button class="stage__pick" type="button" aria-pressed="false"
@@ -196,36 +223,36 @@
         </button>
 
         <button class="stage__pick" type="button" aria-pressed="false"
-                data-viz="inference-engine"
-                data-title="LLM Inference Engine"
-                data-shot="assets/screenshots/inference-engine.webp"
-                data-alt="Benchmark chart for the LLM Inference Engine"
-                data-caption="Paged Attention: the model's short-term memory is filed in fixed-size pages instead of one big block, while a smaller model races ahead guessing the next words."
-                data-cta="The trick that made it slower">
-          <span class="stage__pick-name">LLM Inference Engine</span>
-          <span class="stage__pick-num">113.5 tokens a second, no GPU</span>
-        </button>
-
-        <button class="stage__pick" type="button" aria-pressed="false"
-                data-viz="vector-db"
-                data-title="Vector Database Engine"
-                data-shot="assets/screenshots/vector-db.webp"
-                data-alt="Recall vs throughput chart for the Vector Database Engine"
-                data-caption="HNSW Descent: the search starts on a sparse top map, takes big hops toward the target, then drops to a denser layer and closes in."
-                data-cta="Just as accurate, 10x slower">
-          <span class="stage__pick-name">Vector Database Engine</span>
-          <span class="stage__pick-num">99.97% of the right matches found</span>
-        </button>
-
-        <button class="stage__pick" type="button" aria-pressed="false"
                 data-viz="agent-runtime"
                 data-title="Agent Runtime"
                 data-shot="assets/screenshots/agent-runtime.webp"
                 data-alt="Terminal output from a real Agent Runtime scenario replay"
-                data-caption="Event Helix: a run is written down once, then replayed into a perfectly identical ghost."
+                data-caption="Event Helix: a run is written down once, bead by bead, then replayed into a perfectly identical ghost."
                 data-cta="Replay a run byte for byte">
           <span class="stage__pick-name">Agent Runtime</span>
           <span class="stage__pick-num">93 tests, 0 live API calls</span>
+        </button>
+
+        <button class="stage__pick" type="button" aria-pressed="false"
+                data-viz="zarailink"
+                data-title="ZaraiLink"
+                data-shot="assets/screenshots/zarailink.webp"
+                data-alt="Screenshot of the ZaraiLink Trade Directory"
+                data-caption="Field of Trade: a team project, led by Salman. The wheat is the crop being traded, the arcs are deals crossing the sky, and every deal that lands stirs the field below it."
+                data-cta="Ask in plain English, typos included">
+          <span class="stage__pick-name">ZaraiLink (team project)</span>
+          <span class="stage__pick-num">112 tests passing</span>
+        </button>
+
+        <button class="stage__pick" type="button" aria-pressed="false"
+                data-viz="sqlmill"
+                data-title="SQL Database Engine"
+                data-shot="assets/screenshots/sqlmill.webp"
+                data-alt="Benchmark charts for the SQL Database Engine"
+                data-caption="B+tree Pulse: a search dives down the index to one row, a scan sweeps sideways across many, and every change goes into a safety journal first, so a crash loses nothing."
+                data-cta="Killed 300 times, it never lost a byte">
+          <span class="stage__pick-name">SQL Database Engine</span>
+          <span class="stage__pick-num">300 / 300 crash rounds</span>
         </button>
 
         <button class="stage__pick" type="button" aria-pressed="false"
@@ -241,8 +268,7 @@
       </div>
 
       <div class="stage__actions">
-        <a class="btn btn--primary btn--big" id="stage-cta" href="projects/sqlmill.html">Killed 300 times, it never lost a byte &rarr;</a>
-        <a class="btn btn--ghost btn--big" id="stage-full" href="viz/sqlmill.html" target="_blank" rel="noopener">Open the 3D full screen</a>
+        <a class="btn btn--primary btn--big" id="stage-cta" href="projects/trade-intelligence-copilot.html">Watch it refuse to answer &rarr;</a>
       </div>
     </div>
   </section>
@@ -317,6 +343,49 @@
       </div>
     </div>
   </section>
+
+  <!-- THE FLAGSHIP
+       Thirty-eight cards is a wall, and a wall gets scrolled past. So the wall is folded
+       away behind one button and a single project leads: the SQL database engine, chosen
+       because its proof needs no vocabulary (it was killed 300 times and lost nothing)
+       and because it is the claim the achievements strip already leads on.
+
+       The other 37 cards are NOT injected by script. They are in the HTML, exactly as
+       they always were, one <div> below this one; a crawler and a JS-less visitor get the
+       whole grid. The only thing script does is fold it. -->
+  <section class="section flagship" id="flagship" aria-labelledby="flag-title">
+    <div class="wrap">
+      <div class="section__head">
+        <p class="eyebrow">Start with one</p>
+        <h2 id="flag-title" class="section__title">If you read one thing here, read this.</h2>
+        <p class="section__intro">
+          Thirty-eight projects is a wall, and nobody reads a wall. So here is the single one to judge me on. Everything else is one click away, underneath.
+        </p>
+      </div>
+
+      <a class="pcard pcard--flag acc-purple" href="projects/sqlmill.html" aria-label="SQL Database Engine: the bug only a crash found">
+        <div class="pcard__media"><img src="assets/screenshots/sqlmill.webp" alt="Benchmark chart for the SQL Database Engine" loading="lazy" decoding="async"></div>
+        <div class="pcard__body">
+          <div class="pcard__head">
+            <span class="pcard__idx">The one</span>
+            <span class="pcard__metric">300 / 300 crash rounds</span>
+          </div>
+          <h3 class="pcard__title">SQL Database Engine</h3>
+          <code class="pcard__repo">sqlmill</code>
+          <p class="pcard__what"><strong>Problem:</strong> If the power cuts out mid-write, the data must not come back scrambled, and several people must be able to write at once. <strong>Solution:</strong> A database built from scratch, with a safety journal written before every change. <strong>Result:</strong> Killed at random 300 times; all 300 times the data came back intact.</p>
+          <ul class="pcard__tags"><li>Python</li><li>Systems</li><li>Crash-safe</li></ul>
+          <span class="pcard__go">The bug only a crash found <span aria-hidden="true">&rarr;</span></span>
+        </div>
+      </a>
+
+      <div class="flagship__more">
+        <button class="btn btn--ghost btn--big" id="all-toggle" type="button" aria-expanded="false" aria-controls="all-projects">See all 38 projects</button>
+        <p class="flagship__hint">Two production systems, seven core systems, four full applications, and twenty-five more.</p>
+      </div>
+    </div>
+  </section>
+
+  <div id="all-projects" class="allproj">
 
   <!-- PRODUCTION WORK -->
   <section class="section" id="production" aria-labelledby="prod-title">
@@ -439,7 +508,7 @@
           <span class="pcard__go">Replay a run byte for byte <span aria-hidden="true">&rarr;</span></span>
         </a>
 
-        <a class="pcard span-2 acc-purple" href="projects/vector-db.html" aria-label="Vector Database Engine: just as accurate, 10x slower">
+        <a class="pcard span-2 acc-purple" href="projects/vector-db.html" aria-label="Vector Database Engine: built from the paper, matches FAISS">
           <div class="pcard__media"><img src="assets/screenshots/vector-db.webp" alt="Recall vs throughput chart for the Vector Database Engine" loading="lazy" decoding="async"></div>
           <div class="pcard__head">
             <span class="pcard__idx">06</span>
@@ -449,7 +518,7 @@
           <code class="pcard__repo">vector-db</code>
           <p class="pcard__what"><strong>Problem:</strong> Searching a huge pile of text by meaning, not exact words, is slow if you check every item. <strong>Solution:</strong> A search index built from the original research paper, not from a ready-made library. <strong>Result:</strong> At least as accurate as FAISS, the library the industry uses, though FAISS answers each search 10 to 13x faster.</p>
           <ul class="pcard__tags"><li>Python</li><li>Search</li></ul>
-          <span class="pcard__go">Just as accurate, 10x slower <span aria-hidden="true">&rarr;</span></span>
+          <span class="pcard__go">Built from the paper, matches FAISS <span aria-hidden="true">&rarr;</span></span>
         </a>
 
         <a class="pcard span-2 acc-yellow" href="projects/cpp-ray-tracer.html" aria-label="C++ Ray Tracer, team project: how a surface catches light">
@@ -779,6 +848,8 @@
     </div>
   </section>
 
+  </div><!-- /#all-projects -->
+
   <section class="section" id="process" aria-labelledby="process-title">
     <div class="wrap">
       <div class="section__head">
@@ -978,6 +1049,20 @@
     <span>Built from scratch. &copy; <span id="year">2026</span></span>
   </div>
 </footer>
+
+<!-- EXIT NUDGE: the safety net, and the only one.
+     Shown once, to a visitor who is about to leave without having opened a single
+     project. A small bar at the foot of the window: never a modal, never over the
+     content, dismissible with the mouse, the keyboard, or Escape, and once dismissed it
+     is gone for good (localStorage). It offers exactly one project and one honest line.
+     Anyone who has already clicked into a project never sees it at all. -->
+<div class="nudge" id="exit-nudge" role="region" aria-label="One suggestion before you go" hidden>
+  <p class="nudge__copy">
+    <strong>Read just one?</strong> The database that survived 300 crashes: killed at random 300 times, and all 300 times the data came back intact.
+  </p>
+  <a class="nudge__go" href="projects/sqlmill.html">Read that one <span aria-hidden="true">&rarr;</span></a>
+  <button class="nudge__x" id="exit-nudge-x" type="button" aria-label="Dismiss this suggestion">&times;</button>
+</div>
 
 <script src="script.js?v=20260714" defer></script>
 </body>

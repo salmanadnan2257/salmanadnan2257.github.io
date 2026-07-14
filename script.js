@@ -133,16 +133,35 @@ const GITHUB_HANDLE = "salmanadnan2257";
   var NEAR = "600px 0px";
   var FAR = "1400px 0px";
 
+  var DWELL_MS = 1600;   // how long a hand has to be ON the model before it counts as engaged
+  var DRAG_PX = 24;      // and how far it has to have travelled. A click is not a drag.
+
   var frame = document.getElementById("stage-frame");
   var poster = document.getElementById("stage-poster");
   var caption = document.getElementById("stage-caption");
   var grab = document.getElementById("stage-grab");
   var cta = document.getElementById("stage-cta");
-  var full = document.getElementById("stage-full");
   var picks = document.querySelectorAll(".stage__pick");
-  if (!frame || !poster || !caption || !cta || !full || !picks.length) return;
+  if (!frame || !poster || !caption || !cta || !picks.length) return;
+
+  var convert = document.getElementById("stage-convert");
+  var convertCopy = document.getElementById("stage-convert-copy");
+  var convertCta = document.getElementById("stage-convert-cta");
+  var convertX = document.getElementById("stage-convert-x");
 
   var reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  // No WebGL means no live scene, so there is nothing to mount and nothing to drag.
+  // That visitor is served exactly like the reduced-motion one: the still, and the
+  // offer, which is the part that actually matters.
+  function webglOK() {
+    try {
+      if (!window.WebGLRenderingContext) return false;
+      var c = document.createElement("canvas");
+      return !!(c.getContext("webgl") || c.getContext("experimental-webgl"));
+    } catch (e) { return false; }
+  }
+  var still = reduce || !webglOK();
 
   // Everything currently holding a WebGL context. Oldest first, so evicting the
   // front of the list is a plain LRU. At a budget of 1 it holds one iframe, but the
@@ -169,19 +188,124 @@ const GITHUB_HANDLE = "salmanadnan2257";
     f.setAttribute("data-viz-live", name);
     frame.appendChild(f);
     liveFrames.push(f);
+    f.addEventListener("load", function () { watch(f); });
   }
 
   var selected = 0;
   function current() {
     var b = picks[selected];
+    var num = b.querySelector(".stage__pick-num");
     return {
       viz: b.getAttribute("data-viz"),
       title: b.getAttribute("data-title"),
       shot: b.getAttribute("data-shot"),
       alt: b.getAttribute("data-alt"),
       caption: b.getAttribute("data-caption"),
-      cta: b.getAttribute("data-cta")
+      cta: b.getAttribute("data-cta"),
+      num: num ? num.textContent.trim() : ""
     };
+  }
+
+  // --------------------------------------------------------------------------
+  // THE OFFER, AND HOW ENGAGEMENT IS DETECTED
+  //
+  // A visitor with a hand on the model, turning it, is the warmest this page gets, and
+  // it is the one moment when naming the project underneath their fingers is worth
+  // something. So once they have genuinely dragged for DWELL_MS (not clicked: the drag
+  // must also have travelled DRAG_PX), a panel grows in UNDER the canvas, naming the
+  // system they are actually holding and offering it. It never covers the scene, it is
+  // rebuilt from the rail's own data so it can never name the wrong system, and it can
+  // be dismissed for good.
+  //
+  // HOW THE DRAG IS SEEN. The scene lives in an iframe, and a parent page is not sent
+  // pointer events that happen over an iframe, so the host cannot simply listen on the
+  // stage. The viz files may not be edited, so they cannot post a message out either.
+  // What is left is that the iframe is SAME-ORIGIN: the host can reach into its
+  // document and attach its own capture-phase pointer listeners, without changing a
+  // line of it. That is the primary path and the one that runs on the real site.
+  //
+  // If that document is ever unreachable (opening the page straight off the disk with
+  // file:// makes every frame cross-origin), the fallback watches from outside: the
+  // pointer is over the stage, then the window loses focus, which means the press
+  // landed inside the frame; if the pointer is still on the stage DWELL_MS later, they
+  // are dragging it. Coarser, and it is only ever the understudy.
+  // --------------------------------------------------------------------------
+  var CONVERT_OFF = "sa.stage.convert.off";
+  var revealed = false;
+  var dragMs = 0;              // engagement accrues across separate drags
+  var outsideWired = false;
+
+  function dismissed() {
+    try { return window.localStorage.getItem(CONVERT_OFF) === "1"; } catch (e) { return false; }
+  }
+
+  function reveal() {
+    if (revealed || !convert || dismissed()) return;
+    revealed = true;
+    convert.classList.add("is-on");
+  }
+
+  if (convertX && convert) {
+    convertX.addEventListener("click", function () {
+      convert.classList.remove("is-on");
+      revealed = true;                                     // and it does not come back
+      try { window.localStorage.setItem(CONVERT_OFF, "1"); } catch (e) {}
+    });
+  }
+
+  function watchInside(doc) {
+    var down = null;
+    var timer = 0;
+
+    function check() {
+      if (!down) return;
+      if (down.moved >= DRAG_PX && dragMs + (Date.now() - down.t) >= DWELL_MS) reveal();
+    }
+
+    doc.addEventListener("pointerdown", function (e) {
+      down = { t: Date.now(), x: e.clientX, y: e.clientY, moved: 0 };
+      clearTimeout(timer);
+      // A hand can hold the model still after turning it, and a still hand fires no
+      // move events, so the clock is also watched on a timer rather than only on moves.
+      timer = setTimeout(check, Math.max(0, DWELL_MS - dragMs) + 30);
+    }, { capture: true, passive: true });
+
+    doc.addEventListener("pointermove", function (e) {
+      if (!down) return;
+      down.moved += Math.abs(e.clientX - down.x) + Math.abs(e.clientY - down.y);
+      down.x = e.clientX;
+      down.y = e.clientY;
+      check();
+    }, { capture: true, passive: true });
+
+    function end() {
+      if (!down) return;
+      if (down.moved >= DRAG_PX) dragMs += Date.now() - down.t;
+      down = null;
+      clearTimeout(timer);
+      if (dragMs >= DWELL_MS) reveal();
+    }
+    doc.addEventListener("pointerup", end, { capture: true, passive: true });
+    doc.addEventListener("pointercancel", end, { capture: true, passive: true });
+  }
+
+  function watchOutside() {
+    if (outsideWired) return;
+    outsideWired = true;
+    var over = false;
+    frame.addEventListener("pointerenter", function () { over = true; });
+    frame.addEventListener("pointerleave", function () { over = false; });
+    window.addEventListener("blur", function () {
+      if (!over || revealed) return;                       // the press landed in the frame
+      setTimeout(function () { if (over) reveal(); }, DWELL_MS);
+    });
+  }
+
+  function watch(f) {
+    var doc = null;
+    try { doc = f.contentDocument; } catch (e) { doc = null; }
+    if (doc && doc.addEventListener) watchInside(doc);
+    else watchOutside();
   }
 
   var inView = false;
@@ -197,16 +321,29 @@ const GITHUB_HANDLE = "salmanadnan2257";
     caption.appendChild(document.createTextNode(" " + c.caption));
     cta.href = "projects/" + c.viz + ".html";
     cta.textContent = c.cta + " →";
-    full.href = "viz/" + c.viz + ".html";
     for (var i = 0; i < picks.length; i++) {
       var on = i === selected;
       picks[i].classList.toggle("is-on", on);
       picks[i].setAttribute("aria-pressed", on ? "true" : "false");
     }
+
+    // The offer is rebuilt from the same data the rail just switched to, so it always
+    // names the system that is actually loaded, whichever one that is.
+    if (convertCopy) {
+      convertCopy.innerHTML = "";
+      var hold = document.createElement("strong");
+      hold.textContent = "You are holding " + c.title + ".";
+      convertCopy.appendChild(hold);
+      if (c.num) convertCopy.appendChild(document.createTextNode(" " + c.num + "."));
+    }
+    if (convertCta) {
+      convertCta.href = "projects/" + c.viz + ".html";
+      convertCta.textContent = "Open " + c.title + " →";
+    }
   }
 
   function sync() {
-    if (reduce) return;                       // the still is the whole experience here
+    if (still) return;                        // the still is the whole experience here
     var want = inView ? current().viz : null;
     var have = liveFrames.length ? liveFrames[liveFrames.length - 1].getAttribute("data-viz-live") : null;
     if (want === have) return;
@@ -225,11 +362,18 @@ const GITHUB_HANDLE = "salmanadnan2257";
     })(p);
   }
 
-  // Reduced motion gets the still and the switcher, and is told so plainly rather
-  // than being left to wonder why the promised drag does nothing.
-  if (reduce) {
-    if (grab) grab.textContent = "Reduced motion: showing the still · open it full screen to run it";
+  // Reduced motion, or a browser with no WebGL, gets the still and the switcher, and is
+  // told so plainly rather than being left to wonder why the promised drag does nothing.
+  // The offer is shown to them at once: there is no drag to earn it with, and the offer
+  // is the point of the whole stage.
+  if (still) {
+    if (grab) {
+      grab.textContent = reduce
+        ? "Reduced motion: showing the still instead of the live 3D"
+        : "This browser has no 3D support: showing the still instead";
+    }
     paint();
+    reveal();
     return;
   }
 
@@ -253,47 +397,345 @@ const GITHUB_HANDLE = "salmanadnan2257";
 })();
 
 // ============================================================================
-// HERO BACKGROUND: three modes, one canvas
+// CARD PREVIEW: the live 3D that wakes up under the pointer
 //
-// The site is neo-brutalist print: cream paper, 4px black rules, hard offset
-// shadows with no blur, zero border radius, and hover states that snap in 0.1s
-// rather than easing. A soft, glowing, floating background would read as a
-// different website pasted behind the headline. So all three modes are built on
-// the material already in the CSS (the 24px dot grid) and all motion is STEPPED,
-// never interpolated. Dots snap between alpha levels. Rules grow one 24px cell at
-// a time. Nothing fades.
+// The earlier attempt at this mounted every card's viz on scroll and it cost half
+// the frame rate, because a fresh three.js realm and a scene build is per-frame
+// JavaScript that no graphics card takes off you. Nothing here loads until a
+// visitor actually points at a card, so a scroll past a grid of cards costs exactly
+// what it costs today: nothing.
 //
-//   grid    Live grid. The dot grid breathes on a slow diagonal wave, and every
-//           second or so one dot pops into a hard coral or yellow square, like a
-//           check turning green.
-//   deploy  Deploy line. A 2px rule travels the grid, stops, and drops a square
-//           with a hard offset shadow: a commit landing, work shipping. Rules and
-//           squares are geometrically excluded from the copy box, so a black rule
-//           can never cross the black headline.
-//   print   Misregistration. Three dot grids (coral, yellow, purple) drift out of
-//           register and snap back, like a risograph pull. Multiply blending means
-//           the aligned state reads as the familiar dark grid, and only the drift
-//           shows colour, always at the margins.
+// The other half of the old problem was legibility, and the viz files now solve it
+// themselves: ?compact=1 hides the title panel, the legend and the control HUD, so
+// at card width the scene is the whole frame instead of being buried under four
+// panels written for a large one.
 //
-// Cost control: one 2D canvas, no libraries, DPR capped at 2, a single rAF that
-// stops entirely when the hero scrolls away or the tab is hidden. Init is deferred
-// past load so it cannot touch LCP. Reduced motion and low-core devices get one
-// static frame and no loop at all; the switcher still works, so the modes remain
-// browsable without any animation running.
+// THE RULE THAT MAKES THIS SAFE ON A PHONE: the iframe is pointer-events: none. It
+// is a preview, not a control. A finger can never be caught by it, a vertical swipe
+// that starts on a card scrolls the page exactly as if the card were a picture, and
+// a tap anywhere on the card, including on the live canvas, still opens the project.
+// Dragging a scene with your hands lives on the stage above and on the project pages.
 // ============================================================================
 (function () {
   "use strict";
 
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;  // the still is the whole experience
+
+  var DESKTOP_CAP = 2;      // WebGL contexts the cards may hold at once, with a mouse
+  var TOUCH_CAP = 1;        // ... and with a finger. The stage holds its own, separately.
+  var HOVER_DELAY = 160;    // sweeping the mouse across the grid must not mount a dozen scenes
+  var TAP_MS = 400;         // lift faster than this, having barely moved, and it is a tap
+  var TAP_SLOP = 10;        // px of travel still counted as a tap and not a drag
+
+  // ONE CARD IS EXCLUDED. disappearing-text-app renders as a mostly empty frame with one
+  // small word and a countdown ring in it: at card size that is a blank box with a
+  // speck, which says less than the screenshot it would be replacing. It keeps its
+  // still. Every other card gets the live preview.
+  var NO_PREVIEW = { "disappearing-text-app": true };
+
+  var cards = document.querySelectorAll(".pcard, .mini");
+  if (!cards.length) return;
+
+  // Everything currently holding a context, oldest first: evicting the front is a
+  // plain LRU. Enforced, never assumed. Nothing mounts without paying for a slot.
+  var live = [];
+  var hoverTimer = null;
+  var touching = null;      // the in-flight touch, if any
+  var swallowClick = false; // a long press or a scroll must NOT navigate
+
+  function vizOf(card) {
+    var href = card.getAttribute("href") || "";
+    var m = href.match(/projects\/([a-z0-9-]+)\.html$/);
+    if (!m || NO_PREVIEW[m[1]]) return null;   // no name, no listeners, no preview
+    return m[1];
+  }
+
+  function evictTo(n) {
+    while (live.length > n) {
+      var e = live.shift();
+      // about:blank first, so the old document is torn down and its WebGL context
+      // released now, rather than whenever garbage collection gets round to it.
+      e.f.src = "about:blank";
+      if (e.f.parentNode) e.f.parentNode.removeChild(e.f);
+    }
+  }
+
+  function indexOfCard(card) {
+    for (var i = 0; i < live.length; i++) if (live[i].card === card) return i;
+    return -1;
+  }
+
+  function unmount(card) {
+    var i = indexOfCard(card);
+    if (i < 0) return;
+    var e = live.splice(i, 1)[0];
+    e.f.src = "about:blank";
+    if (e.f.parentNode) e.f.parentNode.removeChild(e.f);
+  }
+
+  function mount(card, cap) {
+    if (indexOfCard(card) >= 0) return;              // already running
+    var name = vizOf(card);
+    var media = card.querySelector(".pcard__media, .mini__media");
+    if (!name || !media) return;
+    evictTo(cap - 1);
+    var f = document.createElement("iframe");
+    f.className = "card-viz";
+    f.src = "viz/" + name + ".html?compact=1";       // compact: no panels over the scene
+    f.setAttribute("title", "Live 3D preview");
+    f.setAttribute("aria-hidden", "true");           // decoration: the screenshot's alt text is the real description
+    f.setAttribute("tabindex", "-1");                // and it is never a tab stop
+    f.setAttribute("scrolling", "no");
+    media.appendChild(f);
+    live.push({ card: card, f: f });
+  }
+
+  for (var i = 0; i < cards.length; i++) {
+    (function (card) {
+      if (!vizOf(card)) return;
+
+      // ---- mouse and pen: hover in, hover out
+      card.addEventListener("pointerenter", function (e) {
+        if (e.pointerType === "touch") return;       // touch has its own path below
+        clearTimeout(hoverTimer);
+        hoverTimer = setTimeout(function () { mount(card, DESKTOP_CAP); }, HOVER_DELAY);
+      });
+      card.addEventListener("pointerleave", function (e) {
+        if (e.pointerType === "touch") return;
+        clearTimeout(hoverTimer);
+        unmount(card);
+      });
+
+      // ---- finger: touching a card is the hover. It plays at once.
+      card.addEventListener("pointerdown", function (e) {
+        if (e.pointerType !== "touch") return;
+        swallowClick = false;
+        touching = { card: card, t: Date.now(), x: e.clientX, y: e.clientY };
+        mount(card, TOUCH_CAP);                      // cap 1: the LRU evicts whatever was playing
+      }, { passive: true });
+
+      card.addEventListener("pointerup", function (e) {
+        if (e.pointerType !== "touch" || !touching || touching.card !== card) return;
+        var quick = Date.now() - touching.t < TAP_MS;
+        var still = Math.abs(e.clientX - touching.x) < TAP_SLOP
+                 && Math.abs(e.clientY - touching.y) < TAP_SLOP;
+        // A tap is a tap: let the click through and open the project page.
+        // A long press is the touch equivalent of hovering: it keeps playing, and it
+        // must NOT navigate, so the click the browser is about to fire is swallowed.
+        swallowClick = !(quick && still);
+        touching = null;
+      }, { passive: true });
+
+      // The finger slid into a page scroll. The browser cancels the pointer and fires
+      // no click. Keep the scene playing; the visitor never asked to leave.
+      card.addEventListener("pointercancel", function (e) {
+        if (e.pointerType !== "touch") return;
+        swallowClick = true;
+        touching = null;
+      }, { passive: true });
+
+      card.addEventListener("click", function (e) {
+        if (!swallowClick) return;                   // ordinary click or clean tap: navigate
+        swallowClick = false;
+        e.preventDefault();                          // long press or scroll: stay put, keep playing
+      });
+    })(cards[i]);
+  }
+
+  // A card that has been scrolled off the screen hands its context back, so a phone
+  // is never left running a scene nobody can see.
+  if ("IntersectionObserver" in window) {
+    var io = new IntersectionObserver(function (es) {
+      for (var k = 0; k < es.length; k++) {
+        if (!es[k].isIntersecting) unmount(es[k].target);
+      }
+    }, { rootMargin: "0px", threshold: 0 });
+    for (var j = 0; j < cards.length; j++) io.observe(cards[j]);
+  }
+})();
+
+// ============================================================================
+// THE FOLDED WALL: one flagship, and 38 projects one button away
+//
+// Thirty-eight cards asks a stranger to choose, and a stranger who has to choose
+// scrolls. So the page leads with one project and folds the rest.
+//
+// What is NOT done here, on purpose: the 37 other cards are never injected. They ship
+// in the HTML, in the ordinary flow, and this only folds them with a class. So the
+// markup a crawler reads is the whole portfolio, a visitor with no JavaScript sees the
+// whole portfolio (the toggle is not even shown to them), and nothing about the fold
+// can lose a card, a hook, a badge or a link.
+//
+// The button is a real <button> carrying aria-expanded and aria-controls, so a screen
+// reader is told there is more and a keyboard can open it. Any in-page link that points
+// INTO the folded region (the nav's "Work", the hero's "See what I've built") opens it
+// on the way, so no anchor on this page can ever land on nothing.
+// ============================================================================
+(function () {
+  "use strict";
+
+  var btn = document.getElementById("all-toggle");
+  var all = document.getElementById("all-projects");
+  if (!btn || !all) return;
+
+  var OPEN_LABEL = "See all 38 projects";
+  var SHUT_LABEL = "Hide the full list";
+
+  function open() {
+    if (all.classList.contains("is-open")) return;
+    all.classList.add("is-open");
+    btn.setAttribute("aria-expanded", "true");
+    btn.textContent = SHUT_LABEL;
+  }
+  function shut() {
+    all.classList.remove("is-open");
+    btn.setAttribute("aria-expanded", "false");
+    btn.textContent = OPEN_LABEL;
+  }
+
+  btn.addEventListener("click", function () {
+    if (all.classList.contains("is-open")) shut(); else open();
+  });
+
+  // An anchor into the folded region unfolds it first, then the browser's own hash
+  // scroll lands on a target that is actually on the page.
+  document.addEventListener("click", function (e) {
+    var a = e.target && e.target.closest ? e.target.closest('a[href^="#"]') : null;
+    if (!a) return;
+    var id = a.getAttribute("href").slice(1);
+    if (!id) return;
+    var t = document.getElementById(id);
+    if (t && all.contains(t)) open();
+  });
+
+  // Landing straight on #work from somewhere else has to work too.
+  if (window.location.hash.length > 1) {
+    var t0 = document.getElementById(window.location.hash.slice(1));
+    if (t0 && all.contains(t0)) {
+      open();
+      requestAnimationFrame(function () { t0.scrollIntoView(); });
+    }
+  }
+})();
+
+// ============================================================================
+// EXIT NUDGE: one offer, once, to somebody who is leaving with nothing
+//
+// It fires only for a visitor who has opened NO project and is showing real leave
+// intent: the mouse crossing out of the top of the window, or the foot of the page
+// reached with nothing clicked. It is a bar, never a modal: it does not cover the page,
+// it does not trap focus, it has a real close button with a real name, and Escape shuts
+// it. Dismissed once, it is dismissed for good. Anyone who has already clicked into a
+// project never sees it at all, because they do not need it.
+// ============================================================================
+(function () {
+  "use strict";
+
+  var OFF = "sa.nudge.off";        // dismissed: never again
+  var OPENED = "sa.project.opened"; // they already went into a project: nothing to nudge
+
+  function get(k) { try { return window.localStorage.getItem(k); } catch (e) { return null; } }
+  function set(k, v) { try { window.localStorage.setItem(k, v); } catch (e) {} }
+
+  // Recorded first, and for everybody: it is what suppresses the nudge on this visit and
+  // on the next one. Capture phase, so it is recorded even if something else handles the
+  // click on the way down.
+  document.addEventListener("click", function (e) {
+    var a = e.target && e.target.closest ? e.target.closest('a[href^="projects/"]') : null;
+    if (a) set(OPENED, "1");
+  }, true);
+
+  var el = document.getElementById("exit-nudge");
+  var x = document.getElementById("exit-nudge-x");
+  if (!el || !x) return;
+  if (get(OFF) === "1" || get(OPENED) === "1") return;
+
+  var LATEST = 5000;               // no ambush: nothing fires in the first few seconds
+  var born = Date.now();
+  var shown = false, done = false;
+
+  function show() {
+    if (shown || done) return;
+    if (Date.now() - born < LATEST) return;
+    if (get(OPENED) === "1") return;              // they clicked in while we were waiting
+    shown = true;
+    el.hidden = false;
+    requestAnimationFrame(function () { el.classList.add("is-in"); });
+  }
+
+  function dismiss() {
+    if (done) return;
+    done = true;
+    set(OFF, "1");
+    el.classList.remove("is-in");
+    setTimeout(function () { el.hidden = true; }, 350);
+  }
+
+  x.addEventListener("click", dismiss);
+  document.addEventListener("keydown", function (e) {
+    if (shown && !done && (e.key === "Escape" || e.key === "Esc")) dismiss();
+  });
+
+  // Leave intent, a mouse: out through the top edge of the window and gone.
+  document.addEventListener("mouseout", function (e) {
+    if (e.relatedTarget || e.clientY > 2) return;
+    show();
+  });
+
+  // Leave intent, anything: the foot of the page, with nothing opened on the way down.
+  window.addEventListener("scroll", function () {
+    var d = document.documentElement;
+    if (window.pageYOffset + window.innerHeight >= d.scrollHeight - 140) show();
+  }, { passive: true });
+})();
+
+// ============================================================================
+// HERO BACKGROUND: Deploy line
+//
+// The site is neo-brutalist print: cream paper, 4px black rules, hard offset
+// shadows with no blur, zero border radius, and hover states that snap in 0.1s
+// rather than easing. A soft, glowing, floating background would read as a
+// different website pasted behind the headline. So the background is built on the
+// material already in the CSS (the 24px dot grid) and all motion is STEPPED, never
+// interpolated. Rules grow one 24px cell at a time. Nothing fades.
+//
+// WHAT SHIPS: deploy. A 2px rule travels the grid, stops, and drops a square with a
+// hard offset shadow: a commit landing, work shipping. Rules and squares are
+// geometrically excluded from the copy box and the portrait, so a black rule can
+// never cross the black headline or the face.
+//
+// WHAT DOES NOT: two other modes were built, then cut. Their code is still here and
+// still correct, but nothing calls it while MODE is "deploy". They are kept so that
+// switching back is a one-word edit rather than a rewrite:
+//
+//   grid   Live grid. The dot grid breathes on a quantized diagonal wave and single
+//          dots snap into hard coral or yellow squares, like a check turning green.
+//   print  Misregistration. Three dot grids (coral, yellow, purple) drift out of
+//          register and snap back, multiply blended, like a risograph pull.
+//
+// To bring one back: set MODE below to "grid" or "print". To offer the visitor the
+// choice again, restore the switcher markup (.hero__bgbar in index.html) and the
+// .bgswitch rules in styles.css from git history, and call setMode from its clicks.
+//
+// Cost control: one 2D canvas, no libraries, DPR capped at 2, a single rAF that
+// stops entirely when the hero scrolls away or the tab is hidden, and a repaint gate
+// so a frame whose stepped state has not moved does no work at all. Init is deferred
+// past load so it cannot touch LCP. Reduced motion and low-core devices get one
+// static frame and no loop.
+// ============================================================================
+(function () {
+  "use strict";
+
+  // The one background that ships. "grid" and "print" still work; see the note above.
+  var MODE = "deploy";
+
   var canvas = document.getElementById("hero-bg");
   var hero = document.querySelector(".hero");
-  var bar = document.getElementById("hero-bgbar");
-  var note = document.getElementById("hero-bgnote");
-  var picks = document.querySelectorAll(".bgswitch__pick");
-  if (!canvas || !hero || !bar || !picks.length) return;
+  if (!canvas || !hero) return;
 
   var ctx = canvas.getContext && canvas.getContext("2d");
   // No canvas, or no Path2D (which the batched dot drawing below depends on): leave
-  // the CSS dot grid exactly as it was and never show the switcher.
+  // the CSS dot grid exactly as it was.
   if (!ctx || !window.Path2D) return;
 
   // ---- Tunables -------------------------------------------------------------
@@ -346,7 +788,7 @@ const GITHUB_HANDLE = "salmanadnan2257";
   // rule across the face is worse, so both are treated as solid and drawn around.
   var blocks = [];
   var rows = [];       // free horizontal runs on the grid, where a rule may actually fit
-  var mode = "grid";
+  var mode = MODE;
   var raf = 0, running = false, inView = false;
   var pops = [], events = [];
   var lastPop = 0, lastDeploy = -1;   // -1: the first event is scheduled on the first frame
@@ -740,29 +1182,16 @@ const GITHUB_HANDLE = "salmanadnan2257";
   }
   function paintOnce() { frame(performance.now()); }        // one frame, no loop
 
-  function setMode(next, remember) {
+  // Kept for the cut modes: this is the whole cost of switching one back on at
+  // runtime. Nothing calls it now that MODE is fixed, and init() sets the mode
+  // directly instead.
+  function setMode(next) {
     mode = next;
     pops = [];
     events = [];
     lastDeploy = -1;   // re-arm, so switching into deploy shows a rule within FIRST_DEPLOY
     invalidate();      // different mode: whatever is on the canvas is now wrong
-    for (var i = 0; i < picks.length; i++) {
-      var on = picks[i].getAttribute("data-bg") === next;
-      picks[i].classList.toggle("is-on", on);
-      picks[i].setAttribute("aria-pressed", on ? "true" : "false");
-    }
-    if (remember) {
-      try { localStorage.setItem("hero-bg", next); } catch (err) { /* private mode: fine */ }
-    }
     if (still || !running) paintOnce();
-  }
-
-  for (var i = 0; i < picks.length; i++) {
-    (function (btn) {
-      btn.addEventListener("click", function () {
-        setMode(btn.getAttribute("data-bg"), true);
-      });
-    })(picks[i]);
   }
 
   var resizeTimer;
@@ -782,16 +1211,10 @@ const GITHUB_HANDLE = "salmanadnan2257";
 
   function init() {
     hero.classList.add("is-canvas");    // the CSS dot grid steps aside, canvas takes over
-    bar.hidden = false;                 // only now is the switcher real, so only now is it shown
-    if (still && note) note.hidden = false;
 
     measure();
 
-    var saved = null;
-    try { saved = localStorage.getItem("hero-bg"); } catch (err) { saved = null; }
-    setMode(saved === "deploy" || saved === "print" ? saved : "grid", false);
-
-    if (still) { paintOnce(); return; }
+    if (still) { paintOnce(); return; }   // one held frame, no loop
 
     if (!("IntersectionObserver" in window)) { inView = true; start(); return; }
     new IntersectionObserver(function (entries) {

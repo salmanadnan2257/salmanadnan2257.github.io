@@ -612,7 +612,19 @@ try {
 const small = Math.min(window.innerWidth, window.innerHeight) < 700;
 const weak = (navigator.hardwareConcurrency || 8) <= 4;
 const quality = small ? 0.5 : (weak ? 0.7 : 1);
-renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, quality < 1 ? 1.5 : 2));
+
+/* Point sprites are sized in device pixels against a fixed reference, tuned in a
+   window about 700px tall. In a 260px card at one device pixel per CSS pixel each
+   sprite keeps that pixel count and so covers nearly three times the share of the
+   frame it was drawn for: the piece turns into a smear of its own glow. Rendering
+   the card at about a window's worth of device pixels puts them back in proportion.
+   The buffer stays smaller than the one a project page already runs the same piece
+   at full size, and the particle counts are still on the small-screen tier. */
+function pixelRatio() {
+  if (COMPACT) return Math.min(2.6, Math.max(1, 640 / Math.max(1, window.innerHeight)));
+  return Math.min(window.devicePixelRatio || 1, quality < 1 ? 1.5 : 2);
+}
+renderer.setPixelRatio(pixelRatio());
 
 const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 500);
 camera.position.set(0, 0, 12);
@@ -622,6 +634,10 @@ const ctx = {
   camera,
   renderer,
   quality,
+  /* A handful of scenes size their points off the canvas height, so the points hold
+     their proportion of any frame, which in a card is a single pixel of dust. Those
+     scenes multiply by this; the rest never read it. 1 unless compact. */
+  pxScale: COMPACT ? 1.6 : 1,
   pointer: { x: 0, y: 0 },  /* smoothed, -1..1, y up */
 };
 
@@ -697,6 +713,9 @@ try {
 
 function resize() {
   const w = window.innerWidth, h = window.innerHeight;
+  /* A card can be re-laid-out under the piece; the ratio is derived from the frame,
+     so it is re-derived with it. Outside compact the ratio never depended on size. */
+  if (COMPACT) renderer.setPixelRatio(pixelRatio());
   renderer.setSize(w, h, false);
   camera.aspect = w / h;
   camera.updateProjectionMatrix();

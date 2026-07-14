@@ -1,0 +1,23 @@
+{
+  "name": "portfolio-website-tests",
+  "private": true,
+  "type": "module",
+  "description": "Headless-Chrome checks for the portfolio site: the 38 3D visualizations, the homepage, and the mobile layout.",
+  "scripts": {
+    "viz": "node test-viz.mjs",
+    "drift": "node test-drift.mjs",
+    "embed": "node test-embed.mjs",
+    "a11y": "node test-a11y.mjs",
+    "home": "node test-home.mjs",
+    "hooks": "node test-hooks.mjs",
+    "mobile": "node test-mobile.mjs",
+    "stage": "node test-stage.mjs",
+    "compact": "node test-compact.mjs",
+    "runtime": "node check-runtime-identical.mjs"
+  },
+  "devDependencies": {
+    "pixelmatch": "^6.0.0",
+    "pngjs": "^7.0.0",
+    "puppeteer-core": "^23.0.0"
+  }
+}
