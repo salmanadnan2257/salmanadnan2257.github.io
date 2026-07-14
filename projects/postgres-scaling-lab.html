@@ -98,8 +98,8 @@
       </figure>
 
       <figure class="proj-media">
-        <img src="../assets/screenshots/postgres-scaling-lab.webp" alt="Real terminal output of EXPLAIN ANALYZE before and after adding an index, on a live local Postgres cluster." loading="lazy" decoding="async" width="1400" height="868">
-        <figcaption>A scratch local Postgres cluster running this repo's own schema (100k users, 500k orders) and its <code>idx_users_email</code> index: the email lookup goes from a 75.1 ms sequential scan to a 0.115 ms index scan. The 35 ms to 0.5 ms figure quoted below is the same query measured on the original course Docker setup; different machine, same fix.</figcaption>
+        <img src="../assets/screenshots/postgres-scaling-lab.webp" alt="Real terminal output of EXPLAIN ANALYZE before and after adding an index, on a live local Postgres cluster: a sequential scan reading 2,494 blocks becomes a bitmap index scan reading 4." loading="lazy" decoding="async" width="1400" height="723">
+        <figcaption>A scratch local PostgreSQL 18.4 cluster running this repo's own schema (100k users, 500k orders) and its <code>idx_users_email</code> index. The email lookup stops reading all 2,494 blocks of the table and reads 4: a sequential scan that threw away 99,999 of 100,000 rows becomes a bitmap index scan. Warm, that is 18.8 ms to 0.106 ms. The block counts are identical on every run; the timings are not, so the blocks are the honest headline. Full stdout, including the repeat runs, is saved beside the image in <code>docs/screenshots/run-output.txt</code>. The 35 ms to 0.5 ms figure quoted below is the same query on the original course Docker setup; different machine, same fix.</figcaption>
       </figure>
 
       <div class="proj-stats">
