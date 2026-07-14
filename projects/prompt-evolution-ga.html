@@ -9,24 +9,25 @@
   <meta name="theme-color" content="#FFFDF5">
 
   <!--
-    SITE_URL: the site's absolute base URL is https://salmanadnan2257.github.io
-    Before deploying to a custom domain, find-and-replace that exact string across
-    all HTML files, sitemap.xml, and robots.txt. It is the only absolute host used.
+    SITE_URL: the site's absolute base URL is https://salmanadnan.com
+    It is the only absolute host the site uses, and it appears in robots.txt,
+    sitemap.xml, and the head of every HTML file. If the domain ever moves,
+    change it in all three places together.
   -->
-  <link rel="canonical" href="https://salmanadnan2257.github.io/projects/prompt-evolution-ga.html">
+  <link rel="canonical" href="https://salmanadnan.com/projects/prompt-evolution-ga.html">
 
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="Salman Adnan">
   <meta property="og:title" content="Prompt Evolution GA · Salman Adnan">
   <meta property="og:description" content="Prompt Evolution GA: a genetic algorithm that evolves LLM instruction prompts for code generation, scored objectively by compiling and running the generated C++ against real test cases.">
-  <meta property="og:url" content="https://salmanadnan2257.github.io/projects/prompt-evolution-ga.html">
-  <meta property="og:image" content="https://salmanadnan2257.github.io/assets/og/prompt-evolution-ga.png">
+  <meta property="og:url" content="https://salmanadnan.com/projects/prompt-evolution-ga.html">
+  <meta property="og:image" content="https://salmanadnan.com/assets/og/prompt-evolution-ga.png">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Prompt Evolution GA · Salman Adnan">
   <meta name="twitter:description" content="Prompt Evolution GA: a genetic algorithm that evolves LLM instruction prompts for code generation, scored objectively by compiling and running the generated C++ against real test cases.">
-  <meta name="twitter:image" content="https://salmanadnan2257.github.io/assets/og/prompt-evolution-ga.png">
+  <meta name="twitter:image" content="https://salmanadnan.com/assets/og/prompt-evolution-ga.png">
 
   <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
   <link rel="icon" href="../assets/favicon.png" sizes="any">
@@ -41,11 +42,11 @@
     "description": "Prompt Evolution GA: a genetic algorithm that evolves LLM instruction prompts for code generation, scored objectively by compiling and running the generated C++ against real test cases.",
     "codeRepository": "https://github.com/salmanadnan2257/prompt-evolution-ga",
     "programmingLanguage": ["Python", "C++"],
-    "url": "https://salmanadnan2257.github.io/projects/prompt-evolution-ga.html",
+    "url": "https://salmanadnan.com/projects/prompt-evolution-ga.html",
     "author": {
       "@type": "Person",
       "name": "Salman Adnan",
-      "url": "https://salmanadnan2257.github.io/"
+      "url": "https://salmanadnan.com/"
     }
   }
   </script>
@@ -75,15 +76,7 @@
       <a class="proj-crumb" href="../index.html"><span aria-hidden="true">&larr;</span> Salman Adnan</a>
       <p class="proj-kicker">prompt-evolution-ga</p>
       <h1 id="proj-title" class="proj-title">Prompt Evolution GA</h1>
-      <p class="proj-lede">A genetic algorithm that evolves system-level instruction prompts for LLM code generation. Each candidate prompt is scored by an objective fitness function: how many real test cases the generated C++ passes.</p>
-      <div class="proj-plain">
-        <span class="proj-plain__label">In plain English</span>
-        <p>When you ask an AI to write a computer program for you, the exact wording of your instructions changes how good the answer is. This project hunts for better wording automatically: it starts with five sets of instructions written by hand, then mixes and tweaks them over and over across generations, the way breeding passes traits along and keeps what works. Scoring is not a matter of opinion; every candidate's instructions are used to write real code, that code is actually run against real test cases, and the score is simply how many of them it passes. The honest finding, reported as it came out, is that the best hand-written instruction held its own against everything the automatic search came up with.</p>
-      </div>
-      <div class="proj-actions">
-        <a class="btn btn--primary" href="https://github.com/salmanadnan2257/prompt-evolution-ga" rel="noopener" target="_blank">View code on GitHub</a>
-        <a class="btn btn--ghost" href="../index.html#work">All projects</a>
-      </div>
+      <p class="proj-lede">When you ask an AI to write a program, the exact wording of your instructions changes how good the result is. This project hunts for better wording automatically: five hand-written instruction sets get mixed and tweaked across generations, the way breeding keeps what works. Scoring is not opinion: each one's generated code is actually run against real test cases. The honest finding: the best hand-written instruction held its own.</p>
         <div class="proj-note">
           <div>
             <strong>Course project, solo implementation</strong>
@@ -108,6 +101,11 @@
           <div class="proj-stat"><b>~$5-6</b><span>cost per full run</span></div>
       </div>
 
+      <div class="proj-actions">
+        <a class="btn btn--primary" href="https://github.com/salmanadnan2257/prompt-evolution-ga" rel="noopener" target="_blank">View code on GitHub</a>
+        <a class="btn btn--ghost" href="../index.html#work">All projects</a>
+      </div>
+
     </div>
   </section>
 
@@ -116,6 +114,7 @@
       <div class="proj-layout">
       <section class="proj-section">
         <h2>Overview</h2>
+        <p>A genetic algorithm that evolves system-level instruction prompts for LLM code generation. Each candidate prompt is scored by an objective fitness function: how many real test cases the generated C++ passes.</p>
         <p>Gemini generates a C++ solution per competitive-programming problem, g++ compiles it, the binary runs against real test cases, and fitness is the fraction of tests passed. Crossover and mutation are performed by a second, stronger LLM operating directly on the prompt text.</p>
       </section>
       <section class="proj-section">

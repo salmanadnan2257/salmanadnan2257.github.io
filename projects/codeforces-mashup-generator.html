@@ -9,24 +9,25 @@
   <meta name="theme-color" content="#FFFDF5">
 
   <!--
-    SITE_URL: the site's absolute base URL is https://salmanadnan2257.github.io
-    Before deploying to a custom domain, find-and-replace that exact string across
-    all HTML files, sitemap.xml, and robots.txt. It is the only absolute host used.
+    SITE_URL: the site's absolute base URL is https://salmanadnan.com
+    It is the only absolute host the site uses, and it appears in robots.txt,
+    sitemap.xml, and the head of every HTML file. If the domain ever moves,
+    change it in all three places together.
   -->
-  <link rel="canonical" href="https://salmanadnan2257.github.io/projects/codeforces-mashup-generator.html">
+  <link rel="canonical" href="https://salmanadnan.com/projects/codeforces-mashup-generator.html">
 
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="Salman Adnan">
   <meta property="og:title" content="Codeforces Mashup Generator · Salman Adnan">
   <meta property="og:description" content="Codeforces Mashup Generator: a single-script tool that builds fair practice contests from the Codeforces API, filtering by rating, tags, and solver history so no group member gets a problem they solved.">
-  <meta property="og:url" content="https://salmanadnan2257.github.io/projects/codeforces-mashup-generator.html">
-  <meta property="og:image" content="https://salmanadnan2257.github.io/assets/og/codeforces-mashup-generator.png">
+  <meta property="og:url" content="https://salmanadnan.com/projects/codeforces-mashup-generator.html">
+  <meta property="og:image" content="https://salmanadnan.com/assets/og/codeforces-mashup-generator.png">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Codeforces Mashup Generator · Salman Adnan">
   <meta name="twitter:description" content="Codeforces Mashup Generator: a single-script tool that builds fair practice contests from the Codeforces API, filtering by rating, tags, and solver history so no group member gets a problem they solved.">
-  <meta name="twitter:image" content="https://salmanadnan2257.github.io/assets/og/codeforces-mashup-generator.png">
+  <meta name="twitter:image" content="https://salmanadnan.com/assets/og/codeforces-mashup-generator.png">
 
   <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
   <link rel="icon" href="../assets/favicon.png" sizes="any">
@@ -41,11 +42,11 @@
     "description": "Codeforces Mashup Generator: a single-script tool that builds fair practice contests from the Codeforces API, filtering by rating, tags, and solver history so no group member gets a problem they solved.",
     "codeRepository": "https://github.com/salmanadnan2257/codeforces-mashup-generator",
     "programmingLanguage": ["Python"],
-    "url": "https://salmanadnan2257.github.io/projects/codeforces-mashup-generator.html",
+    "url": "https://salmanadnan.com/projects/codeforces-mashup-generator.html",
     "author": {
       "@type": "Person",
       "name": "Salman Adnan",
-      "url": "https://salmanadnan2257.github.io/"
+      "url": "https://salmanadnan.com/"
     }
   }
   </script>
@@ -75,15 +76,7 @@
       <a class="proj-crumb" href="../index.html"><span aria-hidden="true">&larr;</span> Salman Adnan</a>
       <p class="proj-kicker">codeforces-mashup-generator</p>
       <h1 id="proj-title" class="proj-title">Codeforces Mashup Generator</h1>
-      <p class="proj-lede">A single-script tool that builds fair mashup contests for a study group by querying the public Codeforces API, filtering the problemset by rating band, tags, and solver history, then writing candidate problems to an Excel sheet.</p>
-      <div class="proj-plain">
-        <span class="proj-plain__label">In plain English</span>
-        <p>Codeforces is a website full of programming puzzles, and Salman's study group used to hold practice contests with them. The trouble was that someone in the group had usually already solved one of the chosen puzzles, which spoils the contest for that person. This small tool does the picking instead: it looks up what each member has already solved, keeps only the puzzles nobody in the group has done, filters them to the difficulty and topics you ask for, and hands you the shortlist as an Excel sheet.</p>
-      </div>
-      <div class="proj-actions">
-        <a class="btn btn--primary" href="https://github.com/salmanadnan2257/codeforces-mashup-generator" rel="noopener" target="_blank">View code on GitHub</a>
-        <a class="btn btn--ghost" href="../index.html#work">All projects</a>
-      </div>
+      <p class="proj-lede">Codeforces is a site full of programming puzzles, and Salman's study group ran practice contests on them. The problem: someone had usually already solved one of them, spoiling the contest. This tool picks instead: it looks up what every member has solved, keeps only puzzles nobody has done, filters by difficulty and topic, and writes the shortlist to an Excel sheet. One verified live run took about 14 seconds.</p>
         <div class="proj-note">
           <div>
             <strong>Solo</strong>
@@ -108,6 +101,11 @@
           <div class="proj-stat"><b>2</b><span>Codeforces API endpoints</span></div>
       </div>
 
+      <div class="proj-actions">
+        <a class="btn btn--primary" href="https://github.com/salmanadnan2257/codeforces-mashup-generator" rel="noopener" target="_blank">View code on GitHub</a>
+        <a class="btn btn--ghost" href="../index.html#work">All projects</a>
+      </div>
+
     </div>
   </section>
 
@@ -116,6 +114,7 @@
       <div class="proj-layout">
       <section class="proj-section">
         <h2>Overview</h2>
+        <p>A single-script tool that builds fair mashup contests for a study group by querying the public Codeforces API, filtering the problemset by rating band, tags, and solver history, then writing candidate problems to an Excel sheet.</p>
         <p>When the study group ran mashup contests, someone always got a problem they had already solved, which ruins the point. This script only picks problems that no listed group member has an accepted submission on, and optionally requires that a trusted strong user has solved it as a rough quality signal.</p>
       </section>
       <section class="proj-section">

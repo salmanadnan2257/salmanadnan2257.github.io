@@ -9,24 +9,25 @@
   <meta name="theme-color" content="#FFFDF5">
 
   <!--
-    SITE_URL: the site's absolute base URL is https://salmanadnan2257.github.io
-    Before deploying to a custom domain, find-and-replace that exact string across
-    all HTML files, sitemap.xml, and robots.txt. It is the only absolute host used.
+    SITE_URL: the site's absolute base URL is https://salmanadnan.com
+    It is the only absolute host the site uses, and it appears in robots.txt,
+    sitemap.xml, and the head of every HTML file. If the domain ever moves,
+    change it in all three places together.
   -->
-  <link rel="canonical" href="https://salmanadnan2257.github.io/projects/custom-web-scraper.html">
+  <link rel="canonical" href="https://salmanadnan.com/projects/custom-web-scraper.html">
 
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="Salman Adnan">
   <meta property="og:title" content="Web Element Inspector · Salman Adnan">
   <meta property="og:description" content="Web Element Inspector: a Tkinter GUI that drives a real Chrome browser via Selenium to find page elements by seven locator strategies, showing results in a sortable table with live in-browser highlighting.">
-  <meta property="og:url" content="https://salmanadnan2257.github.io/projects/custom-web-scraper.html">
-  <meta property="og:image" content="https://salmanadnan2257.github.io/assets/og/custom-web-scraper.png">
+  <meta property="og:url" content="https://salmanadnan.com/projects/custom-web-scraper.html">
+  <meta property="og:image" content="https://salmanadnan.com/assets/og/custom-web-scraper.png">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Web Element Inspector · Salman Adnan">
   <meta name="twitter:description" content="Web Element Inspector: a Tkinter GUI that drives a real Chrome browser via Selenium to find page elements by seven locator strategies, showing results in a sortable table with live in-browser highlighting.">
-  <meta name="twitter:image" content="https://salmanadnan2257.github.io/assets/og/custom-web-scraper.png">
+  <meta name="twitter:image" content="https://salmanadnan.com/assets/og/custom-web-scraper.png">
 
   <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
   <link rel="icon" href="../assets/favicon.png" sizes="any">
@@ -41,11 +42,11 @@
     "description": "Web Element Inspector: a Tkinter GUI that drives a real Chrome browser via Selenium to find page elements by seven locator strategies, showing results in a sortable table with live in-browser highlighting.",
     "codeRepository": "https://github.com/salmanadnan2257/custom-web-scraper",
     "programmingLanguage": ["Python"],
-    "url": "https://salmanadnan2257.github.io/projects/custom-web-scraper.html",
+    "url": "https://salmanadnan.com/projects/custom-web-scraper.html",
     "author": {
       "@type": "Person",
       "name": "Salman Adnan",
-      "url": "https://salmanadnan2257.github.io/"
+      "url": "https://salmanadnan.com/"
     }
   }
   </script>
@@ -75,15 +76,7 @@
       <a class="proj-crumb" href="../index.html"><span aria-hidden="true">&larr;</span> Salman Adnan</a>
       <p class="proj-kicker">custom-web-scraper</p>
       <h1 id="proj-title" class="proj-title">Web Element Inspector</h1>
-      <p class="proj-lede">A desktop GUI for pulling elements off a live web page without writing a scraping script for each new site. Type a URL, pick one of seven Selenium locator strategies, and the tool drives a real Chrome browser to find every matching element, landing results in a sortable table with a "Highlight in Browser" button to confirm the match visually.</p>
-      <div class="proj-plain">
-        <span class="proj-plain__label">In plain English</span>
-        <p>To pull a particular thing off a web page, say every link on it or every heading, you would normally have to write a small program for that one page, then another for the next page. This is a desktop tool that turns the job into pointing and clicking: type in the address, choose how you want to search for the item, and it drives a real Chrome browser to find every match and list them in a table, with a "Highlight in Browser" button that draws an outline around what it found on the actual page. What was checked here is the machinery around that: the table-building and the error messages are unit tested, and the whole window was run against a stand-in browser. A live scrape against a real site is not demonstrated on this page, because the sandbox it was checked in has no internet access.</p>
-      </div>
-      <div class="proj-actions">
-        <a class="btn btn--primary" href="https://github.com/salmanadnan2257/custom-web-scraper" rel="noopener" target="_blank">View code on GitHub</a>
-        <a class="btn btn--ghost" href="../index.html#work">All projects</a>
-      </div>
+      <p class="proj-lede">Pulling every link, or every heading, off a web page normally means writing a program for that one page. This desktop tool makes it point-and-click: type an address, pick how to search, and it drives a real Chrome browser to find every match and outline it on the page. A live scrape against a real site is not demonstrated: the sandbox it was checked in had no internet.</p>
         <div class="proj-note">
           <div>
             <strong>Solo</strong>
@@ -108,6 +101,11 @@
           <div class="proj-stat"><b>Not verified</b><span>live Chrome scrape (sandbox has no network)</span></div>
       </div>
 
+      <div class="proj-actions">
+        <a class="btn btn--primary" href="https://github.com/salmanadnan2257/custom-web-scraper" rel="noopener" target="_blank">View code on GitHub</a>
+        <a class="btn btn--ghost" href="../index.html#work">All projects</a>
+      </div>
+
     </div>
   </section>
 
@@ -116,6 +114,7 @@
       <div class="proj-layout">
       <section class="proj-section">
         <h2>Overview</h2>
+        <p>A desktop GUI for pulling elements off a live web page without writing a scraping script for each new site. Type a URL, pick one of seven Selenium locator strategies, and the tool drives a real Chrome browser to find every matching element, landing results in a sortable table with a "Highlight in Browser" button to confirm the match visually.</p>
         <p>Most small scraping jobs don't need a script, they need five minutes of poking at a page to see what's there. Writing a one-off Python script for each of these checks gets old, so this tool turns that workflow into a GUI: load a page once, then try locator after locator against it without touching code. It drives an actual Chrome instance through Selenium rather than parsing raw HTML, so it also works on pages that render content with JavaScript.</p>
       </section>
       <section class="proj-section">

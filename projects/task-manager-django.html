@@ -9,24 +9,25 @@
   <meta name="theme-color" content="#FFFDF5">
 
   <!--
-    SITE_URL: the site's absolute base URL is https://salmanadnan2257.github.io
-    Before deploying to a custom domain, find-and-replace that exact string across
-    all HTML files, sitemap.xml, and robots.txt. It is the only absolute host used.
+    SITE_URL: the site's absolute base URL is https://salmanadnan.com
+    It is the only absolute host the site uses, and it appears in robots.txt,
+    sitemap.xml, and the head of every HTML file. If the domain ever moves,
+    change it in all three places together.
   -->
-  <link rel="canonical" href="https://salmanadnan2257.github.io/projects/task-manager-django.html">
+  <link rel="canonical" href="https://salmanadnan.com/projects/task-manager-django.html">
 
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="Salman Adnan">
   <meta property="og:title" content="Task Manager · Salman Adnan">
   <meta property="og:description" content="Task Manager: a Django and WebSockets task manager with task sharing, real-time notifications via Channels and Redis, and a matplotlib dashboard. 22 tests.">
-  <meta property="og:url" content="https://salmanadnan2257.github.io/projects/task-manager-django.html">
-  <meta property="og:image" content="https://salmanadnan2257.github.io/assets/og/task-manager-django.png">
+  <meta property="og:url" content="https://salmanadnan.com/projects/task-manager-django.html">
+  <meta property="og:image" content="https://salmanadnan.com/assets/og/task-manager-django.png">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Task Manager · Salman Adnan">
   <meta name="twitter:description" content="Task Manager: a Django and WebSockets task manager with task sharing, real-time notifications via Channels and Redis, and a matplotlib dashboard. 22 tests.">
-  <meta name="twitter:image" content="https://salmanadnan2257.github.io/assets/og/task-manager-django.png">
+  <meta name="twitter:image" content="https://salmanadnan.com/assets/og/task-manager-django.png">
 
   <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
   <link rel="icon" href="../assets/favicon.png" sizes="any">
@@ -41,11 +42,11 @@
     "description": "Task Manager: a Django and WebSockets task manager with task sharing, real-time notifications via Channels and Redis, and a matplotlib dashboard. 22 tests.",
     "codeRepository": "https://github.com/salmanadnan2257/task-manager-django",
     "programmingLanguage": ["Python"],
-    "url": "https://salmanadnan2257.github.io/projects/task-manager-django.html",
+    "url": "https://salmanadnan.com/projects/task-manager-django.html",
     "author": {
       "@type": "Person",
       "name": "Salman Adnan",
-      "url": "https://salmanadnan2257.github.io/"
+      "url": "https://salmanadnan.com/"
     }
   }
   </script>
@@ -75,15 +76,7 @@
       <a class="proj-crumb" href="../index.html"><span aria-hidden="true">&larr;</span> Salman Adnan</a>
       <p class="proj-kicker">task-manager-django</p>
       <h1 id="proj-title" class="proj-title">Task Manager</h1>
-      <p class="proj-lede">A web-based task manager built with Django where users register, manage and share tasks, and receive real-time WebSocket notifications when tasks are assigned or updated.</p>
-      <div class="proj-plain">
-        <span class="proj-plain__label">In plain English</span>
-        <p>A shared to-do list that lives in a web browser: you sign up, add tasks with due dates, search them, and hand one to a colleague. When a task is shared with you or its status changes, the notice appears on your screen straight away, with no need to refresh the page, and there is a small dashboard showing how much is finished and how much is overdue. It was built during an internship, and the fix worth pointing at is a security one: at first, anyone could change the status of anyone else's task without even logging in, so a proper check for "is this task actually yours" had to be added.</p>
-      </div>
-      <div class="proj-actions">
-        <a class="btn btn--primary" href="https://github.com/salmanadnan2257/task-manager-django" rel="noopener" target="_blank">View code on GitHub</a>
-        <a class="btn btn--ghost" href="../index.html#work">All projects</a>
-      </div>
+      <p class="proj-lede">A shared to-do list in the browser: sign up, add tasks with due dates, and hand one to a colleague. When a task is shared with you or changes status, you see it straight away, with no page refresh. Built during an internship; the fix worth showing is a security one: anyone could change the status of anyone else's task without logging in, until an ownership check was added.</p>
         <div class="proj-note">
           <div>
             <strong>Internship project</strong>
@@ -108,6 +101,11 @@
           <div class="proj-stat"><b>Channels</b><span>+ Redis</span></div>
       </div>
 
+      <div class="proj-actions">
+        <a class="btn btn--primary" href="https://github.com/salmanadnan2257/task-manager-django" rel="noopener" target="_blank">View code on GitHub</a>
+        <a class="btn btn--ghost" href="../index.html#work">All projects</a>
+      </div>
+
     </div>
   </section>
 
@@ -116,6 +114,7 @@
       <div class="proj-layout">
       <section class="proj-section">
         <h2>Overview</h2>
+        <p>A web-based task manager built with Django where users register, manage and share tasks, and receive real-time WebSocket notifications when tasks are assigned or updated.</p>
         <p>The brief was to go beyond a basic CRUD app: add multi-user collaboration, real-time updates, and a small analytics view. It covers that ground with Django Channels for the WebSocket layer, Redis as the channel backend, and matplotlib for server-rendered charts.</p>
       </section>
       <section class="proj-section">

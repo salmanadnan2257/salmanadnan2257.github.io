@@ -9,24 +9,25 @@
   <meta name="theme-color" content="#FFFDF5">
 
   <!--
-    SITE_URL: the site's absolute base URL is https://salmanadnan2257.github.io
-    Before deploying to a custom domain, find-and-replace that exact string across
-    all HTML files, sitemap.xml, and robots.txt. It is the only absolute host used.
+    SITE_URL: the site's absolute base URL is https://salmanadnan.com
+    It is the only absolute host the site uses, and it appears in robots.txt,
+    sitemap.xml, and the head of every HTML file. If the domain ever moves,
+    change it in all three places together.
   -->
-  <link rel="canonical" href="https://salmanadnan2257.github.io/projects/hitec-shopify-automation.html">
+  <link rel="canonical" href="https://salmanadnan.com/projects/hitec-shopify-automation.html">
 
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="Salman Adnan">
   <meta property="og:title" content="Hi-Tec Shopify Automation · Salman Adnan">
   <meta property="og:description" content="Hi-Tec Shopify Automation: freelance tools that reconcile Shopify stock, pricing, and product dimensions directly on exported CSV/XLSX files, keeping a human review step in front of every change.">
-  <meta property="og:url" content="https://salmanadnan2257.github.io/projects/hitec-shopify-automation.html">
-  <meta property="og:image" content="https://salmanadnan2257.github.io/assets/og/hitec-shopify-automation.png">
+  <meta property="og:url" content="https://salmanadnan.com/projects/hitec-shopify-automation.html">
+  <meta property="og:image" content="https://salmanadnan.com/assets/og/hitec-shopify-automation.png">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Hi-Tec Shopify Automation · Salman Adnan">
   <meta name="twitter:description" content="Hi-Tec Shopify Automation: freelance tools that reconcile Shopify stock, pricing, and product dimensions directly on exported CSV/XLSX files, keeping a human review step in front of every change.">
-  <meta name="twitter:image" content="https://salmanadnan2257.github.io/assets/og/hitec-shopify-automation.png">
+  <meta name="twitter:image" content="https://salmanadnan.com/assets/og/hitec-shopify-automation.png">
 
   <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
   <link rel="icon" href="../assets/favicon.png" sizes="any">
@@ -41,11 +42,11 @@
     "description": "Hi-Tec Shopify Automation: freelance tools that reconcile Shopify stock, pricing, and product dimensions directly on exported CSV/XLSX files, keeping a human review step in front of every change.",
     "codeRepository": "https://github.com/salmanadnan2257/hitec-shopify-automation",
     "programmingLanguage": ["Python"],
-    "url": "https://salmanadnan2257.github.io/projects/hitec-shopify-automation.html",
+    "url": "https://salmanadnan.com/projects/hitec-shopify-automation.html",
     "author": {
       "@type": "Person",
       "name": "Salman Adnan",
-      "url": "https://salmanadnan2257.github.io/"
+      "url": "https://salmanadnan.com/"
     }
   }
   </script>
@@ -75,15 +76,7 @@
       <a class="proj-crumb" href="../index.html"><span aria-hidden="true">&larr;</span> Salman Adnan</a>
       <p class="proj-kicker">hitec-shopify-automation</p>
       <h1 id="proj-title" class="proj-title">Hi-Tec Shopify Automation</h1>
-      <p class="proj-lede">Freelance automation tools for Hi-Tec Bearings that reconcile stock quantities, costs, and product specs by working directly on the CSV and XLSX files exported from the Shopify admin. Nothing here touches the Shopify API; a human review step sits in front of every catalogue change.</p>
-      <div class="proj-plain">
-        <span class="proj-plain__label">In plain English</span>
-        <p>Hi-Tec Bearings sells thousands of parts through an online shop, but their stock counts and costs lived in a different spreadsheet from the shop's own product list, and matching the two by hand took hours every cycle. These are small tools that do the matching: download the shop's spreadsheet, run a tool, and it fills in the corrected quantities and costs, and even digs the size measurements of each bearing out of the product descriptions where they were buried in text. A person still reads the result before it goes back into the shop; the tools never reach into the live store themselves. It was freelance client work, done in 2023.</p>
-      </div>
-      <div class="proj-actions">
-        <a class="btn btn--primary" href="https://github.com/salmanadnan2257/hitec-shopify-automation" rel="noopener" target="_blank">View code on GitHub</a>
-        <a class="btn btn--ghost" href="../index.html#work">All projects</a>
-      </div>
+      <p class="proj-lede">Hi-Tec Bearings sells thousands of parts online, but its stock counts and costs lived in a different spreadsheet from the shop's product list, so matching them by hand took hours every cycle. These three tools do it: export the shop's spreadsheet, run a tool, and get back corrected quantities, costs, and the bearing sizes buried in product descriptions. A person reviews the result; the tools never touch the live store.</p>
         <div class="proj-note">
           <div>
             <strong>Solo client work (2023)</strong>
@@ -108,6 +101,11 @@
           <div class="proj-stat"><b>3</b><span>tools</span></div>
       </div>
 
+      <div class="proj-actions">
+        <a class="btn btn--primary" href="https://github.com/salmanadnan2257/hitec-shopify-automation" rel="noopener" target="_blank">View code on GitHub</a>
+        <a class="btn btn--ghost" href="../index.html#work">All projects</a>
+      </div>
+
     </div>
   </section>
 
@@ -116,6 +114,7 @@
       <div class="proj-layout">
       <section class="proj-section">
         <h2>Overview</h2>
+        <p>Freelance automation tools for Hi-Tec Bearings that reconcile stock quantities, costs, and product specs by working directly on the CSV and XLSX files exported from the Shopify admin. Nothing here touches the Shopify API; a human review step sits in front of every catalogue change.</p>
         <p>Hi-Tec Bearings runs a Shopify store with thousands of product variants whose stock system and catalogue lived in separate spreadsheets, and keeping them in sync by hand took hours per cycle. The workflow is export, run a tool, review the output, re-import.</p>
       </section>
       <section class="proj-section">

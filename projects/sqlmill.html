@@ -9,24 +9,25 @@
   <meta name="theme-color" content="#FFFDF5">
 
   <!--
-    SITE_URL: the site's absolute base URL is https://salmanadnan2257.github.io
-    Before deploying to a custom domain, find-and-replace that exact string across
-    all HTML files, sitemap.xml, and robots.txt. It is the only absolute host used.
+    SITE_URL: the site's absolute base URL is https://salmanadnan.com
+    It is the only absolute host the site uses, and it appears in robots.txt,
+    sitemap.xml, and the head of every HTML file. If the domain ever moves,
+    change it in all three places together.
   -->
-  <link rel="canonical" href="https://salmanadnan2257.github.io/projects/sqlmill.html">
+  <link rel="canonical" href="https://salmanadnan.com/projects/sqlmill.html">
 
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="Salman Adnan">
   <meta property="og:title" content="SQL Database Engine · Salman Adnan">
   <meta property="og:description" content="sqlmill: a relational database engine from scratch in Python with a SQL parser, B+tree storage, WAL crash recovery, and MVCC. 85 tests, 300/300 SIGKILL crash rounds, 300/300 queries matching SQLite.">
-  <meta property="og:url" content="https://salmanadnan2257.github.io/projects/sqlmill.html">
-  <meta property="og:image" content="https://salmanadnan2257.github.io/assets/og/sqlmill.png">
+  <meta property="og:url" content="https://salmanadnan.com/projects/sqlmill.html">
+  <meta property="og:image" content="https://salmanadnan.com/assets/og/sqlmill.png">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="SQL Database Engine · Salman Adnan">
   <meta name="twitter:description" content="sqlmill: a relational database engine from scratch in Python with a SQL parser, B+tree storage, WAL crash recovery, and MVCC. 85 tests, 300/300 SIGKILL crash rounds, 300/300 queries matching SQLite.">
-  <meta name="twitter:image" content="https://salmanadnan2257.github.io/assets/og/sqlmill.png">
+  <meta name="twitter:image" content="https://salmanadnan.com/assets/og/sqlmill.png">
 
   <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
   <link rel="icon" href="../assets/favicon.png" sizes="any">
@@ -41,11 +42,11 @@
     "description": "sqlmill: a relational database engine from scratch in Python with a SQL parser, B+tree storage, WAL crash recovery, and MVCC. 85 tests, 300/300 SIGKILL crash rounds, 300/300 queries matching SQLite.",
     "codeRepository": "https://github.com/salmanadnan2257/sqlmill",
     "programmingLanguage": ["Python"],
-    "url": "https://salmanadnan2257.github.io/projects/sqlmill.html",
+    "url": "https://salmanadnan.com/projects/sqlmill.html",
     "author": {
       "@type": "Person",
       "name": "Salman Adnan",
-      "url": "https://salmanadnan2257.github.io/"
+      "url": "https://salmanadnan.com/"
     }
   }
   </script>
@@ -75,15 +76,7 @@
       <a class="proj-crumb" href="../index.html"><span aria-hidden="true">&larr;</span> Salman Adnan</a>
       <p class="proj-kicker">sqlmill</p>
       <h1 id="proj-title" class="proj-title">SQL Database Engine</h1>
-      <p class="proj-lede">A relational database engine written from scratch in Python: a hand-written SQL parser, a cost-based planner, B+tree storage on slotted 4KB pages, a write-ahead log with real crash recovery, and MVCC snapshot-isolation transactions. The core uses only the standard library.</p>
-      <div class="proj-plain">
-        <span class="proj-plain__label">In plain English</span>
-        <p>A database is the filing cabinet a program keeps its information in. This is one built from scratch, and the hard part is making sure that if the power cuts out in the middle of a write, nothing is lost or scrambled when it starts back up. It was tested by killing it 300 times at random moments; every time, the data came back intact, and 8,504 pieces of finished work were confirmed still there. As a second check, 300 questions were put to both this database and to SQLite, a long-established database that ships with Python, and all 300 answers matched.</p>
-      </div>
-      <div class="proj-actions">
-        <a class="btn btn--primary" href="https://github.com/salmanadnan2257/sqlmill" rel="noopener" target="_blank">View code on GitHub</a>
-        <a class="btn btn--ghost" href="../index.html#work">All projects</a>
-      </div>
+      <p class="proj-lede">A database is the filing cabinet a program keeps its information in. This is one built from scratch, and the hard part is making sure that if the power cuts out mid-write, nothing is lost or scrambled on restart. It was killed 300 times at random moments; all 300 times the data came back intact, and every one of 8,504 finished pieces of work was still there.</p>
       <figure class="proj-media proj-viz">
         <div class="proj-viz__frame">
           <iframe src="../viz/sqlmill.html" title="Interactive 3D visualization: SQL Database Engine" loading="lazy" allow="fullscreen"></iframe>
@@ -102,6 +95,11 @@
           <div class="proj-stat"><b>8,504</b><span>committed txns verified durable</span></div>
       </div>
 
+      <div class="proj-actions">
+        <a class="btn btn--primary" href="https://github.com/salmanadnan2257/sqlmill" rel="noopener" target="_blank">View code on GitHub</a>
+        <a class="btn btn--ghost" href="../index.html#work">All projects</a>
+      </div>
+
     </div>
   </section>
 
@@ -110,6 +108,7 @@
       <div class="proj-layout">
       <section class="proj-section">
         <h2>Overview</h2>
+        <p>A relational database engine written from scratch in Python: a hand-written SQL parser, a cost-based planner, B+tree storage on slotted 4KB pages, a write-ahead log with real crash recovery, and MVCC snapshot-isolation transactions. The core uses only the standard library.</p>
         <p>Databases are the best systems-programming curriculum there is: parsing, query optimization, on-disk data structures, caching, logging protocols, and concurrency control, all forced to cooperate.</p>
         <p>sqlmill owns each layer end to end, including the parts tutorials usually skip: crash recovery that survives a SIGKILL mid-page-write, and transaction semantics precise enough to state which anomalies are and are not possible.</p>
       </section>

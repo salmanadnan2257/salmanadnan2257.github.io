@@ -9,24 +9,25 @@
   <meta name="theme-color" content="#FFFDF5">
 
   <!--
-    SITE_URL: the site's absolute base URL is https://salmanadnan2257.github.io
-    Before deploying to a custom domain, find-and-replace that exact string across
-    all HTML files, sitemap.xml, and robots.txt. It is the only absolute host used.
+    SITE_URL: the site's absolute base URL is https://salmanadnan.com
+    It is the only absolute host the site uses, and it appears in robots.txt,
+    sitemap.xml, and the head of every HTML file. If the domain ever moves,
+    change it in all three places together.
   -->
-  <link rel="canonical" href="https://salmanadnan2257.github.io/projects/inference-engine.html">
+  <link rel="canonical" href="https://salmanadnan.com/projects/inference-engine.html">
 
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="Salman Adnan">
   <meta property="og:title" content="LLM Inference Engine · Salman Adnan">
   <meta property="og:description" content="A from-scratch LLM inference engine: paged KV cache with copy-on-write, continuous batching, prefix caching, and speculative decoding behind an OpenAI-compatible API. About 2.8x batched throughput on CPU.">
-  <meta property="og:url" content="https://salmanadnan2257.github.io/projects/inference-engine.html">
-  <meta property="og:image" content="https://salmanadnan2257.github.io/assets/og/inference-engine.png">
+  <meta property="og:url" content="https://salmanadnan.com/projects/inference-engine.html">
+  <meta property="og:image" content="https://salmanadnan.com/assets/og/inference-engine.png">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="LLM Inference Engine · Salman Adnan">
   <meta name="twitter:description" content="A from-scratch LLM inference engine: paged KV cache with copy-on-write, continuous batching, prefix caching, and speculative decoding behind an OpenAI-compatible API. About 2.8x batched throughput on CPU.">
-  <meta name="twitter:image" content="https://salmanadnan2257.github.io/assets/og/inference-engine.png">
+  <meta name="twitter:image" content="https://salmanadnan.com/assets/og/inference-engine.png">
 
   <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
   <link rel="icon" href="../assets/favicon.png" sizes="any">
@@ -41,11 +42,11 @@
     "description": "A from-scratch LLM inference engine: paged KV cache with copy-on-write, continuous batching, prefix caching, and speculative decoding behind an OpenAI-compatible API. About 2.8x batched throughput on CPU.",
     "codeRepository": "https://github.com/salmanadnan2257/inference-engine",
     "programmingLanguage": ["Python"],
-    "url": "https://salmanadnan2257.github.io/projects/inference-engine.html",
+    "url": "https://salmanadnan.com/projects/inference-engine.html",
     "author": {
       "@type": "Person",
       "name": "Salman Adnan",
-      "url": "https://salmanadnan2257.github.io/"
+      "url": "https://salmanadnan.com/"
     }
   }
   </script>
@@ -75,15 +76,7 @@
       <a class="proj-crumb" href="../index.html"><span aria-hidden="true">&larr;</span> Salman Adnan</a>
       <p class="proj-kicker">inference-engine</p>
       <h1 id="proj-title" class="proj-title">LLM Inference Engine</h1>
-      <p class="proj-lede"><strong>Problem:</strong> LLM inference is latency-bound in production. Serving multiple requests efficiently requires careful memory management, scheduling, and algorithmic tricks. <strong>Solution:</strong> Built a from-scratch inference engine with paged KV cache, continuous batching, prefix caching, and speculative decoding. <strong>Result:</strong> ~2.8x throughput improvement on commodity hardware through smart resource allocation, not raw compute.</p>
-      <div class="proj-plain">
-        <span class="proj-plain__label">In plain English</span>
-        <p>When you ask an AI chatbot a question, some piece of software has to actually run the AI's brain and produce the reply, word by word. This is that piece of software, written from scratch. The hard problem is not answering one person; it is serving a crowd of people at once from a single computer without the machine sitting idle, which comes down to careful memory housekeeping and letting requests take turns cleverly. Serving eight people at once instead of one at a time took it from about 45 words a second to about 114, roughly two and a half times its own one-at-a-time rate, and about 2.8 times what the standard off-the-shelf tool managed on the same machine. The replies were checked against a trusted reference version to confirm the speed tricks did not change a single word.</p>
-      </div>
-      <div class="proj-actions">
-        <a class="btn btn--primary" href="https://github.com/salmanadnan2257/inference-engine" rel="noopener" target="_blank">View code on GitHub</a>
-        <a class="btn btn--ghost" href="../index.html#work">All projects</a>
-      </div>
+      <p class="proj-lede">Some software has to run an AI model and produce its reply token by token, a token being a word or part of one. This is that software, written from scratch. The hard part is serving a crowd at once from a single machine without it sitting idle: memory housekeeping and clever turn-taking. On CPU, serving eight at once lifted it from about 45 tokens a second to about 114.</p>
         <div class="proj-note">
           <div>
             <strong>CPU numbers, read as relative</strong>
@@ -106,6 +99,12 @@
           <div class="proj-stat"><b>~3e-5</b><span>max logit diff vs transformers</span></div>
           <div class="proj-stat"><b>~2.8x</b><span>batched vs sequential throughput</span></div>
           <div class="proj-stat"><b>0.54</b><span>speculative acceptance rate</span></div>
+          <div class="proj-stat"><b>55</b><span>tests passing</span></div>
+      </div>
+
+      <div class="proj-actions">
+        <a class="btn btn--primary" href="https://github.com/salmanadnan2257/inference-engine" rel="noopener" target="_blank">View code on GitHub</a>
+        <a class="btn btn--ghost" href="../index.html#work">All projects</a>
       </div>
 
     </div>
@@ -114,6 +113,10 @@
   <div class="proj-body acc-yellow">
     <div class="wrap">
       <div class="proj-layout">
+      <section class="proj-section">
+        <h2>Problem, solution, result</h2>
+        <p><strong>Problem:</strong> LLM inference is latency-bound in production. Serving multiple requests efficiently requires careful memory management, scheduling, and algorithmic tricks. <strong>Solution:</strong> Built a from-scratch inference engine with paged KV cache, continuous batching, prefix caching, and speculative decoding. <strong>Result:</strong> ~2.8x throughput improvement on commodity hardware through smart resource allocation, not raw compute.</p>
+      </section>
       <section class="proj-section">
         <h2>The Problem</h2>
         <p>Production LLM serving is constrained by latency and memory. Naive request handling (one request at a time) leaves compute idle. Serving engines solve this through continuous batching, but require careful memory management: cache allocation, eviction, sharing, and rollback under failure. Serving engines are where ML meets systems programming: memory allocators, schedulers, cache coherence, admission control.</p>
@@ -159,7 +162,7 @@
           <li>FastAPI</li>
           <li>SSE streaming</li>
           <li>GPT-2 / distilgpt2</li>
-          <li>pytest</li>
+          <li>pytest: 55 tests, covering block-manager allocation and refcounting, the scheduler, sampling, logit parity against Hugging Face, speculative decoding, and the streaming HTTP API.</li>
         </ul>
       </section>
       <section class="proj-section">

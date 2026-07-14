@@ -9,24 +9,25 @@
   <meta name="theme-color" content="#FFFDF5">
 
   <!--
-    SITE_URL: the site's absolute base URL is https://salmanadnan2257.github.io
-    Before deploying to a custom domain, find-and-replace that exact string across
-    all HTML files, sitemap.xml, and robots.txt. It is the only absolute host used.
+    SITE_URL: the site's absolute base URL is https://salmanadnan.com
+    It is the only absolute host the site uses, and it appears in robots.txt,
+    sitemap.xml, and the head of every HTML file. If the domain ever moves,
+    change it in all three places together.
   -->
-  <link rel="canonical" href="https://salmanadnan2257.github.io/projects/raft-kv.html">
+  <link rel="canonical" href="https://salmanadnan.com/projects/raft-kv.html">
 
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="Salman Adnan">
   <meta property="og:title" content="Raft Consensus KV Store · Salman Adnan">
   <meta property="og:description" content="raft-kv: a distributed key-value store with Raft from scratch, a deterministic chaos simulator, and a hand-written linearizability checker. 57 tests, a 5,000-seed run of 564,170 ops with zero violations.">
-  <meta property="og:url" content="https://salmanadnan2257.github.io/projects/raft-kv.html">
-  <meta property="og:image" content="https://salmanadnan2257.github.io/assets/og/raft-kv.png">
+  <meta property="og:url" content="https://salmanadnan.com/projects/raft-kv.html">
+  <meta property="og:image" content="https://salmanadnan.com/assets/og/raft-kv.png">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Raft Consensus KV Store · Salman Adnan">
   <meta name="twitter:description" content="raft-kv: a distributed key-value store with Raft from scratch, a deterministic chaos simulator, and a hand-written linearizability checker. 57 tests, a 5,000-seed run of 564,170 ops with zero violations.">
-  <meta name="twitter:image" content="https://salmanadnan2257.github.io/assets/og/raft-kv.png">
+  <meta name="twitter:image" content="https://salmanadnan.com/assets/og/raft-kv.png">
 
   <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
   <link rel="icon" href="../assets/favicon.png" sizes="any">
@@ -41,11 +42,11 @@
     "description": "raft-kv: a distributed key-value store with Raft from scratch, a deterministic chaos simulator, and a hand-written linearizability checker. 57 tests, a 5,000-seed run of 564,170 ops with zero violations.",
     "codeRepository": "https://github.com/salmanadnan2257/raft-kv",
     "programmingLanguage": ["Python"],
-    "url": "https://salmanadnan2257.github.io/projects/raft-kv.html",
+    "url": "https://salmanadnan.com/projects/raft-kv.html",
     "author": {
       "@type": "Person",
       "name": "Salman Adnan",
-      "url": "https://salmanadnan2257.github.io/"
+      "url": "https://salmanadnan.com/"
     }
   }
   </script>
@@ -75,15 +76,7 @@
       <a class="proj-crumb" href="../index.html"><span aria-hidden="true">&larr;</span> Salman Adnan</a>
       <p class="proj-kicker">raft-kv</p>
       <h1 id="proj-title" class="proj-title">Raft Consensus KV Store</h1>
-      <p class="proj-lede">A distributed key-value store with Raft consensus implemented from scratch in Python, plus a deterministic simulation harness that runs thousands of seeded chaos schedules against the real consensus code, and a from-scratch linearizability checker that verifies the client histories those runs produce.</p>
-      <div class="proj-plain">
-        <span class="proj-plain__label">In plain English</span>
-        <p>Important information is usually kept on several computers at once, so that if one of them dies, nothing is lost. The hard part is keeping them in agreement, rather like a team that has to maintain one shared to-do list while the phone lines keep cutting out and people keep leaving the room mid-sentence; whatever happens, they must never end up with two different lists that both look correct. This project builds that agreement from scratch and then attacks it on purpose, putting a group of machines through thousands of randomly generated disasters: lost messages, machines crashing, the network sliced in half. Across 5,000 of those runs, covering 564,170 recorded reads and writes, the stored data never once contradicted itself.</p>
-      </div>
-      <div class="proj-actions">
-        <a class="btn btn--primary" href="https://github.com/salmanadnan2257/raft-kv" rel="noopener" target="_blank">View code on GitHub</a>
-        <a class="btn btn--ghost" href="../index.html#work">All projects</a>
-      </div>
+      <p class="proj-lede">Important data is kept on several computers at once so that if one dies, nothing is lost. The hard part is keeping them in agreement while messages vanish and machines crash, without ever ending up with two versions that both look correct. This builds that agreement from scratch, then attacks it: 5,000 randomly generated disaster runs, 564,170 recorded reads and writes, and the stored data never once contradicted itself.</p>
       <figure class="proj-media proj-viz">
         <div class="proj-viz__frame">
           <iframe src="../viz/raft-kv.html" title="Interactive 3D visualization: Raft Consensus KV Store" loading="lazy" allow="fullscreen"></iframe>
@@ -102,6 +95,11 @@
           <div class="proj-stat"><b>564,170</b><span>client ops, 0 violations</span></div>
       </div>
 
+      <div class="proj-actions">
+        <a class="btn btn--primary" href="https://github.com/salmanadnan2257/raft-kv" rel="noopener" target="_blank">View code on GitHub</a>
+        <a class="btn btn--ghost" href="../index.html#work">All projects</a>
+      </div>
+
     </div>
   </section>
 
@@ -110,6 +108,7 @@
       <div class="proj-layout">
       <section class="proj-section">
         <h2>Overview</h2>
+        <p>A distributed key-value store with Raft consensus implemented from scratch in Python, plus a deterministic simulation harness that runs thousands of seeded chaos schedules against the real consensus code, and a from-scratch linearizability checker that verifies the client histories those runs produce.</p>
         <p>Consensus code is easy to write and nearly impossible to trust from example-based tests, because the bugs live in message interleavings you never hit on a laptop loopback.</p>
         <p>This project takes the FoundationDB position: the same RaftNode class runs unmodified on a real TCP cluster and inside a simulator where time, delivery order, loss, partitions, crashes, and clock skew are all derived from one seeded RNG. A failing seed replays its exact schedule every time.</p>
       </section>

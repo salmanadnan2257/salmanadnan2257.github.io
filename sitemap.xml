@@ -1,198 +1,198 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- SITE_URL: replace https://salmanadnan2257.github.io with the real domain at deploy (single find-replace across HTML, sitemap.xml, robots.txt). -->
+<!-- SITE_URL: the site's absolute base URL is https://salmanadnan.com (the same host is used in robots.txt, every HTML head, and this file). -->
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://salmanadnan2257.github.io/</loc>
+    <loc>https://salmanadnan.com/</loc>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
-    <loc>https://salmanadnan2257.github.io/projects/trade-intelligence-copilot.html</loc>
+    <loc>https://salmanadnan.com/projects/trade-intelligence-copilot.html</loc>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://salmanadnan2257.github.io/projects/inference-engine.html</loc>
+    <loc>https://salmanadnan.com/projects/inference-engine.html</loc>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://salmanadnan2257.github.io/projects/sqlmill.html</loc>
+    <loc>https://salmanadnan.com/projects/sqlmill.html</loc>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://salmanadnan2257.github.io/projects/raft-kv.html</loc>
+    <loc>https://salmanadnan.com/projects/raft-kv.html</loc>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://salmanadnan2257.github.io/projects/agent-runtime.html</loc>
+    <loc>https://salmanadnan.com/projects/agent-runtime.html</loc>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://salmanadnan2257.github.io/projects/vector-db.html</loc>
+    <loc>https://salmanadnan.com/projects/vector-db.html</loc>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://salmanadnan2257.github.io/projects/urdu-slm.html</loc>
+    <loc>https://salmanadnan.com/projects/urdu-slm.html</loc>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://salmanadnan2257.github.io/projects/zarailink.html</loc>
+    <loc>https://salmanadnan.com/projects/zarailink.html</loc>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://salmanadnan2257.github.io/projects/balochi-poet-classifier.html</loc>
+    <loc>https://salmanadnan.com/projects/balochi-poet-classifier.html</loc>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://salmanadnan2257.github.io/projects/voice-agent.html</loc>
+    <loc>https://salmanadnan.com/projects/voice-agent.html</loc>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://salmanadnan2257.github.io/projects/agency-blog-saas.html</loc>
+    <loc>https://salmanadnan.com/projects/agency-blog-saas.html</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://salmanadnan2257.github.io/projects/blog-posting-pipeline.html</loc>
+    <loc>https://salmanadnan.com/projects/blog-posting-pipeline.html</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://salmanadnan2257.github.io/projects/task-manager-django.html</loc>
+    <loc>https://salmanadnan.com/projects/task-manager-django.html</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://salmanadnan2257.github.io/projects/prompt-evolution-ga.html</loc>
+    <loc>https://salmanadnan.com/projects/prompt-evolution-ga.html</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://salmanadnan2257.github.io/projects/postgres-scaling-lab.html</loc>
+    <loc>https://salmanadnan.com/projects/postgres-scaling-lab.html</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://salmanadnan2257.github.io/projects/cpp-ray-tracer.html</loc>
+    <loc>https://salmanadnan.com/projects/cpp-ray-tracer.html</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://salmanadnan2257.github.io/projects/webgl-terrain-explorer.html</loc>
+    <loc>https://salmanadnan.com/projects/webgl-terrain-explorer.html</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://salmanadnan2257.github.io/projects/reelflow-studio.html</loc>
+    <loc>https://salmanadnan.com/projects/reelflow-studio.html</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://salmanadnan2257.github.io/projects/university-enrollment-system.html</loc>
+    <loc>https://salmanadnan.com/projects/university-enrollment-system.html</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://salmanadnan2257.github.io/projects/hitec-shopify-automation.html</loc>
+    <loc>https://salmanadnan.com/projects/hitec-shopify-automation.html</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://salmanadnan2257.github.io/projects/codeforces-mashup-generator.html</loc>
+    <loc>https://salmanadnan.com/projects/codeforces-mashup-generator.html</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://salmanadnan2257.github.io/projects/paws-rescue-donations.html</loc>
+    <loc>https://salmanadnan.com/projects/paws-rescue-donations.html</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://salmanadnan2257.github.io/projects/n8n-automations.html</loc>
+    <loc>https://salmanadnan.com/projects/n8n-automations.html</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://salmanadnan2257.github.io/projects/space-race-analysis.html</loc>
+    <loc>https://salmanadnan.com/projects/space-race-analysis.html</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://salmanadnan2257.github.io/projects/police-shootings-analysis.html</loc>
+    <loc>https://salmanadnan.com/projects/police-shootings-analysis.html</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://salmanadnan2257.github.io/projects/earnings-regression.html</loc>
+    <loc>https://salmanadnan.com/projects/earnings-regression.html</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://salmanadnan2257.github.io/projects/flask-todo-list.html</loc>
+    <loc>https://salmanadnan.com/projects/flask-todo-list.html</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://salmanadnan2257.github.io/projects/flask-online-shop.html</loc>
+    <loc>https://salmanadnan.com/projects/flask-online-shop.html</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://salmanadnan2257.github.io/projects/pdf-to-audiobook.html</loc>
+    <loc>https://salmanadnan.com/projects/pdf-to-audiobook.html</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://salmanadnan2257.github.io/projects/color-palette-generator.html</loc>
+    <loc>https://salmanadnan.com/projects/color-palette-generator.html</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://salmanadnan2257.github.io/projects/custom-web-scraper.html</loc>
+    <loc>https://salmanadnan.com/projects/custom-web-scraper.html</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://salmanadnan2257.github.io/projects/morse-code-converter.html</loc>
+    <loc>https://salmanadnan.com/projects/morse-code-converter.html</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://salmanadnan2257.github.io/projects/tic-tac-toe-gui.html</loc>
+    <loc>https://salmanadnan.com/projects/tic-tac-toe-gui.html</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://salmanadnan2257.github.io/projects/image-watermarking-tool.html</loc>
+    <loc>https://salmanadnan.com/projects/image-watermarking-tool.html</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://salmanadnan2257.github.io/projects/typing-master-gui.html</loc>
+    <loc>https://salmanadnan.com/projects/typing-master-gui.html</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://salmanadnan2257.github.io/projects/breakout-game.html</loc>
+    <loc>https://salmanadnan.com/projects/breakout-game.html</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://salmanadnan2257.github.io/projects/disappearing-text-app.html</loc>
+    <loc>https://salmanadnan.com/projects/disappearing-text-app.html</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://salmanadnan2257.github.io/projects/dino-game-bot.html</loc>
+    <loc>https://salmanadnan.com/projects/dino-game-bot.html</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>

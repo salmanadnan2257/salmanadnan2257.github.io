@@ -695,17 +695,65 @@ const view = {
 const drag = { id: -1, x: 0, y: 0 };
 const touches = new Map();                 // live touch points, for pinch
 let pinchFrom = 0, pinchZoom = 1;
+/* What the view looked like when the gesture now in flight began. Embedded, the
+   canvas is touch-action: pan-y, so a vertical swipe is the host page's to keep:
+   the browser hands over a pointerdown and a move, then cancels. That gesture was
+   never an orbit, and this is what it gets put back to. */
+const gesture = {
+  active: false,
+  yaw: 0, pitch: 0, zoom: 1,
+  yawGoal: 0, pitchGoal: 0, zoomGoal: 1,
+  touched: false
+};
 
 const hintEl = document.getElementById('hint');
 const btnReset = document.getElementById('btnReset');
 
 function clamp(v, lo, hi) { return v < lo ? lo : (v > hi ? hi : v); }
 
-function engage() {
-  if (view.touched) return;
-  view.touched = true;
-  if (hintEl) hintEl.classList.add('is-gone');
-  if (btnReset) btnReset.hidden = false;
+/* The viewer has taken the wheel. The hint and the Reset button are deliberately
+   not set from here: they follow the view's own state, synced every frame, so a
+   gesture the browser takes back for a page scroll leaves no trace on either. */
+function engage() { view.touched = true; }
+
+function beginGesture() {
+  if (gesture.active) return;
+  gesture.active = true;
+  gesture.yaw = view.yaw; gesture.pitch = view.pitch; gesture.zoom = view.zoom;
+  gesture.yawGoal = view.yawGoal; gesture.pitchGoal = view.pitchGoal;
+  gesture.zoomGoal = view.zoomGoal;
+  gesture.touched = view.touched;
+}
+
+function undoGesture() {
+  if (!gesture.active) return;
+  view.yaw = gesture.yaw; view.pitch = gesture.pitch; view.zoom = gesture.zoom;
+  view.yawGoal = gesture.yawGoal; view.pitchGoal = gesture.pitchGoal;
+  view.zoomGoal = gesture.zoomGoal;
+  view.vYaw = 0; view.vPitch = 0;
+  view.touched = gesture.touched;
+}
+
+/* Is there anything to reset? Only if the view sits off the framing the scene gave
+   it, or is still carrying a release back into one. A finger that merely crossed the
+   canvas on its way down the page moved nothing, so it is offered nothing. */
+function viewMoved() {
+  return view.yaw !== 0 || view.pitch !== 0 || view.zoom !== 1 ||
+    view.yawGoal !== 0 || view.pitchGoal !== 0 || view.zoomGoal !== 1 ||
+    view.vYaw !== 0 || view.vPitch !== 0;
+}
+
+function syncViewUi() {
+  if (hintEl && hintEl.classList.contains('is-gone') !== view.touched) {
+    hintEl.classList.toggle('is-gone', view.touched);
+  }
+  if (!btnReset) return;
+  const show = viewMoved();
+  if (btnReset.hidden === !show) return;   // already saying the right thing
+  /* Hiding the control the keyboard is standing on would drop focus to nowhere:
+     hand it back to the piece first. */
+  if (!show && document.activeElement === btnReset) canvas.focus({ preventScroll: true });
+  btnReset.hidden = !show;
 }
 
 function resetView() {
@@ -736,6 +784,7 @@ function pinchSpan() {
 
 canvas.addEventListener('pointerdown', (e) => {
   if (e.pointerType === 'mouse' && e.button !== 0) return;   // the left button orbits; leave the rest alone
+  beginGesture();
   if (e.pointerType === 'touch') {
     touches.set(e.pointerId, { x: e.clientX, y: e.clientY });
     if (touches.size >= 2) {
@@ -790,14 +839,19 @@ function endDrag(e) {
   touches.delete(e.pointerId);
   if (touches.size === 2) { pinchFrom = pinchSpan(); pinchZoom = view.zoomGoal; }
   else if (touches.size < 2) pinchFrom = 0;
-  if (e.pointerId !== drag.id) return;
-  drag.id = -1;
-  canvas.classList.remove('is-grabbing');
-  try { canvas.releasePointerCapture(e.pointerId); } catch (err) { /* already gone */ }
+  if (e.pointerId === drag.id) {
+    drag.id = -1;
+    canvas.classList.remove('is-grabbing');
+    try { canvas.releasePointerCapture(e.pointerId); } catch (err) { /* already gone */ }
+  }
+  if (drag.id === -1 && touches.size === 0) gesture.active = false;
   kickView();
 }
 canvas.addEventListener('pointerup', endDrag);
-canvas.addEventListener('pointercancel', endDrag);
+/* The browser has taken the gesture back: the finger that started on the piece
+   turned out to be the host page scrolling past it, so it was never an orbit. Give
+   the view back exactly as the gesture found it, hint and Reset button included. */
+canvas.addEventListener('pointercancel', (e) => { undoGesture(); endDrag(e); });
 
 canvas.addEventListener('wheel', (e) => {
   if (!ownsWheel()) return;   // let the host page scroll
@@ -922,6 +976,7 @@ function stepView(dt) {
   if (Math.abs(view.yaw) < EPS) view.yaw = 0;
   if (Math.abs(view.pitch) < EPS) view.pitch = 0;
   if (Math.abs(view.zoom - 1) < EPS) view.zoom = 1;
+  syncViewUi();
 }
 
 /* fresh: the scene has just placed the camera this frame. Otherwise the piece

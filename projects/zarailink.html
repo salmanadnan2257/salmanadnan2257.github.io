@@ -9,24 +9,25 @@
   <meta name="theme-color" content="#FFFDF5">
 
   <!--
-    SITE_URL: the site's absolute base URL is https://salmanadnan2257.github.io
-    Before deploying to a custom domain, find-and-replace that exact string across
-    all HTML files, sitemap.xml, and robots.txt. It is the only absolute host used.
+    SITE_URL: the site's absolute base URL is https://salmanadnan.com
+    It is the only absolute host the site uses, and it appears in robots.txt,
+    sitemap.xml, and the head of every HTML file. If the domain ever moves,
+    change it in all three places together.
   -->
-  <link rel="canonical" href="https://salmanadnan2257.github.io/projects/zarailink.html">
+  <link rel="canonical" href="https://salmanadnan.com/projects/zarailink.html">
 
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="Salman Adnan">
   <meta property="og:title" content="ZaraiLink · Salman Adnan">
   <meta property="og:description" content="ZaraiLink: an agricultural trade-intelligence platform (Django, DRF, React) with NLU intent search, entity resolution, and learning-to-rank. A team project Salman led, with 63 backend and 49 frontend tests passing.">
-  <meta property="og:url" content="https://salmanadnan2257.github.io/projects/zarailink.html">
-  <meta property="og:image" content="https://salmanadnan2257.github.io/assets/og/zarailink.png">
+  <meta property="og:url" content="https://salmanadnan.com/projects/zarailink.html">
+  <meta property="og:image" content="https://salmanadnan.com/assets/og/zarailink.png">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="ZaraiLink · Salman Adnan">
   <meta name="twitter:description" content="ZaraiLink: an agricultural trade-intelligence platform (Django, DRF, React) with NLU intent search, entity resolution, and learning-to-rank. A team project Salman led, with 63 backend and 49 frontend tests passing.">
-  <meta name="twitter:image" content="https://salmanadnan2257.github.io/assets/og/zarailink.png">
+  <meta name="twitter:image" content="https://salmanadnan.com/assets/og/zarailink.png">
 
   <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
   <link rel="icon" href="../assets/favicon.png" sizes="any">
@@ -40,11 +41,11 @@
     "name": "ZaraiLink",
     "description": "ZaraiLink: an agricultural trade-intelligence platform (Django, DRF, React) with NLU intent search, entity resolution, and learning-to-rank. A team project Salman led, with 63 backend and 49 frontend tests passing.",
     "programmingLanguage": ["Python", "JavaScript"],
-    "url": "https://salmanadnan2257.github.io/projects/zarailink.html",
+    "url": "https://salmanadnan.com/projects/zarailink.html",
     "author": {
       "@type": "Person",
       "name": "Salman Adnan",
-      "url": "https://salmanadnan2257.github.io/"
+      "url": "https://salmanadnan.com/"
     }
   }
   </script>
@@ -74,15 +75,7 @@
       <a class="proj-crumb" href="../index.html"><span aria-hidden="true">&larr;</span> Salman Adnan</a>
       <p class="proj-kicker">zarailink</p>
       <h1 id="proj-title" class="proj-title">ZaraiLink <span class="badge badge--purple">Team</span></h1>
-      <p class="proj-lede">An agricultural trade-intelligence platform built as a final-year project at Habib University. It sits on Pakistani customs trade data and answers plain-language supplier queries through an NLU pipeline, a hybrid retrieval layer, and a learning-to-rank model.</p>
-      <div class="proj-plain">
-        <span class="proj-plain__label">In plain English</span>
-        <p>Say you trade in farm goods and you need to find who sells dextrose from Brazil for under $800 a tonne. This is a website where you type that question the way you would say it out loud, typos and all, and it searches Pakistani customs records to hand you back a ranked list of companies, with what they have shipped and who they trade with; the contact details are not simply handed over, they stay locked behind a paid subscription and are unlocked one company at a time as you spend credits. It is aimed at buyers and suppliers who would otherwise be digging through customs paperwork by hand. Three university students built it as their final-year project, with Salman leading it; the source code is private, and the demo linked here runs on made-up companies rather than the real customs data.</p>
-      </div>
-      <div class="proj-actions">
-        <a class="btn btn--primary" href="/demo/zarailink/" rel="noopener">Try the live demo</a>
-        <a class="btn btn--ghost" href="../index.html#work">All projects</a>
-      </div>
+      <p class="proj-lede">Suppose you trade farm goods and need suppliers of dextrose from Brazil under $800 a tonne. You type that question in plain words, typos and all, and this site searches Pakistani customs records for a ranked list of companies, with contact details locked behind a paid subscription. Three students built it as their final-year project, led by Salman; the demo runs on 14 made-up companies, not live customs data.</p>
         <div class="proj-note">
           <div>
             <strong>Team project, led by Salman</strong>
@@ -107,6 +100,11 @@
           <div class="proj-stat"><b>64 / 97</b><span>commits led by Salman</span></div>
       </div>
 
+      <div class="proj-actions">
+        <a class="btn btn--primary" href="/demo/zarailink/" rel="noopener">Try the live demo</a>
+        <a class="btn btn--ghost" href="../index.html#work">All projects</a>
+      </div>
+
     </div>
   </section>
 
@@ -115,6 +113,7 @@
       <div class="proj-layout">
       <section class="proj-section">
         <h2>Overview</h2>
+        <p>An agricultural trade-intelligence platform built as a final-year project at Habib University. It sits on Pakistani customs trade data and answers plain-language supplier queries through an NLU pipeline, a hybrid retrieval layer, and a learning-to-rank model.</p>
         <p>The platform answers queries like find dextrose suppliers from Brazil under $800 per MT: the query passes through intent classification, entity extraction, and country and price parsing, a hybrid retrieval layer, and a learning-to-rank model, and comes back as ranked companies with trade history, partners, and gated contact details.</p>
       </section>
       <section class="proj-section">

@@ -9,24 +9,25 @@
   <meta name="theme-color" content="#FFFDF5">
 
   <!--
-    SITE_URL: the site's absolute base URL is https://salmanadnan2257.github.io
-    Before deploying to a custom domain, find-and-replace that exact string across
-    all HTML files, sitemap.xml, and robots.txt. It is the only absolute host used.
+    SITE_URL: the site's absolute base URL is https://salmanadnan.com
+    It is the only absolute host the site uses, and it appears in robots.txt,
+    sitemap.xml, and the head of every HTML file. If the domain ever moves,
+    change it in all three places together.
   -->
-  <link rel="canonical" href="https://salmanadnan2257.github.io/projects/university-enrollment-system.html">
+  <link rel="canonical" href="https://salmanadnan.com/projects/university-enrollment-system.html">
 
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="Salman Adnan">
   <meta property="og:title" content="University Enrollment System · Salman Adnan">
   <meta property="og:description" content="University Enrollment System: a PyQt6 desktop course-registration app over SQLite with emailed login codes, clash and capacity checks, attendance, and Excel export. A team project.">
-  <meta property="og:url" content="https://salmanadnan2257.github.io/projects/university-enrollment-system.html">
-  <meta property="og:image" content="https://salmanadnan2257.github.io/assets/og/university-enrollment-system.png">
+  <meta property="og:url" content="https://salmanadnan.com/projects/university-enrollment-system.html">
+  <meta property="og:image" content="https://salmanadnan.com/assets/og/university-enrollment-system.png">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="University Enrollment System · Salman Adnan">
   <meta name="twitter:description" content="University Enrollment System: a PyQt6 desktop course-registration app over SQLite with emailed login codes, clash and capacity checks, attendance, and Excel export. A team project.">
-  <meta name="twitter:image" content="https://salmanadnan2257.github.io/assets/og/university-enrollment-system.png">
+  <meta name="twitter:image" content="https://salmanadnan.com/assets/og/university-enrollment-system.png">
 
   <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
   <link rel="icon" href="../assets/favicon.png" sizes="any">
@@ -41,11 +42,11 @@
     "description": "University Enrollment System: a PyQt6 desktop course-registration app over SQLite with emailed login codes, clash and capacity checks, attendance, and Excel export. A team project.",
     "codeRepository": "https://github.com/salmanadnan2257/university-enrollment-system",
     "programmingLanguage": ["Python"],
-    "url": "https://salmanadnan2257.github.io/projects/university-enrollment-system.html",
+    "url": "https://salmanadnan.com/projects/university-enrollment-system.html",
     "author": {
       "@type": "Person",
       "name": "Salman Adnan",
-      "url": "https://salmanadnan2257.github.io/"
+      "url": "https://salmanadnan.com/"
     }
   }
   </script>
@@ -75,15 +76,7 @@
       <a class="proj-crumb" href="../index.html"><span aria-hidden="true">&larr;</span> Salman Adnan</a>
       <p class="proj-kicker">university-enrollment-system</p>
       <h1 id="proj-title" class="proj-title">University Enrollment System <span class="badge badge--purple">Team</span></h1>
-      <p class="proj-lede">A desktop course-registration app built with PyQt6 and SQLAlchemy over SQLite. A student logs in, confirms an emailed code, then enrolls in sections, adds, drops, and swaps courses with clash and capacity checks, and exports a weekly schedule to Excel.</p>
-      <div class="proj-plain">
-        <span class="proj-plain__label">In plain English</span>
-        <p>This is the software a university student uses to sign up for classes. You log in, type in a six-digit code sent to your email to prove it is really you, then add, drop, or swap courses; the program stops you from booking two classes that meet at the same time, or joining one that is already full, and it can save your weekly timetable as an Excel file. It also tracks attendance and emails the student whenever a record changes. Two students built it as a university course project, so the accounts and records inside it are made up for the demo; the passwords are stored as ordinary readable text rather than scrambled, which is fine for a classroom demo but means the login scheme is not fit for real credentials.</p>
-      </div>
-      <div class="proj-actions">
-        <a class="btn btn--primary" href="https://github.com/salmanadnan2257/university-enrollment-system" rel="noopener" target="_blank">View code on GitHub</a>
-        <a class="btn btn--ghost" href="../index.html#work">All projects</a>
-      </div>
+      <p class="proj-lede">The software a university student uses to sign up for classes: log in, enter a six-digit code emailed to you, then add, drop, or swap courses, with clashes and full sections blocked and the timetable exported to Excel. Two students built it as a coursework project: the accounts are invented, and passwords sit in the database as plain readable text, fine for a classroom demo, not for real credentials.</p>
         <div class="proj-note">
           <div>
             <strong>Team project</strong>
@@ -108,6 +101,11 @@
           <div class="proj-stat"><b>Excel</b><span>schedule export</span></div>
       </div>
 
+      <div class="proj-actions">
+        <a class="btn btn--primary" href="https://github.com/salmanadnan2257/university-enrollment-system" rel="noopener" target="_blank">View code on GitHub</a>
+        <a class="btn btn--ghost" href="../index.html#work">All projects</a>
+      </div>
+
     </div>
   </section>
 
@@ -116,6 +114,7 @@
       <div class="proj-layout">
       <section class="proj-section">
         <h2>Overview</h2>
+        <p>A desktop course-registration app built with PyQt6 and SQLAlchemy over SQLite. A student logs in, confirms an emailed code, then enrolls in sections, adds, drops, and swaps courses with clash and capacity checks, and exports a weekly schedule to Excel.</p>
         <p>Built as the semester project for the Databases course at Habib University.</p>
       </section>
       <section class="proj-section">

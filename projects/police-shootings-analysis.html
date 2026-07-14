@@ -9,24 +9,25 @@
   <meta name="theme-color" content="#FFFDF5">
 
   <!--
-    SITE_URL: the site's absolute base URL is https://salmanadnan2257.github.io
-    Before deploying to a custom domain, find-and-replace that exact string across
-    all HTML files, sitemap.xml, and robots.txt. It is the only absolute host used.
+    SITE_URL: the site's absolute base URL is https://salmanadnan.com
+    It is the only absolute host the site uses, and it appears in robots.txt,
+    sitemap.xml, and the head of every HTML file. If the domain ever moves,
+    change it in all three places together.
   -->
-  <link rel="canonical" href="https://salmanadnan2257.github.io/projects/police-shootings-analysis.html">
+  <link rel="canonical" href="https://salmanadnan.com/projects/police-shootings-analysis.html">
 
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="Salman Adnan">
   <meta property="og:title" content="Police Shootings Analysis · Salman Adnan">
   <meta property="og:description" content="Police Shootings Analysis: a Flask dashboard and 24-chart analysis script cross-referencing 2,535 Washington Post fatal shooting records against four US Census datasets on poverty, education, income, and race.">
-  <meta property="og:url" content="https://salmanadnan2257.github.io/projects/police-shootings-analysis.html">
-  <meta property="og:image" content="https://salmanadnan2257.github.io/assets/og/police-shootings-analysis.png">
+  <meta property="og:url" content="https://salmanadnan.com/projects/police-shootings-analysis.html">
+  <meta property="og:image" content="https://salmanadnan.com/assets/og/police-shootings-analysis.png">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Police Shootings Analysis · Salman Adnan">
   <meta name="twitter:description" content="Police Shootings Analysis: a Flask dashboard and 24-chart analysis script cross-referencing 2,535 Washington Post fatal shooting records against four US Census datasets on poverty, education, income, and race.">
-  <meta name="twitter:image" content="https://salmanadnan2257.github.io/assets/og/police-shootings-analysis.png">
+  <meta name="twitter:image" content="https://salmanadnan.com/assets/og/police-shootings-analysis.png">
 
   <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
   <link rel="icon" href="../assets/favicon.png" sizes="any">
@@ -41,11 +42,11 @@
     "description": "Police Shootings Analysis: a Flask dashboard and 24-chart analysis script cross-referencing 2,535 Washington Post fatal shooting records against four US Census datasets on poverty, education, income, and race.",
     "codeRepository": "https://github.com/salmanadnan2257/police-shootings-analysis",
     "programmingLanguage": ["Python", "JavaScript"],
-    "url": "https://salmanadnan2257.github.io/projects/police-shootings-analysis.html",
+    "url": "https://salmanadnan.com/projects/police-shootings-analysis.html",
     "author": {
       "@type": "Person",
       "name": "Salman Adnan",
-      "url": "https://salmanadnan2257.github.io/"
+      "url": "https://salmanadnan.com/"
     }
   }
   </script>
@@ -75,15 +76,7 @@
       <a class="proj-crumb" href="../index.html"><span aria-hidden="true">&larr;</span> Salman Adnan</a>
       <p class="proj-kicker">police-shootings-analysis</p>
       <h1 id="proj-title" class="proj-title">Police Shootings Analysis</h1>
-      <p class="proj-lede">A data analysis of the Washington Post's dataset of fatal police shootings in the United States, cross-referenced against four US Census datasets (poverty rate, high school completion rate, median household income, and racial demographics by city) to look for socioeconomic patterns. It ships two ways to look at the results: a static script that writes 24 chart files, and an interactive Flask dashboard filterable by state, year, and armed status.</p>
-      <div class="proj-plain">
-        <span class="proj-plain__label">In plain English</span>
-        <p>This is a study of the public record of people killed by police in the United States, set side by side with official US Census figures on poverty, schooling, income, and the racial makeup of each city, to see whether any patterns show up. It counted 2,535 deaths and turned them into 24 charts, plus a web page where you can narrow the figures down to one state, one year, or one type of case and watch the charts change as you do. The counting itself is plain: California recorded the most cases, and about a quarter of the records noted signs of mental illness. It is the kind of thing a journalist, a policy researcher, or a curious citizen would use to look at the numbers directly instead of taking a headline's word for them.</p>
-      </div>
-      <div class="proj-actions">
-        <a class="btn btn--primary" href="https://github.com/salmanadnan2257/police-shootings-analysis" rel="noopener" target="_blank">View code on GitHub</a>
-        <a class="btn btn--ghost" href="../index.html#work">All projects</a>
-      </div>
+      <p class="proj-lede">A study of the public record of people killed by police in the United States, set beside US Census figures on poverty, schooling, income, and race by city. It turns 2,535 death records into 24 charts, plus a web page where you can narrow the figures to one state, year, or type of case. California recorded the most cases; about a quarter of the records noted signs of mental illness.</p>
         <div class="proj-note">
           <div>
             <strong>Solo</strong>
@@ -108,6 +101,11 @@
           <div class="proj-stat"><b>5</b><span>datasets joined</span></div>
       </div>
 
+      <div class="proj-actions">
+        <a class="btn btn--primary" href="https://github.com/salmanadnan2257/police-shootings-analysis" rel="noopener" target="_blank">View code on GitHub</a>
+        <a class="btn btn--ghost" href="../index.html#work">All projects</a>
+      </div>
+
     </div>
   </section>
 
@@ -116,6 +114,7 @@
       <div class="proj-layout">
       <section class="proj-section">
         <h2>Overview</h2>
+        <p>A data analysis of the Washington Post's dataset of fatal police shootings in the United States, cross-referenced against four US Census datasets (poverty rate, high school completion rate, median household income, and racial demographics by city) to look for socioeconomic patterns. It ships two ways to look at the results: a static script that writes 24 chart files, and an interactive Flask dashboard filterable by state, year, and armed status.</p>
         <p>This started as a guided data-analysis exercise built to practice joining multiple real-world datasets, cleaning inconsistent data, and rendering the same chart in three different plotting libraries to compare their APIs. It loads the Washington Post's fatal police shooting records alongside four Census-derived city datasets, cleans both, and produces static charts plus a filterable dashboard on the fatality data alone.</p>
       </section>
       <section class="proj-section">

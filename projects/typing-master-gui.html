@@ -9,24 +9,25 @@
   <meta name="theme-color" content="#FFFDF5">
 
   <!--
-    SITE_URL: the site's absolute base URL is https://salmanadnan2257.github.io
-    Before deploying to a custom domain, find-and-replace that exact string across
-    all HTML files, sitemap.xml, and robots.txt. It is the only absolute host used.
+    SITE_URL: the site's absolute base URL is https://salmanadnan.com
+    It is the only absolute host the site uses, and it appears in robots.txt,
+    sitemap.xml, and the head of every HTML file. If the domain ever moves,
+    change it in all three places together.
   -->
-  <link rel="canonical" href="https://salmanadnan2257.github.io/projects/typing-master-gui.html">
+  <link rel="canonical" href="https://salmanadnan.com/projects/typing-master-gui.html">
 
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="Salman Adnan">
   <meta property="og:title" content="Typing Master · Salman Adnan">
   <meta property="og:description" content="A tkinter typing-speed test that generates a random passage from a 65,000+ word list, colors each character green or red as you type, and charts your last 10 attempts' WPM and accuracy from a JSON-backed history.">
-  <meta property="og:url" content="https://salmanadnan2257.github.io/projects/typing-master-gui.html">
-  <meta property="og:image" content="https://salmanadnan2257.github.io/assets/og/typing-master-gui.png">
+  <meta property="og:url" content="https://salmanadnan.com/projects/typing-master-gui.html">
+  <meta property="og:image" content="https://salmanadnan.com/assets/og/typing-master-gui.png">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Typing Master · Salman Adnan">
   <meta name="twitter:description" content="A tkinter typing-speed test that generates a random passage from a 65,000+ word list, colors each character green or red as you type, and charts your last 10 attempts' WPM and accuracy from a JSON-backed history.">
-  <meta name="twitter:image" content="https://salmanadnan2257.github.io/assets/og/typing-master-gui.png">
+  <meta name="twitter:image" content="https://salmanadnan.com/assets/og/typing-master-gui.png">
 
   <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
   <link rel="icon" href="../assets/favicon.png" sizes="any">
@@ -41,11 +42,11 @@
     "description": "A tkinter typing-speed test that generates a random passage from a 65,000+ word list, colors each character green or red as you type, and charts your last 10 attempts' WPM and accuracy from a JSON-backed history.",
     "codeRepository": "https://github.com/salmanadnan2257/typing-master-gui",
     "programmingLanguage": ["Python"],
-    "url": "https://salmanadnan2257.github.io/projects/typing-master-gui.html",
+    "url": "https://salmanadnan.com/projects/typing-master-gui.html",
     "author": {
       "@type": "Person",
       "name": "Salman Adnan",
-      "url": "https://salmanadnan2257.github.io/"
+      "url": "https://salmanadnan.com/"
     }
   }
   </script>
@@ -75,15 +76,7 @@
       <a class="proj-crumb" href="../index.html"><span aria-hidden="true">&larr;</span> Salman Adnan</a>
       <p class="proj-kicker">typing-master-gui</p>
       <h1 id="proj-title" class="proj-title">Typing Master</h1>
-      <p class="proj-lede">A desktop typing-speed test built with tkinter. It shows a random block of text, times how long you take to retype it, colors each character green or red as you go, and reports words per minute and accuracy with a small bar chart of recent attempts.</p>
-      <div class="proj-plain">
-        <span class="proj-plain__label">In plain English</span>
-        <p>A typing-practice app for a desktop computer. It puts a block of text on the screen and times you as you retype it, turning each letter green when you get it right and red when you get it wrong, so you can see the mistake as it happens instead of only at the end. When you finish, it tells you your speed and how accurate you were, and it keeps your last ten attempts in a small chart so you can see whether you are improving.</p>
-      </div>
-      <div class="proj-actions">
-        <a class="btn btn--primary" href="https://github.com/salmanadnan2257/typing-master-gui" rel="noopener" target="_blank">View code on GitHub</a>
-        <a class="btn btn--ghost" href="../index.html#work">All projects</a>
-      </div>
+      <p class="proj-lede">A typing-practice app for the desktop, built as a small learning exercise. It puts a block of text on screen and times you as you retype it, turning each letter green when it is right and red when it is wrong, so you see the mistake as it happens rather than only at the end. Then it reports your speed and accuracy, and charts your last ten attempts.</p>
         <div class="proj-note">
           <div>
             <strong>Solo</strong>
@@ -108,6 +101,11 @@
           <div class="proj-stat"><b>10</b><span>attempts shown in the history bar chart</span></div>
       </div>
 
+      <div class="proj-actions">
+        <a class="btn btn--primary" href="https://github.com/salmanadnan2257/typing-master-gui" rel="noopener" target="_blank">View code on GitHub</a>
+        <a class="btn btn--ghost" href="../index.html#work">All projects</a>
+      </div>
+
     </div>
   </section>
 
@@ -116,6 +114,7 @@
       <div class="proj-layout">
       <section class="proj-section">
         <h2>Overview</h2>
+        <p>A desktop typing-speed test built with tkinter. It shows a random block of text, times how long you take to retype it, colors each character green or red as you go, and reports words per minute and accuracy with a small bar chart of recent attempts.</p>
         <p>Built to practice interactive desktop GUI work in Python: live keyboard event handling, per-character diffing rendered in real time instead of only at the end, a results view drawn with plain tkinter Canvas calls rather than a plotting library, and a small JSON-backed history store.</p>
       </section>
       <section class="proj-section">

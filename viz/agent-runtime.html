@@ -177,8 +177,13 @@ function createScene(THREE, ctx) {
   const DRAIN_TIME   = 2.6;   // bottom-up drain duration
   const GAP_TIME     = 0.7;   // dark beat between runs
   const DUST_COUNT   = Math.floor(160 * Q); // ambient depth motes
-  const CAM_R        = 9.6;   // camera orbit radius
   const GATE_RADIUS  = 0.55;  // approval ring radius
+  // The log grows. At the first bead the strand is one small coil at the bottom
+  // of the helix; by the last it is the whole rising column. No single fixed
+  // camera frames both, so the camera measures what is actually on screen each
+  // frame, aims at its centre, and stands back just far enough to hold it.
+  const FIT_MARGIN   = 1.12;  // air left around the strand inside the frame
+  const MIN_HALF     = 2.6;   // never frame tighter than this half-height
 
   const COL_BG = 0x0E0818;
   ctx.scene.background = new THREE.Color(COL_BG);
@@ -210,6 +215,25 @@ function createScene(THREE, ctx) {
     const rate = HELIX_TURNS * Math.PI * 2.0;
     out.set(Math.cos(a) * HELIX_RADIUS * rate, HELIX_HEIGHT, -Math.sin(a) * HELIX_RADIUS * rate);
     return out.normalize();
+  }
+  // How far the camera must stand from the centre of a strand of half-height
+  // halfH, tilted down by elevation e, for the whole of it to fit the frame.
+  // The binding bead is the bottom of the strand on the NEAR face of the coil:
+  // it is a full HELIX_RADIUS closer to the camera than the axis is, and the
+  // downward tilt pushes it further down the frame still, so a fit measured
+  // against the axis loses it off the bottom edge. Gate rings ride proud of the
+  // beads they mark, so they count toward the height. Reads the live aspect, so
+  // a portrait phone stands back far enough to keep the coil's width.
+  function fitDistance(halfH, e) {
+    const tanV = Math.tan(ctx.camera.fov * 0.5 * Math.PI / 180);
+    const aspect = Math.max(0.4, ctx.camera.aspect || 16 / 9);
+    const tanH = tanV * aspect;
+    const h = halfH + GATE_RADIUS;
+    const se = Math.abs(Math.sin(e)), ce = Math.cos(e);
+    const dv = (h * ce + HELIX_RADIUS * se) * FIT_MARGIN / tanV
+             - halfH * se + HELIX_RADIUS * ce;   // top and bottom
+    const dh = (HELIX_RADIUS + GATE_RADIUS) * FIT_MARGIN / tanH + halfH * se;   // left and right
+    return Math.max(dv, dh);
   }
 
   // ---- shared uniforms (one value object referenced by several materials) ----
@@ -278,7 +302,7 @@ function createScene(THREE, ctx) {
         vAlpha = appear * alive * mix(1.0, 0.3, handed);
         vec4 mv = modelViewMatrix * vec4(position, 1.0);
         float size = (1.45 + aGate * 0.5) * (1.0 + head * 0.9 + flash * 0.7);
-        gl_PointSize = size * uPr * (150.0 / -mv.z);
+        gl_PointSize = size * uPr * (200.0 / -mv.z);
         gl_Position = projectionMatrix * mv;
       }
     `,
@@ -308,7 +332,7 @@ function createScene(THREE, ctx) {
         vColor = vec3(0.345, 0.776, 0.878) * (1.2 + head * 1.5 + aSeed * 0.0);
         vAlpha = appear * alive * settle;
         vec4 mv = modelViewMatrix * vec4(position, 1.0);
-        gl_PointSize = (1.0 + head * 1.0) * uPr * (150.0 / -mv.z);
+        gl_PointSize = (1.0 + head * 1.0) * uPr * (200.0 / -mv.z);
         gl_Position = projectionMatrix * mv;
       }
     `,
@@ -444,7 +468,7 @@ function createScene(THREE, ctx) {
         vColor = aColor;
         vAlpha = 1.0;
         vec4 mv = modelViewMatrix * vec4(position, 1.0);
-        gl_PointSize = aSize * uPr * (150.0 / -mv.z);
+        gl_PointSize = aSize * uPr * (200.0 / -mv.z);
         gl_Position = projectionMatrix * mv;
       }
     `,
@@ -486,7 +510,7 @@ function createScene(THREE, ctx) {
         vColor = vec3(0.42, 0.39, 0.55);
         vAlpha = 0.22 + 0.12 * sin(uTime * 0.5 + aSeed * 20.0);
         vec4 mv = modelViewMatrix * vec4(p, 1.0);
-        gl_PointSize = (0.5 + aSeed * 0.6) * uPr * (120.0 / -mv.z);
+        gl_PointSize = (0.5 + aSeed * 0.6) * uPr * (150.0 / -mv.z);
         gl_Position = projectionMatrix * mv;
       }
     `,
@@ -506,6 +530,11 @@ function createScene(THREE, ctx) {
   let gateTimer = 0;
   let writeHeadScale = 0;
   let replayHeadScale = 0;
+
+  // ---- framing state: eased so the pull-back reads as a slow dolly ----
+  let framePivot = 0;   // world y the camera aims at: the strand's own centre
+  let frameDist = 0;    // distance from that pivot
+  let framed = false;   // first frame snaps instead of easing in from nowhere
 
   const headV = new THREE.Vector3();
 
@@ -631,12 +660,44 @@ function createScene(THREE, ctx) {
       headGeo.attributes.aSize.needsUpdate = true;
       headGeo.attributes.aColor.needsUpdate = true;
 
+      // ---- framing: aim at the strand that exists, not at where it will end up ----
+      // The written strand runs from the bottom of the helix up to the write head,
+      // so its centre is the midpoint of that span and its half-height is half of
+      // it. Aiming there keeps the piece composed while the log is still short, and
+      // it is what the viewer's orbit and zoom pivot around: because the pivot sits
+      // on the beads themselves, zooming in closes on the strand instead of diving
+      // into the hollow middle of the coil. The write head reaches the top and
+      // stays there through replay and drain, so the framing holds steady for the
+      // proof and only settles back down when the next run starts from zero.
+      //
+      // The bob is an elevation angle, not an absolute height: the camera stays
+      // exactly frameDist from the pivot however it rides, so the viewer's zoom
+      // always scales the fitted distance and never slides off the strand.
+      const ce = Math.sin(t * 0.07) * 0.11 + ctx.pointer.y * 0.17;
+      const yBot = -HELIX_HEIGHT / 2;
+      const yTop = yBot + Math.min(1, writeU) * HELIX_HEIGHT;
+      const pivotGoal = (yBot + yTop) * 0.5;
+      const distGoal = fitDistance(Math.max(MIN_HALF, (yTop - yBot) * 0.5), ce);
+      if (!framed) {
+        framePivot = pivotGoal;
+        frameDist = distGoal;
+        framed = true;
+      } else {
+        const kf = 1 - Math.exp(-dt * 1.6);
+        framePivot += (pivotGoal - framePivot) * kf;
+        frameDist += (distGoal - frameDist) * kf;
+      }
+
       // gentle self-rotation plus corkscrew camera
       group.rotation.y = t * 0.05;
       const ca = t * 0.1 + ctx.pointer.x * 0.5;
-      const cy = Math.sin(t * 0.07) * 1.8 + ctx.pointer.y * 1.6;
-      ctx.camera.position.set(Math.sin(ca) * CAM_R, cy, Math.cos(ca) * CAM_R);
-      ctx.camera.lookAt(0, cy * 0.25, 0);
+      const flatR = Math.cos(ce) * frameDist;
+      ctx.camera.position.set(
+        Math.sin(ca) * flatR,
+        framePivot + Math.sin(ce) * frameDist,
+        Math.cos(ca) * flatR
+      );
+      ctx.camera.lookAt(0, framePivot, 0);
     }
   };
 }
@@ -783,17 +844,65 @@ const view = {
 const drag = { id: -1, x: 0, y: 0 };
 const touches = new Map();                 // live touch points, for pinch
 let pinchFrom = 0, pinchZoom = 1;
+/* What the view looked like when the gesture now in flight began. Embedded, the
+   canvas is touch-action: pan-y, so a vertical swipe is the host page's to keep:
+   the browser hands over a pointerdown and a move, then cancels. That gesture was
+   never an orbit, and this is what it gets put back to. */
+const gesture = {
+  active: false,
+  yaw: 0, pitch: 0, zoom: 1,
+  yawGoal: 0, pitchGoal: 0, zoomGoal: 1,
+  touched: false
+};
 
 const hintEl = document.getElementById('hint');
 const btnReset = document.getElementById('btnReset');
 
 function clamp(v, lo, hi) { return v < lo ? lo : (v > hi ? hi : v); }
 
-function engage() {
-  if (view.touched) return;
-  view.touched = true;
-  if (hintEl) hintEl.classList.add('is-gone');
-  if (btnReset) btnReset.hidden = false;
+/* The viewer has taken the wheel. The hint and the Reset button are deliberately
+   not set from here: they follow the view's own state, synced every frame, so a
+   gesture the browser takes back for a page scroll leaves no trace on either. */
+function engage() { view.touched = true; }
+
+function beginGesture() {
+  if (gesture.active) return;
+  gesture.active = true;
+  gesture.yaw = view.yaw; gesture.pitch = view.pitch; gesture.zoom = view.zoom;
+  gesture.yawGoal = view.yawGoal; gesture.pitchGoal = view.pitchGoal;
+  gesture.zoomGoal = view.zoomGoal;
+  gesture.touched = view.touched;
+}
+
+function undoGesture() {
+  if (!gesture.active) return;
+  view.yaw = gesture.yaw; view.pitch = gesture.pitch; view.zoom = gesture.zoom;
+  view.yawGoal = gesture.yawGoal; view.pitchGoal = gesture.pitchGoal;
+  view.zoomGoal = gesture.zoomGoal;
+  view.vYaw = 0; view.vPitch = 0;
+  view.touched = gesture.touched;
+}
+
+/* Is there anything to reset? Only if the view sits off the framing the scene gave
+   it, or is still carrying a release back into one. A finger that merely crossed the
+   canvas on its way down the page moved nothing, so it is offered nothing. */
+function viewMoved() {
+  return view.yaw !== 0 || view.pitch !== 0 || view.zoom !== 1 ||
+    view.yawGoal !== 0 || view.pitchGoal !== 0 || view.zoomGoal !== 1 ||
+    view.vYaw !== 0 || view.vPitch !== 0;
+}
+
+function syncViewUi() {
+  if (hintEl && hintEl.classList.contains('is-gone') !== view.touched) {
+    hintEl.classList.toggle('is-gone', view.touched);
+  }
+  if (!btnReset) return;
+  const show = viewMoved();
+  if (btnReset.hidden === !show) return;   // already saying the right thing
+  /* Hiding the control the keyboard is standing on would drop focus to nowhere:
+     hand it back to the piece first. */
+  if (!show && document.activeElement === btnReset) canvas.focus({ preventScroll: true });
+  btnReset.hidden = !show;
 }
 
 function resetView() {
@@ -824,6 +933,7 @@ function pinchSpan() {
 
 canvas.addEventListener('pointerdown', (e) => {
   if (e.pointerType === 'mouse' && e.button !== 0) return;   // the left button orbits; leave the rest alone
+  beginGesture();
   if (e.pointerType === 'touch') {
     touches.set(e.pointerId, { x: e.clientX, y: e.clientY });
     if (touches.size >= 2) {
@@ -878,14 +988,19 @@ function endDrag(e) {
   touches.delete(e.pointerId);
   if (touches.size === 2) { pinchFrom = pinchSpan(); pinchZoom = view.zoomGoal; }
   else if (touches.size < 2) pinchFrom = 0;
-  if (e.pointerId !== drag.id) return;
-  drag.id = -1;
-  canvas.classList.remove('is-grabbing');
-  try { canvas.releasePointerCapture(e.pointerId); } catch (err) { /* already gone */ }
+  if (e.pointerId === drag.id) {
+    drag.id = -1;
+    canvas.classList.remove('is-grabbing');
+    try { canvas.releasePointerCapture(e.pointerId); } catch (err) { /* already gone */ }
+  }
+  if (drag.id === -1 && touches.size === 0) gesture.active = false;
   kickView();
 }
 canvas.addEventListener('pointerup', endDrag);
-canvas.addEventListener('pointercancel', endDrag);
+/* The browser has taken the gesture back: the finger that started on the piece
+   turned out to be the host page scrolling past it, so it was never an orbit. Give
+   the view back exactly as the gesture found it, hint and Reset button included. */
+canvas.addEventListener('pointercancel', (e) => { undoGesture(); endDrag(e); });
 
 canvas.addEventListener('wheel', (e) => {
   if (!ownsWheel()) return;   // let the host page scroll
@@ -1010,6 +1125,7 @@ function stepView(dt) {
   if (Math.abs(view.yaw) < EPS) view.yaw = 0;
   if (Math.abs(view.pitch) < EPS) view.pitch = 0;
   if (Math.abs(view.zoom - 1) < EPS) view.zoom = 1;
+  syncViewUi();
 }
 
 /* fresh: the scene has just placed the camera this frame. Otherwise the piece

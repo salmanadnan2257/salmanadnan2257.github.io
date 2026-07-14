@@ -9,24 +9,25 @@
   <meta name="theme-color" content="#FFFDF5">
 
   <!--
-    SITE_URL: the site's absolute base URL is https://salmanadnan2257.github.io
-    Before deploying to a custom domain, find-and-replace that exact string across
-    all HTML files, sitemap.xml, and robots.txt. It is the only absolute host used.
+    SITE_URL: the site's absolute base URL is https://salmanadnan.com
+    It is the only absolute host the site uses, and it appears in robots.txt,
+    sitemap.xml, and the head of every HTML file. If the domain ever moves,
+    change it in all three places together.
   -->
-  <link rel="canonical" href="https://salmanadnan2257.github.io/projects/dino-game-bot.html">
+  <link rel="canonical" href="https://salmanadnan.com/projects/dino-game-bot.html">
 
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="Salman Adnan">
   <meta property="og:title" content="Dino Game Bot · Salman Adnan">
   <meta property="og:description" content="A Selenium and screen-capture bot that plays Chrome's offline Dino game by pixel-checking a region ahead of the dino for obstacles, with a live tkinter status dashboard showing mode, jump count, and a rolling event log.">
-  <meta property="og:url" content="https://salmanadnan2257.github.io/projects/dino-game-bot.html">
-  <meta property="og:image" content="https://salmanadnan2257.github.io/assets/og/dino-game-bot.png">
+  <meta property="og:url" content="https://salmanadnan.com/projects/dino-game-bot.html">
+  <meta property="og:image" content="https://salmanadnan.com/assets/og/dino-game-bot.png">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Dino Game Bot · Salman Adnan">
   <meta name="twitter:description" content="A Selenium and screen-capture bot that plays Chrome's offline Dino game by pixel-checking a region ahead of the dino for obstacles, with a live tkinter status dashboard showing mode, jump count, and a rolling event log.">
-  <meta name="twitter:image" content="https://salmanadnan2257.github.io/assets/og/dino-game-bot.png">
+  <meta name="twitter:image" content="https://salmanadnan.com/assets/og/dino-game-bot.png">
 
   <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
   <link rel="icon" href="../assets/favicon.png" sizes="any">
@@ -41,11 +42,11 @@
     "description": "A Selenium and screen-capture bot that plays Chrome's offline Dino game by pixel-checking a region ahead of the dino for obstacles, with a live tkinter status dashboard showing mode, jump count, and a rolling event log.",
     "codeRepository": "https://github.com/salmanadnan2257/dino-game-bot",
     "programmingLanguage": ["Python"],
-    "url": "https://salmanadnan2257.github.io/projects/dino-game-bot.html",
+    "url": "https://salmanadnan.com/projects/dino-game-bot.html",
     "author": {
       "@type": "Person",
       "name": "Salman Adnan",
-      "url": "https://salmanadnan2257.github.io/"
+      "url": "https://salmanadnan.com/"
     }
   }
   </script>
@@ -75,15 +76,7 @@
       <a class="proj-crumb" href="../index.html"><span aria-hidden="true">&larr;</span> Salman Adnan</a>
       <p class="proj-kicker">dino-game-bot</p>
       <h1 id="proj-title" class="proj-title">Dino Game Bot</h1>
-      <p class="proj-lede">A script that plays Chrome's offline Dino game by watching the screen and pressing space at the right moment, using screen capture and pixel inspection rather than reading any game state or the DOM.</p>
-      <div class="proj-plain">
-        <span class="proj-plain__label">In plain English</span>
-        <p>When Chrome loses its internet connection it offers a little game where a dinosaur runs along and has to jump over cacti, and this script is built to play that game by itself. It never peeks inside the game; it only looks at the dots on the screen, the way a person looks at them, and when something appears in the small patch of screen just ahead of the dinosaur it presses the space bar to jump. The screen-reading half is tested, including the trick of coping when the game flips to night colours, but actually launching the real game on a machine with Chrome and watching the bot clear obstacles has not been done here. The patch of screen it watches is also measured for one specific screen and window layout, so it is tuned to that exact setup and nothing else.</p>
-      </div>
-      <div class="proj-actions">
-        <a class="btn btn--primary" href="https://github.com/salmanadnan2257/dino-game-bot" rel="noopener" target="_blank">View code on GitHub</a>
-        <a class="btn btn--ghost" href="../index.html#work">All projects</a>
-      </div>
+      <p class="proj-lede">When Chrome loses its connection it offers a game where a dinosaur jumps over cacti; this script plays it by itself. It never peeks inside the game: it watches pixels on the screen and presses space when something appears ahead of the dino. The screen-reading half is tested, but the bot was never run against the real game here, and the patch of screen it watches fits one setup only.</p>
         <div class="proj-note">
           <div>
             <strong>Solo</strong>
@@ -107,6 +100,11 @@
           <div class="proj-stat"><b>8</b><span>rolling event log entries in the dashboard</span></div>
       </div>
 
+      <div class="proj-actions">
+        <a class="btn btn--primary" href="https://github.com/salmanadnan2257/dino-game-bot" rel="noopener" target="_blank">View code on GitHub</a>
+        <a class="btn btn--ghost" href="../index.html#work">All projects</a>
+      </div>
+
     </div>
   </section>
 
@@ -115,6 +113,7 @@
       <div class="proj-layout">
       <section class="proj-section">
         <h2>Overview</h2>
+        <p>A script that plays Chrome's offline Dino game by watching the screen and pressing space at the right moment, using screen capture and pixel inspection rather than reading any game state or the DOM.</p>
         <p>The Dino game has one input (jump) and a simple visual language: obstacles approach from the right, and hitting one ends the run. That makes it a small, self-contained target for practicing screen-based automation, no game API to call and no memory to read, just pixels on screen and a keyboard event, exercising Selenium (to drive Chrome) alongside raw screen capture and pixel inspection (to "see" the game).</p>
       </section>
       <section class="proj-section">

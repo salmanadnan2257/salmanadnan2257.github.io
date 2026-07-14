@@ -9,24 +9,25 @@
   <meta name="theme-color" content="#FFFDF5">
 
   <!--
-    SITE_URL: the site's absolute base URL is https://salmanadnan2257.github.io
-    Before deploying to a custom domain, find-and-replace that exact string across
-    all HTML files, sitemap.xml, and robots.txt. It is the only absolute host used.
+    SITE_URL: the site's absolute base URL is https://salmanadnan.com
+    It is the only absolute host the site uses, and it appears in robots.txt,
+    sitemap.xml, and the head of every HTML file. If the domain ever moves,
+    change it in all three places together.
   -->
-  <link rel="canonical" href="https://salmanadnan2257.github.io/projects/voice-agent.html">
+  <link rel="canonical" href="https://salmanadnan.com/projects/voice-agent.html">
 
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="Salman Adnan">
   <meta property="og:title" content="Voice Appointment Agent · Salman Adnan">
   <meta property="og:description" content="A Gemini-driven phone agent that books, reschedules, and cancels appointments over a real Twilio line, with real conflict detection and 54 tests passing.">
-  <meta property="og:url" content="https://salmanadnan2257.github.io/projects/voice-agent.html">
-  <meta property="og:image" content="https://salmanadnan2257.github.io/assets/og/voice-agent.png">
+  <meta property="og:url" content="https://salmanadnan.com/projects/voice-agent.html">
+  <meta property="og:image" content="https://salmanadnan.com/assets/og/voice-agent.png">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Voice Appointment Agent · Salman Adnan">
   <meta name="twitter:description" content="A Gemini-driven phone agent that books, reschedules, and cancels appointments over a real Twilio line, with real conflict detection and 54 tests passing.">
-  <meta name="twitter:image" content="https://salmanadnan2257.github.io/assets/og/voice-agent.png">
+  <meta name="twitter:image" content="https://salmanadnan.com/assets/og/voice-agent.png">
 
   <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
   <link rel="icon" href="../assets/favicon.png" sizes="any">
@@ -41,11 +42,11 @@
     "description": "A Gemini-driven phone agent that books, reschedules, and cancels appointments over a real Twilio line, with real conflict detection and 54 tests passing.",
     "codeRepository": "https://github.com/salmanadnan2257/voice-agent",
     "programmingLanguage": ["Python"],
-    "url": "https://salmanadnan2257.github.io/projects/voice-agent.html",
+    "url": "https://salmanadnan.com/projects/voice-agent.html",
     "author": {
       "@type": "Person",
       "name": "Salman Adnan",
-      "url": "https://salmanadnan2257.github.io/"
+      "url": "https://salmanadnan.com/"
     }
   }
   </script>
@@ -75,15 +76,7 @@
       <a class="proj-crumb" href="../index.html"><span aria-hidden="true">&larr;</span> Salman Adnan</a>
       <p class="proj-kicker">voice-agent</p>
       <h1 id="proj-title" class="proj-title">Voice Appointment Agent</h1>
-      <p class="proj-lede">A phone agent that answers a real Twilio line and books, reschedules, or cancels appointments in natural conversation. Gemini handles the language, a SQLite calendar handles real conflict detection, and the whole multi-turn flow has been proven end to end over a real public tunnel with a genuine Twilio signature, not just unit-tested in isolation.</p>
-      <div class="proj-plain">
-        <span class="proj-plain__label">In plain English</span>
-        <p>A phone line that answers itself. Someone calls, speaks normally, and this program books, moves, or cancels their appointment: it asks for whatever details are missing, checks the appointment book so it never gives away a slot that is already taken, reads the booking back for confirmation before saving it, and passes the caller to a human message if it still cannot understand them after a few tries. The kind of place that would want this is a small clinic or salon whose phone keeps ringing while everyone is busy. It was proved by running a real three-turn booking conversation over the open internet that ended with a real appointment written into the calendar; what it has not yet faced is a real human voice, and this page says so plainly.</p>
-      </div>
-      <div class="proj-actions">
-        <a class="btn btn--primary" href="https://github.com/salmanadnan2257/voice-agent" rel="noopener" target="_blank">View code on GitHub</a>
-        <a class="btn btn--ghost" href="../index.html#work">All projects</a>
-      </div>
+      <p class="proj-lede">A phone line that answers itself: the caller speaks normally and the program books, moves, or cancels an appointment, asking for whatever details are missing and never giving away a slot that is already taken. It was proved by driving a real three-turn booking over the open internet into a real calendar entry; the live phone number was never used, so no human voice has tested it yet.</p>
         <div class="proj-note">
           <div>
             <strong>Verified on a real public tunnel</strong>
@@ -108,6 +101,11 @@
           <div class="proj-stat"><b>3-turn</b><span>real signed booking, verified</span></div>
       </div>
 
+      <div class="proj-actions">
+        <a class="btn btn--primary" href="https://github.com/salmanadnan2257/voice-agent" rel="noopener" target="_blank">View code on GitHub</a>
+        <a class="btn btn--ghost" href="../index.html#work">All projects</a>
+      </div>
+
     </div>
   </section>
 
@@ -116,6 +114,7 @@
       <div class="proj-layout">
       <section class="proj-section">
         <h2>Overview</h2>
+        <p>A phone agent that answers a real Twilio line and books, reschedules, or cancels appointments in natural conversation. Gemini handles the language, a SQLite calendar handles real conflict detection, and the whole multi-turn flow has been proven end to end over a real public tunnel with a genuine Twilio signature, not just unit-tested in isolation.</p>
         <p>Most voice-agent demos show a scripted happy path. This one is built to survive the actual shape of a phone call: silence instead of speech, a caller who changes their mind mid-sentence, a time slot that conflicts with an existing booking, and a caller who never answers a question clearly. The conversation state machine handles all of it, backed by a real calendar with real conflict detection, not a mocked one.</p>
         <p>The system prompt to production Gemini calls follow the same discipline as the rest of this portfolio: everything that can be tested offline is tested offline, and the small number of things that must touch a live, billed service are marked, minimal, and their real cost is reported honestly.</p>
       </section>

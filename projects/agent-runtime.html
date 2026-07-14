@@ -9,24 +9,25 @@
   <meta name="theme-color" content="#FFFDF5">
 
   <!--
-    SITE_URL: the site's absolute base URL is https://salmanadnan2257.github.io
-    Before deploying to a custom domain, find-and-replace that exact string across
-    all HTML files, sitemap.xml, and robots.txt. It is the only absolute host used.
+    SITE_URL: the site's absolute base URL is https://salmanadnan.com
+    It is the only absolute host the site uses, and it appears in robots.txt,
+    sitemap.xml, and the head of every HTML file. If the domain ever moves,
+    change it in all three places together.
   -->
-  <link rel="canonical" href="https://salmanadnan2257.github.io/projects/agent-runtime.html">
+  <link rel="canonical" href="https://salmanadnan.com/projects/agent-runtime.html">
 
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="Salman Adnan">
   <meta property="og:title" content="Agent Runtime · Salman Adnan">
   <meta property="og:description" content="agent-runtime: an event-sourced runtime for LLM agents with deterministic byte-identical replay, crash-safe resume, an approval gate, failure injection, and a 24-scenario regression suite. 93 offline tests.">
-  <meta property="og:url" content="https://salmanadnan2257.github.io/projects/agent-runtime.html">
-  <meta property="og:image" content="https://salmanadnan2257.github.io/assets/og/agent-runtime.png">
+  <meta property="og:url" content="https://salmanadnan.com/projects/agent-runtime.html">
+  <meta property="og:image" content="https://salmanadnan.com/assets/og/agent-runtime.png">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Agent Runtime · Salman Adnan">
   <meta name="twitter:description" content="agent-runtime: an event-sourced runtime for LLM agents with deterministic byte-identical replay, crash-safe resume, an approval gate, failure injection, and a 24-scenario regression suite. 93 offline tests.">
-  <meta name="twitter:image" content="https://salmanadnan2257.github.io/assets/og/agent-runtime.png">
+  <meta name="twitter:image" content="https://salmanadnan.com/assets/og/agent-runtime.png">
 
   <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
   <link rel="icon" href="../assets/favicon.png" sizes="any">
@@ -41,11 +42,11 @@
     "description": "agent-runtime: an event-sourced runtime for LLM agents with deterministic byte-identical replay, crash-safe resume, an approval gate, failure injection, and a 24-scenario regression suite. 93 offline tests.",
     "codeRepository": "https://github.com/salmanadnan2257/agent-runtime",
     "programmingLanguage": ["Python"],
-    "url": "https://salmanadnan2257.github.io/projects/agent-runtime.html",
+    "url": "https://salmanadnan.com/projects/agent-runtime.html",
     "author": {
       "@type": "Person",
       "name": "Salman Adnan",
-      "url": "https://salmanadnan2257.github.io/"
+      "url": "https://salmanadnan.com/"
     }
   }
   </script>
@@ -75,15 +76,7 @@
       <a class="proj-crumb" href="../index.html"><span aria-hidden="true">&larr;</span> Salman Adnan</a>
       <p class="proj-kicker">agent-runtime</p>
       <h1 id="proj-title" class="proj-title">Agent Runtime</h1>
-      <p class="proj-lede">An event-sourced runtime for tool-using LLM agents, with the operations layer that agent demos usually skip: deterministic replay, crash-safe resume, an approval gate for side effects, config-driven failure injection, and a YAML scenario suite that regression-tests agent behavior between model versions.</p>
-      <div class="proj-plain">
-        <span class="proj-plain__label">In plain English</span>
-        <p>This is the record-keeping and safety layer that wraps an AI assistant once it is handed real tools and told to go do things: read a file, draft an email, put something on a calendar. Every step it takes is written down in a log, so the whole run can be played back later exactly as it happened; it has to stop and ask a person before doing anything with real consequences; and if the computer crashes halfway through, it picks up where it left off without repeating what it already did. All of that is held in place by 93 tests. Those tests run against a stand-in model that answers from a script rather than a live one, because no API keys were available, so nothing here has been proved against a real AI service and this page says so plainly.</p>
-      </div>
-      <div class="proj-actions">
-        <a class="btn btn--primary" href="https://github.com/salmanadnan2257/agent-runtime" rel="noopener" target="_blank">View code on GitHub</a>
-        <a class="btn btn--ghost" href="../index.html#work">All projects</a>
-      </div>
+      <p class="proj-lede">Hand an AI assistant real tools, like email or a calendar, and you need a record of what it did. This builds that record: every step is written to a log, so a whole run can be replayed exactly; risky actions pause for human approval; and a crash resumes without repeating work. 93 tests hold it together, all run against a scripted stand-in model, never a live AI service.</p>
         <div class="proj-note">
           <div>
             <strong>Verified offline</strong>
@@ -108,6 +101,11 @@
           <div class="proj-stat"><b>1</b><span>side effect on crash-resume</span></div>
       </div>
 
+      <div class="proj-actions">
+        <a class="btn btn--primary" href="https://github.com/salmanadnan2257/agent-runtime" rel="noopener" target="_blank">View code on GitHub</a>
+        <a class="btn btn--ghost" href="../index.html#work">All projects</a>
+      </div>
+
     </div>
   </section>
 
@@ -116,6 +114,7 @@
       <div class="proj-layout">
       <section class="proj-section">
         <h2>Overview</h2>
+        <p>An event-sourced runtime for tool-using LLM agents, with the operations layer that agent demos usually skip: deterministic replay, crash-safe resume, an approval gate for side effects, config-driven failure injection, and a YAML scenario suite that regression-tests agent behavior between model versions.</p>
         <p>The agent loop itself (plan, call a tool, observe, continue) is a weekend's work. What makes agents deployable is everything around it: what exactly happened in a given run, can I reproduce it, did the agent email a customer before anyone approved it, and does the new model version still pass the flows that worked last week.</p>
         <p>This project treats those as the core problem. Every run is an append-only event log, and every feature (replay, resume, approvals, cost accounting, regression diffs) is a function of that log.</p>
       </section>

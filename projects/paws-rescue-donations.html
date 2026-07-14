@@ -9,24 +9,25 @@
   <meta name="theme-color" content="#FFFDF5">
 
   <!--
-    SITE_URL: the site's absolute base URL is https://salmanadnan2257.github.io
-    Before deploying to a custom domain, find-and-replace that exact string across
-    all HTML files, sitemap.xml, and robots.txt. It is the only absolute host used.
+    SITE_URL: the site's absolute base URL is https://salmanadnan.com
+    It is the only absolute host the site uses, and it appears in robots.txt,
+    sitemap.xml, and the head of every HTML file. If the domain ever moves,
+    change it in all three places together.
   -->
-  <link rel="canonical" href="https://salmanadnan2257.github.io/projects/paws-rescue-donations.html">
+  <link rel="canonical" href="https://salmanadnan.com/projects/paws-rescue-donations.html">
 
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="Salman Adnan">
   <meta property="og:title" content="Paws Rescue Donations · Salman Adnan">
   <meta property="og:description" content="Paws Rescue Donations: a Django donation-management app for a pet rescue with per-pet tracking, filtering, CSV export, and a dashboard, behind an admin login. 11 tests.">
-  <meta property="og:url" content="https://salmanadnan2257.github.io/projects/paws-rescue-donations.html">
-  <meta property="og:image" content="https://salmanadnan2257.github.io/assets/og/paws-rescue-donations.png">
+  <meta property="og:url" content="https://salmanadnan.com/projects/paws-rescue-donations.html">
+  <meta property="og:image" content="https://salmanadnan.com/assets/og/paws-rescue-donations.png">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Paws Rescue Donations · Salman Adnan">
   <meta name="twitter:description" content="Paws Rescue Donations: a Django donation-management app for a pet rescue with per-pet tracking, filtering, CSV export, and a dashboard, behind an admin login. 11 tests.">
-  <meta name="twitter:image" content="https://salmanadnan2257.github.io/assets/og/paws-rescue-donations.png">
+  <meta name="twitter:image" content="https://salmanadnan.com/assets/og/paws-rescue-donations.png">
 
   <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
   <link rel="icon" href="../assets/favicon.png" sizes="any">
@@ -41,11 +42,11 @@
     "description": "Paws Rescue Donations: a Django donation-management app for a pet rescue with per-pet tracking, filtering, CSV export, and a dashboard, behind an admin login. 11 tests.",
     "codeRepository": "https://github.com/salmanadnan2257/paws-rescue-donations",
     "programmingLanguage": ["Python"],
-    "url": "https://salmanadnan2257.github.io/projects/paws-rescue-donations.html",
+    "url": "https://salmanadnan.com/projects/paws-rescue-donations.html",
     "author": {
       "@type": "Person",
       "name": "Salman Adnan",
-      "url": "https://salmanadnan2257.github.io/"
+      "url": "https://salmanadnan.com/"
     }
   }
   </script>
@@ -75,15 +76,7 @@
       <a class="proj-crumb" href="../index.html"><span aria-hidden="true">&larr;</span> Salman Adnan</a>
       <p class="proj-kicker">paws-rescue-donations</p>
       <h1 id="proj-title" class="proj-title">Paws Rescue Donations</h1>
-      <p class="proj-lede">A Django web app for tracking donations at a pet rescue, built for the Khidmat community-service program at Habib University. Staff log in, record donations against individual pets, filter and export the records, and see running totals on a dashboard.</p>
-      <div class="proj-plain">
-        <span class="proj-plain__label">In plain English</span>
-        <p>An animal rescue takes in donations, and somebody has to write down who gave what, and for which animal. Most small rescues keep that in a shared spreadsheet, where anyone with the link can change anything and nobody agrees on the columns. This is a small private website that replaces it: staff sign in, record each donation against a specific pet, search and filter the records, see running totals and which five pets are drawing the most support, and download a spreadsheet of whatever they have filtered. It was built for the Khidmat community-service program at Habib University.</p>
-      </div>
-      <div class="proj-actions">
-        <a class="btn btn--primary" href="https://github.com/salmanadnan2257/paws-rescue-donations" rel="noopener" target="_blank">View code on GitHub</a>
-        <a class="btn btn--ghost" href="../index.html#work">All projects</a>
-      </div>
+      <p class="proj-lede">An animal rescue takes in donations, and somebody has to record who gave what, and for which pet. Most small rescues use a shared spreadsheet where anyone with the link can change anything. This private website replaces it: staff sign in, log each donation against a pet, filter the records, see running totals and the top five pets, and export whatever they have filtered.</p>
       <figure class="proj-media proj-viz">
         <div class="proj-viz__frame">
           <iframe src="../viz/paws-rescue-donations.html" title="Interactive 3D visualization: Paws Rescue Donations" loading="lazy" allow="fullscreen"></iframe>
@@ -102,6 +95,11 @@
           <div class="proj-stat"><b>CSV</b><span>filtered export</span></div>
       </div>
 
+      <div class="proj-actions">
+        <a class="btn btn--primary" href="https://github.com/salmanadnan2257/paws-rescue-donations" rel="noopener" target="_blank">View code on GitHub</a>
+        <a class="btn btn--ghost" href="../index.html#work">All projects</a>
+      </div>
+
     </div>
   </section>
 
@@ -110,6 +108,7 @@
       <div class="proj-layout">
       <section class="proj-section">
         <h2>Overview</h2>
+        <p>A Django web app for tracking donations at a pet rescue, built for the Khidmat community-service program at Habib University. Staff log in, record donations against individual pets, filter and export the records, and see running totals on a dashboard.</p>
         <p>There is no public-facing side; the whole app sits behind an admin login. It replaces the spreadsheet small rescues usually use, which lacks access control and consistent fields, with a single database and a login, while staying simple enough to run on a free hosting tier.</p>
       </section>
       <section class="proj-section">

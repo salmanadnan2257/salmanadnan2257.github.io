@@ -9,24 +9,25 @@
   <meta name="theme-color" content="#FFFDF5">
 
   <!--
-    SITE_URL: the site's absolute base URL is https://salmanadnan2257.github.io
-    Before deploying to a custom domain, find-and-replace that exact string across
-    all HTML files, sitemap.xml, and robots.txt. It is the only absolute host used.
+    SITE_URL: the site's absolute base URL is https://salmanadnan.com
+    It is the only absolute host the site uses, and it appears in robots.txt,
+    sitemap.xml, and the head of every HTML file. If the domain ever moves,
+    change it in all three places together.
   -->
-  <link rel="canonical" href="https://salmanadnan2257.github.io/projects/color-palette-generator.html">
+  <link rel="canonical" href="https://salmanadnan.com/projects/color-palette-generator.html">
 
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="Salman Adnan">
   <meta property="og:title" content="Color Palette Generator · Salman Adnan">
   <meta property="og:description" content="Color Palette Generator: a Flask app that extracts the 10 most frequent RGB colors from an uploaded image with numpy, rendering them as sortable swatch cards with hex, RGB, and percentage share.">
-  <meta property="og:url" content="https://salmanadnan2257.github.io/projects/color-palette-generator.html">
-  <meta property="og:image" content="https://salmanadnan2257.github.io/assets/og/color-palette-generator.png">
+  <meta property="og:url" content="https://salmanadnan.com/projects/color-palette-generator.html">
+  <meta property="og:image" content="https://salmanadnan.com/assets/og/color-palette-generator.png">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Color Palette Generator · Salman Adnan">
   <meta name="twitter:description" content="Color Palette Generator: a Flask app that extracts the 10 most frequent RGB colors from an uploaded image with numpy, rendering them as sortable swatch cards with hex, RGB, and percentage share.">
-  <meta name="twitter:image" content="https://salmanadnan2257.github.io/assets/og/color-palette-generator.png">
+  <meta name="twitter:image" content="https://salmanadnan.com/assets/og/color-palette-generator.png">
 
   <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
   <link rel="icon" href="../assets/favicon.png" sizes="any">
@@ -41,11 +42,11 @@
     "description": "Color Palette Generator: a Flask app that extracts the 10 most frequent RGB colors from an uploaded image with numpy, rendering them as sortable swatch cards with hex, RGB, and percentage share.",
     "codeRepository": "https://github.com/salmanadnan2257/color-palette-generator",
     "programmingLanguage": ["Python", "JavaScript"],
-    "url": "https://salmanadnan2257.github.io/projects/color-palette-generator.html",
+    "url": "https://salmanadnan.com/projects/color-palette-generator.html",
     "author": {
       "@type": "Person",
       "name": "Salman Adnan",
-      "url": "https://salmanadnan2257.github.io/"
+      "url": "https://salmanadnan.com/"
     }
   }
   </script>
@@ -75,15 +76,7 @@
       <a class="proj-crumb" href="../index.html"><span aria-hidden="true">&larr;</span> Salman Adnan</a>
       <p class="proj-kicker">color-palette-generator</p>
       <h1 id="proj-title" class="proj-title">Color Palette Generator</h1>
-      <p class="proj-lede">A Flask web app that extracts the dominant colors from an uploaded image and renders them as a set of swatch cards (hex, RGB, share of the image) next to a preview of the source image. It computes the 10 most frequent exact RGB values with <code>numpy.unique</code>, with no database, no external API calls, and no state shared between visitors.</p>
-      <div class="proj-plain">
-        <span class="proj-plain__label">In plain English</span>
-        <p>Drop in a picture and this page shows you the ten colours that appear in it most, how much of the image each one covers, and the exact code for each colour so you can copy it and use it somewhere else. It is useful if you are choosing colours for a website, a poster, or a mood board and want them to match a photo you already like. It is entirely self-contained: nothing is sent off to another company's service and nothing is stored, so one person's picture can never turn up in someone else's results.</p>
-      </div>
-      <div class="proj-actions">
-        <a class="btn btn--primary" href="https://github.com/salmanadnan2257/color-palette-generator" rel="noopener" target="_blank">View code on GitHub</a>
-        <a class="btn btn--ghost" href="../index.html#work">All projects</a>
-      </div>
+      <p class="proj-lede">Drop in a picture and this web app shows you the ten colors that cover the most of it, what share each one takes, and the exact code for each so you can copy it into a design. Useful when you are picking colors for a site or a poster to match a photo you already like. Nothing is sent to an outside service and nothing is stored.</p>
         <div class="proj-note">
           <div>
             <strong>Solo</strong>
@@ -94,7 +87,7 @@
         <div class="proj-viz__frame">
           <iframe src="../viz/color-palette-generator.html" title="Interactive 3D visualization: Color Palette Generator" loading="lazy" allow="fullscreen"></iframe>
         </div>
-        <figcaption>Swatch Bloom: an abstract piece, not the algorithm. A pixel cloud gathers into swatch bars and hangs them up as a palette card. The app itself is simpler: it counts every exact RGB value with numpy and returns the ten most common. Live and interactive: drag it to orbit, scroll or pinch to zoom. <a href="../viz/color-palette-generator.html" target="_blank" rel="noopener">Open full screen</a></figcaption>
+        <figcaption>Swatch Bloom: a stylized take on what the tool does. Pixels lifted from a source image gather by color, each pile counted, and the ten most common rack up as ten swatch bars, the same ten the app returns from <code>numpy.unique</code>. The colors are a generated palette rather than a real photo's, but the count is the app's own: ten. Live and interactive: drag it to orbit, scroll or pinch to zoom. <a href="../viz/color-palette-generator.html" target="_blank" rel="noopener">Open full screen</a></figcaption>
       </figure>
 
       <figure class="proj-media">
@@ -108,6 +101,11 @@
           <div class="proj-stat"><b>2</b><span>images verified back-to-back with no leaked state</span></div>
       </div>
 
+      <div class="proj-actions">
+        <a class="btn btn--primary" href="https://github.com/salmanadnan2257/color-palette-generator" rel="noopener" target="_blank">View code on GitHub</a>
+        <a class="btn btn--ghost" href="../index.html#work">All projects</a>
+      </div>
+
     </div>
   </section>
 
@@ -116,6 +114,7 @@
       <div class="proj-layout">
       <section class="proj-section">
         <h2>Overview</h2>
+        <p>A Flask web app that extracts the dominant colors from an uploaded image and renders them as a set of swatch cards (hex, RGB, share of the image) next to a preview of the source image. It computes the 10 most frequent exact RGB values with <code>numpy.unique</code>, with no database, no external API calls, and no state shared between visitors.</p>
         <p>Pulling a usable palette out of a photo, for a mood board, a UI theme, or just curiosity, usually means installing a desktop tool or using a third-party site. This is a self-contained version: pick an image, get its top colors and how much of the image each one covers, done in the browser with no upload limits or ads.</p>
       </section>
       <section class="proj-section">

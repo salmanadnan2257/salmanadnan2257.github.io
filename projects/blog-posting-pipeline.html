@@ -9,24 +9,25 @@
   <meta name="theme-color" content="#FFFDF5">
 
   <!--
-    SITE_URL: the site's absolute base URL is https://salmanadnan2257.github.io
-    Before deploying to a custom domain, find-and-replace that exact string across
-    all HTML files, sitemap.xml, and robots.txt. It is the only absolute host used.
+    SITE_URL: the site's absolute base URL is https://salmanadnan.com
+    It is the only absolute host the site uses, and it appears in robots.txt,
+    sitemap.xml, and the head of every HTML file. If the domain ever moves,
+    change it in all three places together.
   -->
-  <link rel="canonical" href="https://salmanadnan2257.github.io/projects/blog-posting-pipeline.html">
+  <link rel="canonical" href="https://salmanadnan.com/projects/blog-posting-pipeline.html">
 
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="Salman Adnan">
   <meta property="og:title" content="Blog Posting Pipeline · Salman Adnan">
   <meta property="og:description" content="Blog Posting Pipeline: a production 7-step AI content pipeline that researches, writes, illustrates, and publishes SEO posts for real agency clients.">
-  <meta property="og:url" content="https://salmanadnan2257.github.io/projects/blog-posting-pipeline.html">
-  <meta property="og:image" content="https://salmanadnan2257.github.io/assets/og/blog-posting-pipeline.png">
+  <meta property="og:url" content="https://salmanadnan.com/projects/blog-posting-pipeline.html">
+  <meta property="og:image" content="https://salmanadnan.com/assets/og/blog-posting-pipeline.png">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Blog Posting Pipeline · Salman Adnan">
   <meta name="twitter:description" content="Blog Posting Pipeline: a production 7-step AI content pipeline that researches, writes, illustrates, and publishes SEO posts for real agency clients.">
-  <meta name="twitter:image" content="https://salmanadnan2257.github.io/assets/og/blog-posting-pipeline.png">
+  <meta name="twitter:image" content="https://salmanadnan.com/assets/og/blog-posting-pipeline.png">
 
   <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
   <link rel="icon" href="../assets/favicon.png" sizes="any">
@@ -40,11 +41,11 @@
     "name": "Blog Posting Pipeline",
     "description": "Blog Posting Pipeline: a production 7-step AI content pipeline that researches, writes, illustrates, and publishes SEO posts for real agency clients.",
     "programmingLanguage": ["Python"],
-    "url": "https://salmanadnan2257.github.io/projects/blog-posting-pipeline.html",
+    "url": "https://salmanadnan.com/projects/blog-posting-pipeline.html",
     "author": {
       "@type": "Person",
       "name": "Salman Adnan",
-      "url": "https://salmanadnan2257.github.io/"
+      "url": "https://salmanadnan.com/"
     }
   }
   </script>
@@ -74,15 +75,7 @@
       <a class="proj-crumb" href="../index.html"><span aria-hidden="true">&larr;</span> Salman Adnan</a>
       <p class="proj-kicker">blog-posting-pipeline</p>
       <h1 id="proj-title" class="proj-title">Blog Posting Pipeline</h1>
-      <p class="proj-lede">A production pipeline that researches, writes, illustrates, and publishes SEO blog posts for agency client sites. One CLI run produces one complete, optimized post with citations and internal links.</p>
-      <div class="proj-plain">
-        <span class="proj-plain__label">In plain English</span>
-        <p>Plenty of small businesses want a steady stream of articles on their website, and nobody has the time to write them. This program does the whole job in one go: it researches the topic, plans the article, writes it, makes a picture for the top, and posts it on the client's site. It is deliberately built so it cannot invent its sources or its links; it may only use pages and sources it genuinely found. It runs on its own on a server, unattended, and is set up for several of the agency's clients.</p>
-      </div>
-      <div class="proj-actions">
-        <a class="btn btn--primary" href="/demo/blog-posting-pipeline/" rel="noopener">Try the live demo</a>
-        <a class="btn btn--ghost" href="../index.html#work">All projects</a>
-      </div>
+      <p class="proj-lede">Small businesses want a steady stream of articles; nobody has time to write them. This program does the whole job in one run: it researches the topic, plans the article, writes it, makes a picture, and posts it on the client's site. It cannot invent sources or links, only use pages it genuinely found. It runs unattended for the client sites configured in its registry, and it prices every run against verified rates, so a post costs a known $0.37 to $0.40; the linked demo is a fabricated walkthrough.</p>
         <div class="proj-note">
           <div>
             <strong>Solo, in production</strong>
@@ -103,7 +96,13 @@
 
       <div class="proj-stats">
           <div class="proj-stat"><b>7</b><span>pipeline steps</span></div>
-          <div class="proj-stat"><b>7</b><span>clients configured</span></div>
+          <div class="proj-stat"><b>7</b><span>site profiles configured</span></div>
+          <div class="proj-stat"><b>$0.37 to $0.40</b><span>typical cost per post</span></div>
+      </div>
+
+      <div class="proj-actions">
+        <a class="btn btn--primary" href="/demo/blog-posting-pipeline/" rel="noopener">Try the live demo</a>
+        <a class="btn btn--ghost" href="../index.html#work">All projects</a>
       </div>
 
     </div>
@@ -114,6 +113,7 @@
       <div class="proj-layout">
       <section class="proj-section">
         <h2>Overview</h2>
+        <p>A production pipeline that researches, writes, illustrates, and publishes SEO blog posts for agency client sites. One CLI run produces one complete, optimized post with citations and internal links.</p>
         <p>Two packages live here: simple_blog (the live system) and blog_generator (the retired first generation). Every LLM step in the live pipeline uses one fixed, client-agnostic system prompt; all client-specific data travels in the user message.</p>
       </section>
       <section class="proj-section">
@@ -130,6 +130,10 @@
         <h2>Results</h2>
         <ul class="proj-list">
           <li>Embeddings via gemini-embedding-001 at 3072 dimensions; about 70% of the step-4 writer input served from cache.</li>
+          <li>Cost is billed, not guessed. pricing.py charges every token, cache write, cache-storage hour, Perplexity request fee, and Pinecone read against rates verified from the providers' own pricing pages, and each run writes its exact cost to a cost.json.</li>
+          <li>A post typically costs $0.37 to $0.40, taken from a real run's cost.json. Token costs are exact from measured usage; the total is quoted as a band because two components are range-priced (the preview image model and Pinecone read units) and token usage varies per post, so any single run's cost.json is the exact figure.</li>
+          <li>That number is an honest correction, not a sales figure: an earlier claim of roughly $0.16 per post was wrong, and billing the full cache lifecycle (writes and per-hour storage, not just cached reads) put the real cost at $0.37 to $0.40. The dominant costs, the pro writer, the cited body research, and the image, are inherent and were never cacheable away.</li>
+          <li>The COMPANIES registry holds seven site profiles: five external client sites, the agency's own product site (davonex.com, shown above), and a local test profile. Onboarding a site is a data change, not a code change, because every step uses one fixed, client-agnostic system prompt.</li>
           <li>The system runs unattended on a VPS and has served multiple agency clients with consistent output quality.</li>
         </ul>
       </section>

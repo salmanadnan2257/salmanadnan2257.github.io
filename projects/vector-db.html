@@ -9,24 +9,25 @@
   <meta name="theme-color" content="#FFFDF5">
 
   <!--
-    SITE_URL: the site's absolute base URL is https://salmanadnan2257.github.io
-    Before deploying to a custom domain, find-and-replace that exact string across
-    all HTML files, sitemap.xml, and robots.txt. It is the only absolute host used.
+    SITE_URL: the site's absolute base URL is https://salmanadnan.com
+    It is the only absolute host the site uses, and it appears in robots.txt,
+    sitemap.xml, and the head of every HTML file. If the domain ever moves,
+    change it in all three places together.
   -->
-  <link rel="canonical" href="https://salmanadnan2257.github.io/projects/vector-db.html">
+  <link rel="canonical" href="https://salmanadnan.com/projects/vector-db.html">
 
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="Salman Adnan">
   <meta property="og:title" content="Vector Database Engine · Salman Adnan">
   <meta property="og:description" content="vector-db: a vector database engine with HNSW built from the paper, WAL crash recovery, and filtered kNN. Recall@10 matches FAISS at matched parameters across a 17,000-vector benchmark. 25 tests.">
-  <meta property="og:url" content="https://salmanadnan2257.github.io/projects/vector-db.html">
-  <meta property="og:image" content="https://salmanadnan2257.github.io/assets/og/vector-db.png">
+  <meta property="og:url" content="https://salmanadnan.com/projects/vector-db.html">
+  <meta property="og:image" content="https://salmanadnan.com/assets/og/vector-db.png">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Vector Database Engine · Salman Adnan">
   <meta name="twitter:description" content="vector-db: a vector database engine with HNSW built from the paper, WAL crash recovery, and filtered kNN. Recall@10 matches FAISS at matched parameters across a 17,000-vector benchmark. 25 tests.">
-  <meta name="twitter:image" content="https://salmanadnan2257.github.io/assets/og/vector-db.png">
+  <meta name="twitter:image" content="https://salmanadnan.com/assets/og/vector-db.png">
 
   <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
   <link rel="icon" href="../assets/favicon.png" sizes="any">
@@ -41,11 +42,11 @@
     "description": "vector-db: a vector database engine with HNSW built from the paper, WAL crash recovery, and filtered kNN. Recall@10 matches FAISS at matched parameters across a 17,000-vector benchmark. 25 tests.",
     "codeRepository": "https://github.com/salmanadnan2257/vector-db",
     "programmingLanguage": ["Python"],
-    "url": "https://salmanadnan2257.github.io/projects/vector-db.html",
+    "url": "https://salmanadnan.com/projects/vector-db.html",
     "author": {
       "@type": "Person",
       "name": "Salman Adnan",
-      "url": "https://salmanadnan2257.github.io/"
+      "url": "https://salmanadnan.com/"
     }
   }
   </script>
@@ -75,15 +76,7 @@
       <a class="proj-crumb" href="../index.html"><span aria-hidden="true">&larr;</span> Salman Adnan</a>
       <p class="proj-kicker">vector-db</p>
       <h1 id="proj-title" class="proj-title">Vector Database Engine</h1>
-      <p class="proj-lede">A vector database engine written from scratch in Python, built around an HNSW index implemented directly from the paper rather than wrapping a library. Approximate nearest-neighbor search with configurable recall, exact brute-force ground truth, metadata-filtered kNN, crash-safe WAL persistence, and a small HTTP server.</p>
-      <div class="proj-plain">
-        <span class="proj-plain__label">In plain English</span>
-        <p>This is the kind of search tool that finds things by meaning rather than by matching exact words, the way a librarian can hand you a book that is about what you asked for even though you never said its title. It was built from the ground up, working from the original research paper instead of using a ready-made library, then tested against 17,000 real pieces of text: it found the right matches at least as often as FAISS, an established library that professionals use, though FAISS is the faster tool by a wide margin, answering each search roughly 10 to 13 times quicker and preparing its search index in seconds where this one needs about 20 minutes, because FAISS is written in a faster programming language. It also writes down every change as it happens, so that when a test deliberately kills the program mid-write, nothing is lost.</p>
-      </div>
-      <div class="proj-actions">
-        <a class="btn btn--primary" href="https://github.com/salmanadnan2257/vector-db" rel="noopener" target="_blank">View code on GitHub</a>
-        <a class="btn btn--ghost" href="../index.html#work">All projects</a>
-      </div>
+      <p class="proj-lede">A search engine that finds things by meaning rather than exact words, the way a librarian can hand you the right book from a vague description. It was built from the original research paper rather than a ready-made library, then tested on 17,000 pieces of text: its matches were at least as accurate as FAISS, the library professionals use, though FAISS answers each search 10 to 13 times faster.</p>
       <figure class="proj-media proj-viz">
         <div class="proj-viz__frame">
           <iframe src="../viz/vector-db.html" title="Interactive 3D visualization: Vector Database Engine" loading="lazy" allow="fullscreen"></iframe>
@@ -102,6 +95,11 @@
           <div class="proj-stat"><b>17,000</b><span>vectors indexed (768-dim)</span></div>
       </div>
 
+      <div class="proj-actions">
+        <a class="btn btn--primary" href="https://github.com/salmanadnan2257/vector-db" rel="noopener" target="_blank">View code on GitHub</a>
+        <a class="btn btn--ghost" href="../index.html#work">All projects</a>
+      </div>
+
     </div>
   </section>
 
@@ -110,6 +108,7 @@
       <div class="proj-layout">
       <section class="proj-section">
         <h2>Overview</h2>
+        <p>A vector database engine written from scratch in Python, built around an HNSW index implemented directly from the paper rather than wrapping a library. Approximate nearest-neighbor search with configurable recall, exact brute-force ground truth, metadata-filtered kNN, crash-safe WAL persistence, and a small HTTP server.</p>
         <p>The point is understanding, not beating C. The graph construction, greedy search, neighbor-selection heuristic, and level generation are all hand-written; numpy is used only for vectorized distance math, and FAISS appears in one place, the benchmark, purely as a reference.</p>
         <p>HNSW is the interesting part: a layered small-world graph you navigate greedily in roughly O(log n) hops. Getting recall above 0.95 on real embeddings, making deletes and persistence correct, and measuring honestly against a C library is where the understanding lands.</p>
       </section>

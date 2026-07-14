@@ -9,24 +9,25 @@
   <meta name="theme-color" content="#FFFDF5">
 
   <!--
-    SITE_URL: the site's absolute base URL is https://salmanadnan2257.github.io
-    Before deploying to a custom domain, find-and-replace that exact string across
-    all HTML files, sitemap.xml, and robots.txt. It is the only absolute host used.
+    SITE_URL: the site's absolute base URL is https://salmanadnan.com
+    It is the only absolute host the site uses, and it appears in robots.txt,
+    sitemap.xml, and the head of every HTML file. If the domain ever moves,
+    change it in all three places together.
   -->
-  <link rel="canonical" href="https://salmanadnan2257.github.io/projects/urdu-slm.html">
+  <link rel="canonical" href="https://salmanadnan.com/projects/urdu-slm.html">
 
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="Salman Adnan">
   <meta property="og:title" content="Urdu Language Model, from scratch · Salman Adnan">
   <meta property="og:description" content="urdu-slm: a from-scratch pretraining stack for a small Urdu language model, corpus to transformer. A 2.5M-document corpus, a 32k tokenizer that is 5.23x more efficient than GPT-2 on Urdu, and a hand-written RMSNorm/RoPE/SwiGLU transformer.">
-  <meta property="og:url" content="https://salmanadnan2257.github.io/projects/urdu-slm.html">
-  <meta property="og:image" content="https://salmanadnan2257.github.io/assets/og/urdu-slm.png">
+  <meta property="og:url" content="https://salmanadnan.com/projects/urdu-slm.html">
+  <meta property="og:image" content="https://salmanadnan.com/assets/og/urdu-slm.png">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Urdu Language Model, from scratch · Salman Adnan">
   <meta name="twitter:description" content="urdu-slm: a from-scratch pretraining stack for a small Urdu language model, corpus to transformer. A 2.5M-document corpus, a 32k tokenizer that is 5.23x more efficient than GPT-2 on Urdu, and a hand-written RMSNorm/RoPE/SwiGLU transformer.">
-  <meta name="twitter:image" content="https://salmanadnan2257.github.io/assets/og/urdu-slm.png">
+  <meta name="twitter:image" content="https://salmanadnan.com/assets/og/urdu-slm.png">
 
   <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
   <link rel="icon" href="../assets/favicon.png" sizes="any">
@@ -41,11 +42,11 @@
     "description": "urdu-slm: a from-scratch pretraining stack for a small Urdu language model, corpus to transformer. A 2.5M-document corpus, a 32k tokenizer that is 5.23x more efficient than GPT-2 on Urdu, and a hand-written RMSNorm/RoPE/SwiGLU transformer.",
     "codeRepository": "https://github.com/salmanadnan2257/urdu-slm",
     "programmingLanguage": ["Python"],
-    "url": "https://salmanadnan2257.github.io/projects/urdu-slm.html",
+    "url": "https://salmanadnan.com/projects/urdu-slm.html",
     "author": {
       "@type": "Person",
       "name": "Salman Adnan",
-      "url": "https://salmanadnan2257.github.io/"
+      "url": "https://salmanadnan.com/"
     }
   }
   </script>
@@ -75,15 +76,7 @@
       <a class="proj-crumb" href="../index.html"><span aria-hidden="true">&larr;</span> Salman Adnan</a>
       <p class="proj-kicker">urdu-slm</p>
       <h1 id="proj-title" class="proj-title">Urdu Language Model, from scratch</h1>
-      <p class="proj-lede">A small Urdu language model trained from scratch: the full stack, from raw public text to a decoder-only transformer, built for a low-resource language that off-the-shelf tokenizers and models handle poorly.</p>
-      <div class="proj-plain">
-        <span class="proj-plain__label">In plain English</span>
-        <p>The AI tools that read and write text are built mostly around English, and they handle Urdu badly, chopping its words into far more little pieces than they need to. This project builds one for Urdu instead, from the ground up: collecting and cleaning millions of pages of freely available Urdu text, teaching the program to split Urdu into sensible pieces, then training it on a rented high-powered computer for about $13. The splitting worked, it needs roughly a fifth of the pieces that a well-known English-first tool spends on the same Urdu passage. The finished model writes fluent Urdu in the correct script, but it is small, it still wanders off topic and gets facts wrong, and this page reports that with the numbers rather than hiding it.</p>
-      </div>
-      <div class="proj-actions">
-        <a class="btn btn--primary" href="https://github.com/salmanadnan2257/urdu-slm" rel="noopener" target="_blank">View code on GitHub</a>
-        <a class="btn btn--ghost" href="../index.html#work">All projects</a>
-      </div>
+      <p class="proj-lede">AI text models are built around English and handle Urdu badly, chopping its words into far more pieces than needed. This one is built for Urdu from scratch: public Urdu text cleaned, a splitter taught to cut Urdu sensibly, then training on a rented GPU for about $13. It writes fluent Urdu in the correct script, but it is small, still drifting off topic and getting facts wrong.</p>
         <div class="proj-note">
           <div>
             <strong>Trained twice: a second run closed most of the perplexity gap</strong>
@@ -108,6 +101,11 @@
           <div class="proj-stat"><b>2.5B</b><span>tokens, v2 corpus, ~$13 total</span></div>
       </div>
 
+      <div class="proj-actions">
+        <a class="btn btn--primary" href="https://github.com/salmanadnan2257/urdu-slm" rel="noopener" target="_blank">View code on GitHub</a>
+        <a class="btn btn--ghost" href="../index.html#work">All projects</a>
+      </div>
+
     </div>
   </section>
 
@@ -116,6 +114,7 @@
       <div class="proj-layout">
       <section class="proj-section">
         <h2>Overview</h2>
+        <p>A small Urdu language model trained from scratch: the full stack, from raw public text to a decoder-only transformer, built for a low-resource language that off-the-shelf tokenizers and models handle poorly.</p>
         <p>Most projects that train a small GPT reach for English data and a pretrained tokenizer. Urdu (Perso-Arabic script, right-to-left, rich morphology) exposes the parts those projects skip: script normalization, a tokenizer that does not shred the language into bytes, script-aware language-ID filtering, and an honest token budget.</p>
         <p>Everything here is written from scratch in PyTorch, with no modeling code from the transformers library.</p>
       </section>
@@ -138,7 +137,7 @@
           <li>Tiny proof run (13M preset, CPU, 500 steps, 4.10M tokens): train loss 9.74 to 5.42, held-out perplexity 248.8, and 98.2% of generated characters stay in Arabic script.</li>
           <li>Base run v1 (124M preset, A100, 858 steps, 449.8M tokens): loss 7.35 to 3.51, ~75 minutes, about $1.90. Held-out perplexity 38.02, script mix 99.43%, cloze 34.9%.</li>
           <li>Base run v2 (124M preset, A100, 4,768 steps, 2.5B tokens): loss 9.63 to ~2.74, real sustained throughput ~105,000 tokens/second, 6h 39m, about $13.06. Held-out perplexity 28.93, script mix 99.75%, cloze 39.5% (2-shot, chance is 33.3%).</li>
-          <li>12 tests passing (5 model, 7 pipeline), including a causal-masking property test and per-preset parameter counts.</li>
+          <li>13 tests passing (5 model, 8 pipeline), including a causal-masking property test and per-preset parameter counts.</li>
         </ul>
       </section>
       <section class="proj-section">

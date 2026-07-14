@@ -9,24 +9,25 @@
   <meta name="theme-color" content="#FFFDF5">
 
   <!--
-    SITE_URL: the site's absolute base URL is https://salmanadnan2257.github.io
-    Before deploying to a custom domain, find-and-replace that exact string across
-    all HTML files, sitemap.xml, and robots.txt. It is the only absolute host used.
+    SITE_URL: the site's absolute base URL is https://salmanadnan.com
+    It is the only absolute host the site uses, and it appears in robots.txt,
+    sitemap.xml, and the head of every HTML file. If the domain ever moves,
+    change it in all three places together.
   -->
-  <link rel="canonical" href="https://salmanadnan2257.github.io/projects/agency-blog-saas.html">
+  <link rel="canonical" href="https://salmanadnan.com/projects/agency-blog-saas.html">
 
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="Salman Adnan">
   <meta property="og:title" content="Agency Blog SaaS · Salman Adnan">
   <meta property="og:description" content="Agency Blog SaaS: the production Django SaaS behind digitalise.agency for AI blog generation, with credits, a client portal, Postgres, and Docker. 132/132 tests, 56% coverage.">
-  <meta property="og:url" content="https://salmanadnan2257.github.io/projects/agency-blog-saas.html">
-  <meta property="og:image" content="https://salmanadnan2257.github.io/assets/og/agency-blog-saas.png">
+  <meta property="og:url" content="https://salmanadnan.com/projects/agency-blog-saas.html">
+  <meta property="og:image" content="https://salmanadnan.com/assets/og/agency-blog-saas.png">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Agency Blog SaaS · Salman Adnan">
   <meta name="twitter:description" content="Agency Blog SaaS: the production Django SaaS behind digitalise.agency for AI blog generation, with credits, a client portal, Postgres, and Docker. 132/132 tests, 56% coverage.">
-  <meta name="twitter:image" content="https://salmanadnan2257.github.io/assets/og/agency-blog-saas.png">
+  <meta name="twitter:image" content="https://salmanadnan.com/assets/og/agency-blog-saas.png">
 
   <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
   <link rel="icon" href="../assets/favicon.png" sizes="any">
@@ -40,11 +41,11 @@
     "name": "Agency Blog SaaS",
     "description": "Agency Blog SaaS: the production Django SaaS behind digitalise.agency for AI blog generation, with credits, a client portal, Postgres, and Docker. 132/132 tests, 56% coverage.",
     "programmingLanguage": ["Python", "JavaScript"],
-    "url": "https://salmanadnan2257.github.io/projects/agency-blog-saas.html",
+    "url": "https://salmanadnan.com/projects/agency-blog-saas.html",
     "author": {
       "@type": "Person",
       "name": "Salman Adnan",
-      "url": "https://salmanadnan2257.github.io/"
+      "url": "https://salmanadnan.com/"
     }
   }
   </script>
@@ -74,15 +75,7 @@
       <a class="proj-crumb" href="../index.html"><span aria-hidden="true">&larr;</span> Salman Adnan</a>
       <p class="proj-kicker">agency-blog-saas</p>
       <h1 id="proj-title" class="proj-title">Agency Blog SaaS</h1>
-      <p class="proj-lede">The production codebase behind digitalise.agency: a static marketing site plus a Django SaaS that generates, stores, and publishes AI-written blog posts, gates premium workflows behind redemption codes, and gives clients a portal for progress updates.</p>
-      <div class="proj-plain">
-        <span class="proj-plain__label">In plain English</span>
-        <p>This is the software that runs Salman's own agency. A client signs in, asks for a blog post on a topic, and the system writes it, stores it, and publishes it; each post costs a set number of credits, and if the writing fails the credits are handed straight back. There is also a portal where clients log in and read progress updates on their work. It is the agency's real, running product, which is why the code stays private and the linked demo is a scripted tour with made-up data.</p>
-      </div>
-      <div class="proj-actions">
-        <a class="btn btn--primary" href="/demo/agency-blog-saas/" rel="noopener">Try the live demo</a>
-        <a class="btn btn--ghost" href="../index.html#work">All projects</a>
-      </div>
+      <p class="proj-lede">This is the software that runs Salman's own agency. A client signs in, asks for a blog post on a topic, and the system writes it, stores it, and publishes it; each post costs 100 credits, refunded automatically if the writing fails. It is the agency's live product, so the code stays private and the linked demo is a scripted tour with made-up data.</p>
         <div class="proj-note">
           <div>
             <strong>Solo, in production</strong>
@@ -107,6 +100,11 @@
           <div class="proj-stat"><b>2</b><span>free posts per 24 hours</span></div>
       </div>
 
+      <div class="proj-actions">
+        <a class="btn btn--primary" href="/demo/agency-blog-saas/" rel="noopener">Try the live demo</a>
+        <a class="btn btn--ghost" href="../index.html#work">All projects</a>
+      </div>
+
     </div>
   </section>
 
@@ -115,7 +113,9 @@
       <div class="proj-layout">
       <section class="proj-section">
         <h2>Overview</h2>
+        <p>The production codebase behind digitalise.agency: a static marketing site plus a Django SaaS that generates, stores, and publishes AI-written blog posts, gates premium workflows behind redemption codes, and gives clients a portal for progress updates.</p>
         <p>It optimizes for one operator running real client work: everything is admin-manageable, failures refund credits, and destructive actions land in an audit log.</p>
+        <p>Who it serves: this is the live software of Salman's own agency, Digitalise Agency, and it runs that agency's real client work. Clients are not hard-coded. Staff create each client record in the portal at runtime, assign users to it, and post updates against it, so the roster lives in the production database rather than in the codebase. The public marketing site names the companies the agency has worked with, showing three client logos: Chronosa, Hi-Tec Bearings, and IQI.</p>
       </section>
       <section class="proj-section">
         <h2>Key features</h2>
@@ -133,6 +133,7 @@
         <ul class="proj-list">
           <li>132 of 132 tests pass against local PostgreSQL 18, with 56% line coverage gated at 50%.</li>
           <li>An internal audit found 53 issues (hardcoded secrets, CSRF exemptions, N+1 queries); views.py is the least-tested module at 31% coverage.</li>
+          <li>It is in production on digitalise.agency, serving the agency's own client work on Docker, Gunicorn behind nginx, and PostgreSQL 17. The client portal is modelled end to end (Client, ClientAssignment, ClientInviteLink, ClientUpdate), with UUID invite tokens and updates that export to PDF and PPTX.</li>
         </ul>
       </section>
       <section class="proj-section">

@@ -9,24 +9,25 @@
   <meta name="theme-color" content="#FFFDF5">
 
   <!--
-    SITE_URL: the site's absolute base URL is https://salmanadnan2257.github.io
-    Before deploying to a custom domain, find-and-replace that exact string across
-    all HTML files, sitemap.xml, and robots.txt. It is the only absolute host used.
+    SITE_URL: the site's absolute base URL is https://salmanadnan.com
+    It is the only absolute host the site uses, and it appears in robots.txt,
+    sitemap.xml, and the head of every HTML file. If the domain ever moves,
+    change it in all three places together.
   -->
-  <link rel="canonical" href="https://salmanadnan2257.github.io/projects/n8n-automations.html">
+  <link rel="canonical" href="https://salmanadnan.com/projects/n8n-automations.html">
 
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="Salman Adnan">
   <meta property="og:title" content="N8N Automations · Salman Adnan">
   <meta property="og:description" content="N8N Automations: a curated collection of 59 n8n visual-workflow automations built for Digitalise Agency, each documented, secret-scrubbed, and exported as an importable workflow.">
-  <meta property="og:url" content="https://salmanadnan2257.github.io/projects/n8n-automations.html">
-  <meta property="og:image" content="https://salmanadnan2257.github.io/assets/og/n8n-automations.png">
+  <meta property="og:url" content="https://salmanadnan.com/projects/n8n-automations.html">
+  <meta property="og:image" content="https://salmanadnan.com/assets/og/n8n-automations.png">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="N8N Automations · Salman Adnan">
   <meta name="twitter:description" content="N8N Automations: a curated collection of 59 n8n visual-workflow automations built for Digitalise Agency, each documented, secret-scrubbed, and exported as an importable workflow.">
-  <meta name="twitter:image" content="https://salmanadnan2257.github.io/assets/og/n8n-automations.png">
+  <meta name="twitter:image" content="https://salmanadnan.com/assets/og/n8n-automations.png">
 
   <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
   <link rel="icon" href="../assets/favicon.png" sizes="any">
@@ -41,11 +42,11 @@
     "description": "N8N Automations: a curated collection of 59 n8n visual-workflow automations built for Digitalise Agency, each documented, secret-scrubbed, and exported as an importable workflow.",
     "codeRepository": "https://github.com/salmanadnan2257/n8n-automations",
     "programmingLanguage": ["n8n workflow JSON"],
-    "url": "https://salmanadnan2257.github.io/projects/n8n-automations.html",
+    "url": "https://salmanadnan.com/projects/n8n-automations.html",
     "author": {
       "@type": "Person",
       "name": "Salman Adnan",
-      "url": "https://salmanadnan2257.github.io/"
+      "url": "https://salmanadnan.com/"
     }
   }
   </script>
@@ -75,15 +76,7 @@
       <a class="proj-crumb" href="../index.html"><span aria-hidden="true">&larr;</span> Salman Adnan</a>
       <p class="proj-kicker">n8n-automations</p>
       <h1 id="proj-title" class="proj-title">N8N Automations</h1>
-      <p class="proj-lede">A curated collection of n8n visual-workflow automations built for Digitalise Agency: lead generation and scraping, AI content and video pipelines, SEO and outreach systems, CRM and booking utilities. n8n builds automations as node graphs instead of text, but the engineering is the same, chaining triggers, API calls, LLM steps, and data transforms into a working system.</p>
-      <div class="proj-plain">
-        <span class="proj-plain__label">In plain English</span>
-        <p>Businesses run on repetitive chores: collecting business contacts off Google Maps, chasing enquiries, writing and posting social media content, sending invoices. n8n is a tool where you build a chore as a flowchart of connected boxes rather than by writing code, and the flowchart then runs on its own. This is a collection of 59 such flowcharts built for Digitalise Agency, each one cleaned up and written up honestly, faults included: one supposedly eight-stage email campaign, for instance, turned out to have only its first stage actually connected. The clean-up also found real, still-working account keys and access tokens sitting inside the files, the digital passes that let these flowcharts use paid services on the agency's behalf; those were stripped out of every copy here and the agency was told to change them at the source.</p>
-      </div>
-      <div class="proj-actions">
-        <a class="btn btn--primary" href="https://github.com/salmanadnan2257/n8n-automations" rel="noopener" target="_blank">View code on GitHub</a>
-        <a class="btn btn--ghost" href="../index.html#work">All projects</a>
-      </div>
+      <p class="proj-lede">Businesses run on repetitive chores: scraping leads, chasing enquiries, sending invoices. n8n lets you build a chore as a flowchart of connected boxes that then runs itself, no code required. This is 59 such automations built for Digitalise Agency, each documented honestly, faults included: one supposedly eight-stage email campaign had only its first stage actually wired up. Real, still-working account keys found in the files were stripped.</p>
         <div class="proj-note">
           <div>
             <strong>Digitalise Agency automations, curated and documented (2026)</strong>
@@ -133,6 +126,11 @@
           <div class="proj-stat"><b>5</b><span>still blocked, source inaccessible</span></div>
       </div>
 
+      <div class="proj-actions">
+        <a class="btn btn--primary" href="https://github.com/salmanadnan2257/n8n-automations" rel="noopener" target="_blank">View code on GitHub</a>
+        <a class="btn btn--ghost" href="../index.html#work">All projects</a>
+      </div>
+
     </div>
   </section>
 
@@ -141,6 +139,7 @@
       <div class="proj-layout">
       <section class="proj-section">
         <h2>Overview</h2>
+        <p>A curated collection of n8n visual-workflow automations built for Digitalise Agency: lead generation and scraping, AI content and video pipelines, SEO and outreach systems, CRM and booking utilities. n8n builds automations as node graphs instead of text, but the engineering is the same, chaining triggers, API calls, LLM steps, and data transforms into a working system.</p>
         <p>Digitalise Agency runs a live n8n instance with well over a hundred workflows built up over time: some production systems serving real clients, some demos, some abandoned tests. This project is the curation pass over that instance: survey every workflow, decide what is genuinely worth showing, pull its real definition, strip anything sensitive, and document it to the same standard as the rest of this portfolio, including the parts that do not work as advertised.</p>
       </section>
       <section class="proj-section">

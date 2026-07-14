@@ -1,6 +1,6 @@
-# SITE_URL: replace https://salmanadnan2257.github.io with the real domain at deploy
-# (single find-replace across all HTML files, sitemap.xml, and this file).
+# SITE_URL: the site's absolute base URL is https://salmanadnan.com
+# (the same host is used in sitemap.xml, every HTML head, and this file).
 User-agent: *
 Allow: /
 
-Sitemap: https://salmanadnan2257.github.io/sitemap.xml
+Sitemap: https://salmanadnan.com/sitemap.xml

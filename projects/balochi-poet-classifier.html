@@ -9,24 +9,25 @@
   <meta name="theme-color" content="#FFFDF5">
 
   <!--
-    SITE_URL: the site's absolute base URL is https://salmanadnan2257.github.io
-    Before deploying to a custom domain, find-and-replace that exact string across
-    all HTML files, sitemap.xml, and robots.txt. It is the only absolute host used.
+    SITE_URL: the site's absolute base URL is https://salmanadnan.com
+    It is the only absolute host the site uses, and it appears in robots.txt,
+    sitemap.xml, and the head of every HTML file. If the domain ever moves,
+    change it in all three places together.
   -->
-  <link rel="canonical" href="https://salmanadnan2257.github.io/projects/balochi-poet-classifier.html">
+  <link rel="canonical" href="https://salmanadnan.com/projects/balochi-poet-classifier.html">
 
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="Salman Adnan">
   <meta property="og:title" content="Balochi Poet Classifier · Salman Adnan">
   <meta property="og:description" content="Balochi Poet Classifier: a low-resource NLP pipeline fine-tuning XLM-RoBERTa to attribute Balochi couplets to one of three poets, from a 1,670-verse corpus. Pipeline verified; GPU training is the documented next step.">
-  <meta property="og:url" content="https://salmanadnan2257.github.io/projects/balochi-poet-classifier.html">
-  <meta property="og:image" content="https://salmanadnan2257.github.io/assets/og/balochi-poet-classifier.png">
+  <meta property="og:url" content="https://salmanadnan.com/projects/balochi-poet-classifier.html">
+  <meta property="og:image" content="https://salmanadnan.com/assets/og/balochi-poet-classifier.png">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Balochi Poet Classifier · Salman Adnan">
   <meta name="twitter:description" content="Balochi Poet Classifier: a low-resource NLP pipeline fine-tuning XLM-RoBERTa to attribute Balochi couplets to one of three poets, from a 1,670-verse corpus. Pipeline verified; GPU training is the documented next step.">
-  <meta name="twitter:image" content="https://salmanadnan2257.github.io/assets/og/balochi-poet-classifier.png">
+  <meta name="twitter:image" content="https://salmanadnan.com/assets/og/balochi-poet-classifier.png">
 
   <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
   <link rel="icon" href="../assets/favicon.png" sizes="any">
@@ -41,11 +42,11 @@
     "description": "Balochi Poet Classifier: a low-resource NLP pipeline fine-tuning XLM-RoBERTa to attribute Balochi couplets to one of three poets, from a 1,670-verse corpus. Pipeline verified; GPU training is the documented next step.",
     "codeRepository": "https://github.com/salmanadnan2257/balochi-poet-classifier",
     "programmingLanguage": ["Python"],
-    "url": "https://salmanadnan2257.github.io/projects/balochi-poet-classifier.html",
+    "url": "https://salmanadnan.com/projects/balochi-poet-classifier.html",
     "author": {
       "@type": "Person",
       "name": "Salman Adnan",
-      "url": "https://salmanadnan2257.github.io/"
+      "url": "https://salmanadnan.com/"
     }
   }
   </script>
@@ -75,15 +76,7 @@
       <a class="proj-crumb" href="../index.html"><span aria-hidden="true">&larr;</span> Salman Adnan</a>
       <p class="proj-kicker">balochi-poet-classifier</p>
       <h1 id="proj-title" class="proj-title">Balochi Poet Classifier <span class="badge badge--purple">Team</span></h1>
-      <p class="proj-lede">Authorship attribution for Balochi poetry: given a single couplet, predict which of three poets wrote it, by fine-tuning xlm-roberta-base for 3-way sequence classification. Balochi is a low-resource language with almost no prior computational work, which is the point.</p>
-      <div class="proj-plain">
-        <span class="proj-plain__label">In plain English</span>
-        <p>Given two lines of Balochi poetry, can a computer work out which of three poets wrote them? That is what this university team project set out to test, using a collection of 1,670 verses gathered from an archive and from published books, then checked by hand. Balochi is a language that has almost no computer tools built for it, so even assembling the labelled poetry is part of the contribution. Salman built the part that cleans up the verses and teaches the computer to tell the poets apart; the teaching step needs a faster machine than the one he had, so no success rate is claimed yet.</p>
-      </div>
-      <div class="proj-actions">
-        <a class="btn btn--primary" href="https://github.com/salmanadnan2257/balochi-poet-classifier" rel="noopener" target="_blank">View code on GitHub</a>
-        <a class="btn btn--ghost" href="../index.html#work">All projects</a>
-      </div>
+      <p class="proj-lede">Given two lines of Balochi poetry, can a computer tell which of three poets wrote them? Balochi has almost no language technology built for it, so even assembling the 1,670 hand-checked verses mattered; three students shared that work. Salman built the part that cleans the verses and teaches the computer to tell the poets apart; that step needs a faster machine than he had, so no success rate is claimed.</p>
         <div class="proj-note">
           <div>
             <strong>Pipeline verified, full training not run</strong>
@@ -108,6 +101,11 @@
           <div class="proj-stat"><b>~278M</b><span>XLM-R parameters</span></div>
       </div>
 
+      <div class="proj-actions">
+        <a class="btn btn--primary" href="https://github.com/salmanadnan2257/balochi-poet-classifier" rel="noopener" target="_blank">View code on GitHub</a>
+        <a class="btn btn--ghost" href="../index.html#work">All projects</a>
+      </div>
+
     </div>
   </section>
 
@@ -116,6 +114,7 @@
       <div class="proj-layout">
       <section class="proj-section">
         <h2>Overview</h2>
+        <p>Authorship attribution for Balochi poetry: given a single couplet, predict which of three poets wrote it, by fine-tuning xlm-roberta-base for 3-way sequence classification. Balochi is a low-resource language with almost no prior computational work, which is the point.</p>
         <p>The approach shows that a multilingual transformer can be fine-tuned for author attribution with under 2,000 labeled verses. Built as a university Deep Learning course project by a team of three; this repository is Salman's part, the classification pipeline. Dataset collection was a team effort.</p>
       </section>
       <section class="proj-section">

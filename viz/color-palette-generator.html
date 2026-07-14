@@ -6,7 +6,7 @@
   <meta name="robots" content="noindex">
   <meta name="theme-color" content="#101014">
   <title>Color Palette Generator in 3D · Salman Adnan</title>
-  <meta name="description" content="Swatch Bloom: an interactive 3D study of scattered pixels gathering into clean swatches.">
+  <meta name="description" content="Swatch Bloom: an interactive 3D study of image pixels gathering by color into ten swatch bars.">
   <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
   <link rel="icon" href="../assets/favicon.png" sizes="any">
   <style>
@@ -112,7 +112,7 @@
 </head>
 <body>
 <div id="stage">
-  <canvas id="c" tabindex="0" aria-label="Animated cloud of thousands of tiny colored cubes that drift, then gather into five clean swatch clusters that arrange into floating bars."></canvas>
+  <canvas id="c" tabindex="0" aria-label="Animated cloud of thousands of tiny colored cubes lifted from a source image, drifting and then gathering by color into ten piles that compact into ten floating swatch bars."></canvas>
   <div id="hud" role="group" aria-label="Visualization controls">
     <button id="btnPlay" type="button" aria-pressed="false">Pause</button>
     <label for="speed">speed
@@ -125,13 +125,13 @@
   </div>
   <div id="lbl">
     <h1>Swatch Bloom</h1>
-    <p id="lblSub">An abstract piece, not the algorithm: drifting pixels gather into swatch bars. The app counts exact RGB values and returns the ten most common.</p>
+    <p id="lblSub">Stylized, not a screen recording: pixels lifted from an image gather by color, each pile counted, and the ten most common settle into the ten swatch bars the app returns.</p>
     <p id="lblPhase" aria-hidden="true"></p>
   </div>
   <div id="legend" role="list" aria-label="Legend">
-    <span role="listitem"><i style="--c:#C87888"></i>Sampled pixel</span>
-    <span role="listitem"><i style="--c:#FFFFFF"></i>Cluster core</span>
-    <span role="listitem"><i style="--c:#9AA0A6"></i>Swatch bar</span>
+    <span role="listitem"><i style="--c:#C87888"></i>Image pixel</span>
+    <span role="listitem"><i style="--c:#FFFFFF"></i>Color tally</span>
+    <span role="listitem"><i style="--c:#9AA0A6"></i>Swatch bar (10)</span>
   </div>
   <p id="hint" aria-hidden="true"><b>Drag</b> to orbit<span id="hintMore"> &middot; scroll to zoom &middot; double-click to reset</span></p>
   <div id="err"><p>This visualization needs WebGL, which is unavailable here.<br>
@@ -146,37 +146,59 @@ import * as THREE from 'three';
 
 /* ================= scene: color-palette-generator ================= */
 // SWATCH BLOOM
-// Concept: a drifting cloud of tiny colored cubes gathers into five clusters,
-//          compacts into swatch bars, hangs as a tidy palette card,
-//          then releases into a new color harmony and does it again.
-//          Abstract on purpose: the app itself does no clustering, it counts
-//          exact RGB values with numpy and returns the ten most common.
-// Palette: bg neutral studio #101014; the data itself cycles through curated
-//          harmonies: dusty rose #C87888, ochre #D8A458, sage #88A878,
-//          denim #5878A8, plum #8858A0 (plus hue-shifted variants).
-//          Justification: the piece must prove taste in color, so even the
-//          chaos samples disciplined harmonies, never random RGB.
-// Signature: chaos assembling into a tidy, hangable palette card.
+// Concept: pixels lifted from a source image drift, gather by color into ten
+//          piles (one tally per color, which is what the app actually does:
+//          it counts exact RGB values with numpy.unique), and the ten most
+//          common compact into ten swatch bars, hung as a palette card, then
+//          released so the next image can scatter in.
+// Counts:  TEN, everywhere. The tool returns the ten most frequent RGB values,
+//          so the piece racks up exactly ten piles and exactly ten bars. The
+//          tool counts, it does not cluster, and neither does this scene: keep
+//          centroid and cluster language out of the labels and the captions.
+// Palette: bg neutral studio #101014; the pixels cycle through one curated
+//          ten-step sweep, rotated and hue-shifted per cycle: dusty rose
+//          #C87888, clay #C68563, ochre #D8A458, wheat #C4BC72, sage #88A878,
+//          fern #6FA88C, teal #5E9EA8, denim #5878A8, periwinkle #7A78BC,
+//          plum #8858A0. Justification: the piece must prove taste in color,
+//          so even the chaos samples a disciplined sweep, never random RGB.
+// Layout:  the ten bars rack up as two columns of five, read top to bottom,
+//          left column first: the app's own result grid, and the shape that
+//          keeps all ten legible inside a small embed. One column of ten would
+//          be too tall to clear the title card at 420x320.
+// Signature: chaos assembling into a tidy, hangable ten-swatch palette card.
 
 function createScene(THREE, ctx) {
   const Q = ctx.quality;
 
   // Tunables
-  const COUNT = Math.floor(2500 * Q);  // tiny cubes
-  const K = 5;                         // clusters / swatches
-  const CUBE = 0.075;                  // cube edge length
+  const COUNT = Math.floor(5000 * Q);  // tiny cubes (500 per swatch at full quality)
+  const SWATCHES = 10;                 // the ten most common colors: the app's whole output
+  // Fewer cubes on a weak or small device, so each one is drawn bigger: the
+  // bars keep the same solidity at every quality tier instead of going gauzy.
+  const CUBE = 0.075 / Math.sqrt(Q);   // cube edge length
   const CYCLE = 16.0;                  // full loop seconds
   const T_G0 = 5.0, T_G1 = 9.0;        // gather window
   const T_B0 = 9.0, T_B1 = 11.0;       // bar-forming window
   const T_R0 = 14.0, T_R1 = 16.0;      // release window
   const DRIFT_R = 5.4;                 // radius of the drifting cloud
-  const BLOB_R = 0.95;                 // cluster blob radius
-  const BAR_W = 2.6;                   // swatch bar half width
-  const BAR_R = 0.26;                  // swatch bar half thickness
-  const BAR_GAP = 0.95;                // vertical spacing between bars
+  const PILE_R = 0.62;                 // radius of one color's pile while it is counted
+  const RING_X = 4.5, RING_Y = 2.9;    // the ten piles ring up in the camera's plane, not
+                                       // flat in the world, so none hides behind another
+  const ROWS = 5;                      // 2 columns x 5 rows = the ten swatches
+  const BAR_W = 1.55;                  // swatch bar half length
+  const BAR_R = 0.22;                  // swatch bar half thickness
+  const COL_X = 1.75;                  // x of each column's centre line
+  const ROW_GAP = 0.82;                // vertical spacing inside a column
+  const CARD_TOP = ((ROWS - 1) / 2) * ROW_GAP;   // y of the top row (1.64)
   const SWIRL = 0.9;                   // iron-filings swirl strength on arrival
+  const CAM_R = 11.8;                  // camera distance: frames all ten bars with margin
+  const SWING = 0.75;                  // the camera sways this far either side of front,
+                                       // never a full orbit: the card must stay readable
   const BG = 0x101014;
-  const HARMONY = [0xC87888, 0xD8A458, 0x88A878, 0x5878A8, 0x8858A0];
+  const HARMONY = [
+    0xC87888, 0xC68563, 0xD8A458, 0xC4BC72, 0x88A878,
+    0x6FA88C, 0x5E9EA8, 0x5878A8, 0x7A78BC, 0x8858A0
+  ];
 
   ctx.scene.background = new THREE.Color(BG);
   ctx.scene.fog = new THREE.FogExp2(BG, 0.014);
@@ -223,8 +245,8 @@ function createScene(THREE, ctx) {
   const driftBase = new Float32Array(COUNT * 3);
   const wanderF = new Float32Array(COUNT * 3);   // wander frequencies
   const wanderP = new Float32Array(COUNT * 3);   // wander phases
-  const clusterOf = new Uint8Array(COUNT);
-  const blobOff = new Float32Array(COUNT * 3);
+  const swatchOf = new Uint8Array(COUNT);
+  const pileOff = new Float32Array(COUNT * 3);
   const barSlot = new Float32Array(COUNT * 3);
   const stagger = new Float32Array(COUNT);
   const spinAxis = new Float32Array(COUNT * 3);
@@ -237,6 +259,16 @@ function createScene(THREE, ctx) {
 
   function gauss() { return (Math.random() + Math.random() + Math.random()) / 1.5 - 1; }
 
+  // Where each of the ten bars sits on the card: left column (swatches 1..5)
+  // top to bottom, then right column (6..10), the way a ranked list is read.
+  const barCX = new Float32Array(SWATCHES);
+  const barCY = new Float32Array(SWATCHES);
+  for (let k = 0; k < SWATCHES; k++) {
+    barCX[k] = (k < ROWS ? -1 : 1) * COL_X;
+    barCY[k] = CARD_TOP - (k % ROWS) * ROW_GAP;
+  }
+  const CARD_H = CARD_TOP + BAR_R;   // half height of the finished card
+
   for (let i = 0; i < COUNT; i++) {
     const u = Math.random(), v = Math.random(), w = Math.random();
     const r = DRIFT_R * Math.cbrt(u);
@@ -248,10 +280,10 @@ function createScene(THREE, ctx) {
       wanderF[i * 3 + c] = 0.15 + Math.random() * 0.25;
       wanderP[i * 3 + c] = Math.random() * Math.PI * 2;
     }
-    clusterOf[i] = i % K;
-    blobOff[i * 3] = gauss() * BLOB_R;
-    blobOff[i * 3 + 1] = gauss() * BLOB_R * 0.8;
-    blobOff[i * 3 + 2] = gauss() * BLOB_R;
+    swatchOf[i] = i % SWATCHES;
+    pileOff[i * 3] = gauss() * PILE_R;
+    pileOff[i * 3 + 1] = gauss() * PILE_R * 0.8;
+    pileOff[i * 3 + 2] = gauss() * PILE_R;
     // slot inside the swatch bar: uniform x, disc in yz, tapered ends
     const bx = (Math.random() * 2 - 1);
     const taper = Math.sqrt(Math.max(0.15, 1 - Math.pow(Math.abs(bx), 6)));
@@ -268,17 +300,17 @@ function createScene(THREE, ctx) {
     spinPhase[i] = Math.random() * Math.PI * 2;
   }
 
-  // Harmony management
-  const pure = [];       // K THREE.Colors of the current harmony
+  // Harmony management: ten colors, one per swatch.
+  const pure = [];       // the ten THREE.Colors of the current harmony
   const nextPure = [];
-  for (let k = 0; k < K; k++) { pure.push(new THREE.Color()); nextPure.push(new THREE.Color()); }
+  for (let k = 0; k < SWATCHES; k++) { pure.push(new THREE.Color()); nextPure.push(new THREE.Color()); }
   const tmpC = new THREE.Color();
 
   function harmonyFor(cycleIdx, out) {
-    const rot = cycleIdx % K;
+    const rot = cycleIdx % SWATCHES;
     const shift = ((cycleIdx * 0.073) % 0.35) * (cycleIdx % 2 === 0 ? 1 : -1);
-    for (let k = 0; k < K; k++) {
-      out[k].setHex(HARMONY[(k + rot) % K]);
+    for (let k = 0; k < SWATCHES; k++) {
+      out[k].setHex(HARMONY[(k + rot) % SWATCHES]);
       out[k].offsetHSL(shift, 0, 0);
     }
   }
@@ -289,18 +321,25 @@ function createScene(THREE, ctx) {
     arr[i * 3] = tmpC.r; arr[i * 3 + 1] = tmpC.g; arr[i * 3 + 2] = tmpC.b;
   }
 
-  // Centroid positions for the gather phase, refreshed per cycle.
-  const centroids = [];
-  for (let k = 0; k < K; k++) centroids.push(new THREE.Vector3());
-  function placeCentroids() {
-    const a0 = Math.random() * Math.PI * 2;
-    for (let k = 0; k < K; k++) {
-      const a = a0 + k * (Math.PI * 2 / K) + (Math.random() - 0.5) * 0.4;
-      centroids[k].set(Math.cos(a) * 2.7, (Math.random() - 0.5) * 2.0, Math.sin(a) * 2.7);
+  // Where each color's pixels pile up while they are counted, refreshed per cycle.
+  // Ten of them, spaced around an upright ellipse facing the viewer, alternating
+  // slightly toward and away from the camera so the ring has depth without any
+  // pile eclipsing its neighbour. Every one of the ten stays countable.
+  const pileAt = [];
+  for (let k = 0; k < SWATCHES; k++) pileAt.push(new THREE.Vector3());
+  function placePiles() {
+    const a0 = (Math.random() - 0.5) * 0.3;
+    for (let k = 0; k < SWATCHES; k++) {
+      const a = a0 + k * (Math.PI * 2 / SWATCHES);
+      pileAt[k].set(
+        Math.cos(a) * RING_X + (Math.random() - 0.5) * 0.3,
+        Math.sin(a) * RING_Y + (Math.random() - 0.5) * 0.3,
+        (k % 2 ? 0.85 : -0.85) + (Math.random() - 0.5) * 0.4
+      );
     }
   }
 
-  // Centroid beacons: soft billboards that fade in while gathering.
+  // Pile beacons: soft billboards that fade in while the colors are counted.
   function makeGlowTexture() {
     const c = document.createElement('canvas');
     c.width = 128; c.height = 128;
@@ -320,37 +359,39 @@ function createScene(THREE, ctx) {
   quad.setAttribute('uv', new THREE.Float32BufferAttribute([0, 0, 1, 0, 1, 1, 0, 1], 2));
   quad.setIndex([0, 1, 2, 0, 2, 3]);
   const beacons = [];
-  for (let k = 0; k < K; k++) {
+  for (let k = 0; k < SWATCHES; k++) {
     const m = new THREE.Mesh(quad, new THREE.MeshBasicMaterial({
       map: glowTex, transparent: true, opacity: 0,
       blending: THREE.AdditiveBlending, depthWrite: false
     }));
-    m.scale.setScalar(1.6);
+    m.scale.setScalar(1.15);
     ctx.scene.add(m);
     beacons.push(m);
   }
 
-  // Floating tags: one marks a cluster core while clusters gather, one names the card.
-  const centroidTag = ctx.makeTag('cluster core', '#FFFFFF', 0.3);
-  centroidTag.material.opacity = 0;
-  ctx.scene.add(centroidTag);
-  const paletteTag = ctx.makeTag('palette', '#D8A458', 0.34);
-  paletteTag.position.set(0, 2.7, 0);
+  // Floating tags: one names a pile while the colors are counted, one names the card.
+  const tallyTag = ctx.makeTag('color tally', '#FFFFFF', 0.3);
+  tallyTag.material.opacity = 0;
+  ctx.scene.add(tallyTag);
+  // The tag hangs under the card, not over it: at 420x320 the title panel owns
+  // the top-left corner and the legend the top-right, and this must clear both.
+  const paletteTag = ctx.makeTag('top ten', '#D8A458', 0.34);
+  paletteTag.position.set(0, -(CARD_H + 0.72), 0);
   paletteTag.material.opacity = 0;
   ctx.scene.add(paletteTag);
 
   // Initialize harmony 0 and colors.
   harmonyFor(0, pure);
   for (let i = 0; i < COUNT; i++) {
-    const k = clusterOf[i];
+    const k = swatchOf[i];
     jitterInto(colJit, i, pure[k]);
     colPure[i * 3] = pure[k].r; colPure[i * 3 + 1] = pure[k].g; colPure[i * 3 + 2] = pure[k].b;
   }
   // seed the next-harmony buffers too, so a skipped frame can never leave
   // uninitialized (black) colors at a cycle rollover
-  for (let k = 0; k < K; k++) nextPure[k].copy(pure[k]);
+  for (let k = 0; k < SWATCHES; k++) nextPure[k].copy(pure[k]);
   colNextJit.set(colJit);
-  placeCentroids();
+  placePiles();
 
   // Seed instance colors once so instanceColor exists.
   for (let i = 0; i < COUNT; i++) {
@@ -372,13 +413,14 @@ function createScene(THREE, ctx) {
   function paintSourceImage(cols) {
     const w = imgCanvas.width, h = imgCanvas.height;
     const grad = imgCtx2d.createLinearGradient(0, 0, 0, h);
-    grad.addColorStop(0, css(tmpC.copy(cols[3]).multiplyScalar(0.85)));
+    grad.addColorStop(0, css(tmpC.copy(cols[7]).multiplyScalar(0.85)));
     grad.addColorStop(0.55, css(tmpC.copy(cols[0]).multiplyScalar(0.9)));
-    grad.addColorStop(1, css(tmpC.copy(cols[2]).multiplyScalar(0.55)));
+    grad.addColorStop(1, css(tmpC.copy(cols[4]).multiplyScalar(0.55)));
     imgCtx2d.fillStyle = grad;
     imgCtx2d.fillRect(0, 0, w, h);
-    for (let n = 0; n < 26; n++) {
-      const c = cols[n % K];
+    // 30 blobs, three per color, so all ten swatches are visibly in the image
+    for (let n = 0; n < 30; n++) {
+      const c = cols[n % SWATCHES];
       const x = Math.random() * w, y = Math.random() * h;
       const r = 14 + Math.random() * 46;
       const rg = imgCtx2d.createRadialGradient(x, y, 0, x, y, r);
@@ -397,11 +439,11 @@ function createScene(THREE, ctx) {
     new THREE.PlaneGeometry(3.2, 2.2),
     new THREE.MeshBasicMaterial({ map: imgTex, transparent: true, opacity: 0, depthWrite: false })
   );
-  imgMesh.position.set(-4.3, -1.7, 0.6);
+  imgMesh.position.set(-4.9, -1.6, 0.6);
   imgMesh.rotation.y = 0.34;
   ctx.scene.add(imgMesh);
   const imgTag = ctx.makeTag('source image', '#EDE7DC', 0.3);
-  imgTag.position.set(-4.3, -3.15, 0.6);
+  imgTag.position.set(-4.9, -3.05, 0.6);
   imgTag.material.opacity = 0;
   ctx.scene.add(imgTag);
 
@@ -416,7 +458,7 @@ function createScene(THREE, ctx) {
   let cycleSeen = 0;
   let releasePrepared = false;
 
-  ctx.camera.position.set(0, 0.8, 11.5);
+  ctx.camera.position.set(0, 0.8, CAM_R);
   ctx.camera.lookAt(0, 0, 0);
 
   function smooth01(x) { return x <= 0 ? 0 : x >= 1 ? 1 : x * x * (3 - 2 * x); }
@@ -426,15 +468,15 @@ function createScene(THREE, ctx) {
       const cyc = Math.floor(t / CYCLE);
       const tl = t - cyc * CYCLE;
 
-      // new cycle: commit the harmony chosen during release, new centroids
+      // new cycle: commit the harmony chosen during release, new pile positions
       if (cyc !== cycleSeen) {
         cycleSeen = cyc;
         releasePrepared = false;
-        placeCentroids();
-        for (let k = 0; k < K; k++) pure[k].copy(nextPure[k]);
+        placePiles();
+        for (let k = 0; k < SWATCHES; k++) pure[k].copy(nextPure[k]);
         colJit.set(colNextJit);
         for (let i = 0; i < COUNT; i++) {
-          const k = clusterOf[i];
+          const k = swatchOf[i];
           colPure[i * 3] = pure[k].r; colPure[i * 3 + 1] = pure[k].g; colPure[i * 3 + 2] = pure[k].b;
         }
         paintSourceImage(pure);
@@ -446,23 +488,25 @@ function createScene(THREE, ctx) {
       const imgOut = 1 - smooth01((tl - T_G0) / 2.2);
       const imgO = Math.min(imgIn, Math.max(imgOut, 0.12));
       imgMesh.material.opacity = imgO * 0.92;
-      imgMesh.position.y = -1.7 + Math.sin(t * 0.5) * 0.07;
+      imgMesh.position.y = -1.6 + Math.sin(t * 0.5) * 0.07;
       imgTag.material.opacity = imgO * 0.8;
 
       // choose the NEXT harmony as release begins
       if (tl >= T_R0 && !releasePrepared) {
         releasePrepared = true;
         harmonyFor(cyc + 1, nextPure);
-        for (let i = 0; i < COUNT; i++) jitterInto(colNextJit, i, nextPure[clusterOf[i]]);
+        for (let i = 0; i < COUNT; i++) jitterInto(colNextJit, i, nextPure[swatchOf[i]]);
       }
 
-      // live caption follows the cycle timeline
+      // Live caption follows the cycle timeline. It may only describe what the
+      // scene is doing, and what the scene does is what the app does: count
+      // pixels by color and keep the ten most common. No clustering language.
       let cap;
-      if (tl < T_G0) cap = 'Pixels sampled from the source image scatter in color space';
-      else if (tl < T_G1) cap = 'Each sample drifts toward its nearest cluster core';
-      else if (tl < T_B1) cap = 'Five cluster cores compact into swatch bars';
-      else if (tl < T_R0) cap = 'The palette card hangs, ready to copy';
-      else cap = 'Released; the next harmony scatters in';
+      if (tl < T_G0) cap = 'Pixels lifted from the source image drift in color space';
+      else if (tl < T_G1) cap = 'Matching pixels gather: one pile per color, counted';
+      else if (tl < T_B1) cap = 'The ten most common colors compact into swatch bars';
+      else if (tl < T_R0) cap = 'Ten swatches hang as a palette card, ready to copy';
+      else cap = 'Released; the next image scatters in';
       ctx.caption(cap);
 
       // global phase envelopes (per-cube stagger applied inside the loop)
@@ -477,7 +521,7 @@ function createScene(THREE, ctx) {
         const e1 = smooth01(g1 * 1.3 - s * 0.3);
         const e2 = smooth01(g2 * 1.25 - s * 0.25);
         const e3 = smooth01(g3 * 1.25 - s * 0.25);
-        const k = clusterOf[i];
+        const k = swatchOf[i];
         const i3 = i * 3;
 
         // analytic drift (continuous across cycles)
@@ -485,10 +529,10 @@ function createScene(THREE, ctx) {
         const dy = driftBase[i3 + 1] + Math.sin(t * wanderF[i3 + 1] + wanderP[i3 + 1]) * 0.7 + stirY;
         const dz = driftBase[i3 + 2] + Math.sin(t * wanderF[i3 + 2] + wanderP[i3 + 2]) * 0.9;
 
-        // gather toward the cluster blob with a tangential swirl
-        const cx = centroids[k].x + blobOff[i3];
-        const cy = centroids[k].y + blobOff[i3 + 1];
-        const cz = centroids[k].z + blobOff[i3 + 2];
+        // gather into this color's pile with a tangential swirl
+        const cx = pileAt[k].x + pileOff[i3];
+        const cy = pileAt[k].y + pileOff[i3 + 1];
+        const cz = pileAt[k].z + pileOff[i3 + 2];
         let px = dx + (cx - dx) * e1;
         let py = dy + (cy - dy) * e1;
         let pz = dz + (cz - dz) * e1;
@@ -500,10 +544,10 @@ function createScene(THREE, ctx) {
           pz += (vx / vl) * sw;
         }
 
-        // compact into the swatch bar / palette card
+        // compact into the swatch bar: ten of them, two columns of five
         if (e2 > 0) {
-          const bx = barSlot[i3];
-          const by = (2 - k) * BAR_GAP + barSlot[i3 + 1] + bob * e2;
+          const bx = barCX[k] + barSlot[i3];
+          const by = barCY[k] + barSlot[i3 + 1] + bob * e2;
           const bz = barSlot[i3 + 2];
           px += (bx - px) * e2;
           py += (by - py) * e2;
@@ -544,27 +588,34 @@ function createScene(THREE, ctx) {
       mesh.instanceMatrix.needsUpdate = true;
       mesh.instanceColor.needsUpdate = true;
 
-      // beacons fade in while gathering, out as the bars form
+      // ten beacons fade in while the colors are counted, out as the bars form
       const bg1 = smooth01(g1 * 1.3);
       const bg2 = smooth01(g2 * 1.25);
-      for (let k = 0; k < K; k++) {
-        beacons[k].position.copy(centroids[k]);
+      for (let k = 0; k < SWATCHES; k++) {
+        beacons[k].position.copy(pileAt[k]);
         beacons[k].material.color.copy(pure[k]);
-        beacons[k].material.opacity = bg1 * (1 - bg2) * (0.35 + 0.08 * Math.sin(t * 2.0 + k));
+        beacons[k].material.opacity = bg1 * (1 - bg2) * (0.30 + 0.07 * Math.sin(t * 2.0 + k));
         beacons[k].quaternion.copy(ctx.camera.quaternion);
       }
 
-      // tags: centroid marker rides one beacon; palette label appears with the card
-      centroidTag.position.set(centroids[0].x, centroids[0].y + 1.2, centroids[0].z);
-      centroidTag.material.opacity = bg1 * (1 - bg2) * 0.85;
+      // tags: the tally label rides the pile on the right of the ring, which is
+      // clear of the title card and the legend even at 420x320; the palette
+      // label appears with the card
+      tallyTag.position.set(pileAt[0].x, pileAt[0].y + 1.1, pileAt[0].z);
+      tallyTag.material.opacity = bg1 * (1 - bg2) * 0.85;
       const rg3 = smooth01(g3 * 1.25);
       paletteTag.material.opacity = bg2 * (1 - rg3) * 0.8;
 
-      const a = t * 0.04 + ctx.pointer.x * 0.25;
+      // Camera: a slow sway either side of front rather than a full orbit, and
+      // it settles almost square to the card while the card hangs, so all ten
+      // swatches read as full bars instead of edge-on slivers. The viewer's own
+      // drag still orbits freely on top of this.
+      const face = 1 - 0.8 * (bg2 * (1 - rg3));
+      const a = Math.sin(t * 0.06) * SWING * face + ctx.pointer.x * 0.25;
       ctx.camera.position.set(
-        Math.sin(a) * 11.5,
-        0.8 + ctx.pointer.y * 1.0,
-        Math.cos(a) * 11.5);
+        Math.sin(a) * CAM_R,
+        0.7 + ctx.pointer.y * 0.7,
+        Math.cos(a) * CAM_R);
       ctx.camera.lookAt(0, 0, 0);
     }
   };
@@ -712,17 +763,65 @@ const view = {
 const drag = { id: -1, x: 0, y: 0 };
 const touches = new Map();                 // live touch points, for pinch
 let pinchFrom = 0, pinchZoom = 1;
+/* What the view looked like when the gesture now in flight began. Embedded, the
+   canvas is touch-action: pan-y, so a vertical swipe is the host page's to keep:
+   the browser hands over a pointerdown and a move, then cancels. That gesture was
+   never an orbit, and this is what it gets put back to. */
+const gesture = {
+  active: false,
+  yaw: 0, pitch: 0, zoom: 1,
+  yawGoal: 0, pitchGoal: 0, zoomGoal: 1,
+  touched: false
+};
 
 const hintEl = document.getElementById('hint');
 const btnReset = document.getElementById('btnReset');
 
 function clamp(v, lo, hi) { return v < lo ? lo : (v > hi ? hi : v); }
 
-function engage() {
-  if (view.touched) return;
-  view.touched = true;
-  if (hintEl) hintEl.classList.add('is-gone');
-  if (btnReset) btnReset.hidden = false;
+/* The viewer has taken the wheel. The hint and the Reset button are deliberately
+   not set from here: they follow the view's own state, synced every frame, so a
+   gesture the browser takes back for a page scroll leaves no trace on either. */
+function engage() { view.touched = true; }
+
+function beginGesture() {
+  if (gesture.active) return;
+  gesture.active = true;
+  gesture.yaw = view.yaw; gesture.pitch = view.pitch; gesture.zoom = view.zoom;
+  gesture.yawGoal = view.yawGoal; gesture.pitchGoal = view.pitchGoal;
+  gesture.zoomGoal = view.zoomGoal;
+  gesture.touched = view.touched;
+}
+
+function undoGesture() {
+  if (!gesture.active) return;
+  view.yaw = gesture.yaw; view.pitch = gesture.pitch; view.zoom = gesture.zoom;
+  view.yawGoal = gesture.yawGoal; view.pitchGoal = gesture.pitchGoal;
+  view.zoomGoal = gesture.zoomGoal;
+  view.vYaw = 0; view.vPitch = 0;
+  view.touched = gesture.touched;
+}
+
+/* Is there anything to reset? Only if the view sits off the framing the scene gave
+   it, or is still carrying a release back into one. A finger that merely crossed the
+   canvas on its way down the page moved nothing, so it is offered nothing. */
+function viewMoved() {
+  return view.yaw !== 0 || view.pitch !== 0 || view.zoom !== 1 ||
+    view.yawGoal !== 0 || view.pitchGoal !== 0 || view.zoomGoal !== 1 ||
+    view.vYaw !== 0 || view.vPitch !== 0;
+}
+
+function syncViewUi() {
+  if (hintEl && hintEl.classList.contains('is-gone') !== view.touched) {
+    hintEl.classList.toggle('is-gone', view.touched);
+  }
+  if (!btnReset) return;
+  const show = viewMoved();
+  if (btnReset.hidden === !show) return;   // already saying the right thing
+  /* Hiding the control the keyboard is standing on would drop focus to nowhere:
+     hand it back to the piece first. */
+  if (!show && document.activeElement === btnReset) canvas.focus({ preventScroll: true });
+  btnReset.hidden = !show;
 }
 
 function resetView() {
@@ -753,6 +852,7 @@ function pinchSpan() {
 
 canvas.addEventListener('pointerdown', (e) => {
   if (e.pointerType === 'mouse' && e.button !== 0) return;   // the left button orbits; leave the rest alone
+  beginGesture();
   if (e.pointerType === 'touch') {
     touches.set(e.pointerId, { x: e.clientX, y: e.clientY });
     if (touches.size >= 2) {
@@ -807,14 +907,19 @@ function endDrag(e) {
   touches.delete(e.pointerId);
   if (touches.size === 2) { pinchFrom = pinchSpan(); pinchZoom = view.zoomGoal; }
   else if (touches.size < 2) pinchFrom = 0;
-  if (e.pointerId !== drag.id) return;
-  drag.id = -1;
-  canvas.classList.remove('is-grabbing');
-  try { canvas.releasePointerCapture(e.pointerId); } catch (err) { /* already gone */ }
+  if (e.pointerId === drag.id) {
+    drag.id = -1;
+    canvas.classList.remove('is-grabbing');
+    try { canvas.releasePointerCapture(e.pointerId); } catch (err) { /* already gone */ }
+  }
+  if (drag.id === -1 && touches.size === 0) gesture.active = false;
   kickView();
 }
 canvas.addEventListener('pointerup', endDrag);
-canvas.addEventListener('pointercancel', endDrag);
+/* The browser has taken the gesture back: the finger that started on the piece
+   turned out to be the host page scrolling past it, so it was never an orbit. Give
+   the view back exactly as the gesture found it, hint and Reset button included. */
+canvas.addEventListener('pointercancel', (e) => { undoGesture(); endDrag(e); });
 
 canvas.addEventListener('wheel', (e) => {
   if (!ownsWheel()) return;   // let the host page scroll
@@ -939,6 +1044,7 @@ function stepView(dt) {
   if (Math.abs(view.yaw) < EPS) view.yaw = 0;
   if (Math.abs(view.pitch) < EPS) view.pitch = 0;
   if (Math.abs(view.zoom - 1) < EPS) view.zoom = 1;
+  syncViewUi();
 }
 
 /* fresh: the scene has just placed the camera this frame. Otherwise the piece

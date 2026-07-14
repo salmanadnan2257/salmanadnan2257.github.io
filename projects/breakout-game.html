@@ -9,24 +9,25 @@
   <meta name="theme-color" content="#FFFDF5">
 
   <!--
-    SITE_URL: the site's absolute base URL is https://salmanadnan2257.github.io
-    Before deploying to a custom domain, find-and-replace that exact string across
-    all HTML files, sitemap.xml, and robots.txt. It is the only absolute host used.
+    SITE_URL: the site's absolute base URL is https://salmanadnan.com
+    It is the only absolute host the site uses, and it appears in robots.txt,
+    sitemap.xml, and the head of every HTML file. If the domain ever moves,
+    change it in all three places together.
   -->
-  <link rel="canonical" href="https://salmanadnan2257.github.io/projects/breakout-game.html">
+  <link rel="canonical" href="https://salmanadnan.com/projects/breakout-game.html">
 
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="Salman Adnan">
   <meta property="og:title" content="Breakout · Salman Adnan">
   <meta property="og:description" content="A Python turtle Breakout clone with a procedurally generated block wall, three lives, a speed ramp every four paddle returns, particle bursts on block breaks, and a persisted high score.">
-  <meta property="og:url" content="https://salmanadnan2257.github.io/projects/breakout-game.html">
-  <meta property="og:image" content="https://salmanadnan2257.github.io/assets/og/breakout-game.png">
+  <meta property="og:url" content="https://salmanadnan.com/projects/breakout-game.html">
+  <meta property="og:image" content="https://salmanadnan.com/assets/og/breakout-game.png">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Breakout · Salman Adnan">
   <meta name="twitter:description" content="A Python turtle Breakout clone with a procedurally generated block wall, three lives, a speed ramp every four paddle returns, particle bursts on block breaks, and a persisted high score.">
-  <meta name="twitter:image" content="https://salmanadnan2257.github.io/assets/og/breakout-game.png">
+  <meta name="twitter:image" content="https://salmanadnan.com/assets/og/breakout-game.png">
 
   <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
   <link rel="icon" href="../assets/favicon.png" sizes="any">
@@ -41,11 +42,11 @@
     "description": "A Python turtle Breakout clone with a procedurally generated block wall, three lives, a speed ramp every four paddle returns, particle bursts on block breaks, and a persisted high score.",
     "codeRepository": "https://github.com/salmanadnan2257/breakout-game",
     "programmingLanguage": ["Python"],
-    "url": "https://salmanadnan2257.github.io/projects/breakout-game.html",
+    "url": "https://salmanadnan.com/projects/breakout-game.html",
     "author": {
       "@type": "Person",
       "name": "Salman Adnan",
-      "url": "https://salmanadnan2257.github.io/"
+      "url": "https://salmanadnan.com/"
     }
   }
   </script>
@@ -75,15 +76,7 @@
       <a class="proj-crumb" href="../index.html"><span aria-hidden="true">&larr;</span> Salman Adnan</a>
       <p class="proj-kicker">breakout-game</p>
       <h1 id="proj-title" class="proj-title">Breakout</h1>
-      <p class="proj-lede">A classic Breakout clone built with Python's turtle module: a paddle, a bouncing ball, a wall of blocks colored by row, a lives system, a start and end screen, an increasing difficulty ramp, and a persistent high score.</p>
-      <div class="proj-plain">
-        <span class="proj-plain__label">In plain English</span>
-        <p>Breakout is the old arcade game where you slide a paddle side to side, bounce a ball off it, and knock out a wall of coloured blocks. This is a version written from scratch in Python with no game-making software to lean on, so every fiddly part had to be built by hand: working out when the ball has touched a block, taking away one of your three lives when you miss, speeding the ball up as you keep returning it, and saving the high score to a file so it is still there next time you play. That touch test is a rough one rather than a precise one, a simple distance check that treats a wide block and a narrow block as the same size, because the drawing library used here offers nothing better. It is a small project, and the point of it is the machinery underneath a game that looks simple.</p>
-      </div>
-      <div class="proj-actions">
-        <a class="btn btn--primary" href="https://github.com/salmanadnan2257/breakout-game" rel="noopener" target="_blank">View code on GitHub</a>
-        <a class="btn btn--ghost" href="../index.html#work">All projects</a>
-      </div>
+      <p class="proj-lede">Breakout is the arcade game where you slide a paddle, bounce a ball, and knock out a wall of blocks. This one is built from scratch in Python, no game engine, so everything is hand-made: spotting when the ball touches a block, losing one of three lives, speeding up as you rally, saving the high score. That touch test is a crude distance check; the drawing library offers nothing better.</p>
         <div class="proj-note">
           <div>
             <strong>Solo</strong>
@@ -108,6 +101,11 @@
           <div class="proj-stat"><b>200</b><span>frames run in headless-safe verification</span></div>
       </div>
 
+      <div class="proj-actions">
+        <a class="btn btn--primary" href="https://github.com/salmanadnan2257/breakout-game" rel="noopener" target="_blank">View code on GitHub</a>
+        <a class="btn btn--ghost" href="../index.html#work">All projects</a>
+      </div>
+
     </div>
   </section>
 
@@ -116,6 +114,7 @@
       <div class="proj-layout">
       <section class="proj-section">
         <h2>Overview</h2>
+        <p>A classic Breakout clone built with Python's turtle module: a paddle, a bouncing ball, a wall of blocks colored by row, a lives system, a start and end screen, an increasing difficulty ramp, and a persistent high score.</p>
         <p>A game-loop exercise: object motion, collision detection against multiple kinds of surfaces (walls, paddle, blocks), a small state machine for start/playing/game-over/win, and score state that survives between runs, all without a game engine, just turtle and a manual while-loop.</p>
       </section>
       <section class="proj-section">
