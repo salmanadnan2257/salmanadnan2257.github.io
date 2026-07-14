@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Salman Adnan · AI &amp; Full-Stack Engineer</title>
-  <meta name="description" content="Salman Adnan builds AI systems and the infrastructure under them: a from-scratch LLM serving engine, a database engine, a Raft store, agent tooling, and retrieval systems, each measured with real tests.">
+  <meta name="description" content="Salman Adnan builds AI systems and the software underneath them: an engine that runs AI models, a database built from scratch, a data store that survives crashes, agent tooling, and search that works by meaning. Every number comes from a test you can re-run.">
   <meta name="author" content="Salman Adnan">
   <meta name="theme-color" content="#FFFDF5">
 
@@ -20,20 +20,20 @@
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Salman Adnan">
   <meta property="og:title" content="Salman Adnan · AI &amp; Full-Stack Engineer">
-  <meta property="og:description" content="AI systems and the infrastructure under them: a from-scratch LLM serving engine, a database engine, a Raft store, agent tooling, and retrieval systems.">
+  <meta property="og:description" content="AI systems and the software underneath them: an engine that runs AI models, a database built from scratch, a data store that survives crashes, and search that works by meaning.">
   <meta property="og:url" content="https://salmanadnan.com/">
   <meta property="og:image" content="https://salmanadnan.com/assets/og.png">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Salman Adnan · AI &amp; Full-Stack Engineer">
-  <meta name="twitter:description" content="AI systems and the infrastructure under them: a from-scratch LLM serving engine, a database engine, a Raft store, agent tooling, and retrieval systems.">
+  <meta name="twitter:description" content="AI systems and the software underneath them: an engine that runs AI models, a database built from scratch, a data store that survives crashes, and search that works by meaning.">
   <meta name="twitter:image" content="https://salmanadnan.com/assets/og.png">
 
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
   <link rel="icon" href="assets/favicon.png" sizes="any">
   <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
-  <link rel="stylesheet" href="styles.css?v=20260711">
+  <link rel="stylesheet" href="styles.css?v=20260714">
 
   <script type="application/ld+json">
   {
@@ -80,6 +80,12 @@
 
   <!-- HERO -->
   <section class="hero" aria-labelledby="hero-title">
+    <!-- Decorative header background. Purely presentational, so it is hidden from
+         assistive tech and takes no pointer events. Until script.js starts it, the
+         hero keeps its CSS dot grid, so a JS-less or canvas-less visitor still gets
+         the intended texture and nothing shifts. See the hero background block in
+         script.js for the three modes and their tunables. -->
+    <canvas class="hero__bg" id="hero-bg" aria-hidden="true"></canvas>
     <div class="wrap hero__grid">
       <div class="hero__copy">
         <p class="eyebrow">Software Engineer</p>
@@ -117,6 +123,19 @@
         <span class="photo-badge">Founder, Digitalise Agency</span>
       </div>
     </div>
+
+    <!-- Background switcher. Sits in normal flow (no absolute positioning, no CLS)
+         and is hidden by default; script.js reveals it only once the canvas is
+         actually running, so nobody is offered a control that does nothing. -->
+    <div class="wrap hero__bgbar" id="hero-bgbar" hidden>
+      <span class="hero__bgbar-label">Background</span>
+      <div class="bgswitch" role="group" aria-label="Header background style">
+        <button class="bgswitch__pick" type="button" data-bg="grid" aria-pressed="false">Live grid</button>
+        <button class="bgswitch__pick" type="button" data-bg="deploy" aria-pressed="false">Deploy line</button>
+        <button class="bgswitch__pick" type="button" data-bg="print" aria-pressed="false">Misregistration</button>
+      </div>
+      <span class="hero__bgbar-note" id="hero-bgnote" hidden>Reduced motion: showing each background still</span>
+    </div>
   </section>
 
   <!-- START HERE: the live, draggable 3D stage.
@@ -127,7 +146,7 @@
     <div class="wrap">
       <div class="section__head stage__head">
         <p class="eyebrow">Start here</p>
-        <h2 id="stage-title" class="section__title">Grab it. Turn it. It is the real system.</h2>
+        <h2 id="stage-title" class="section__title">Grab it. Turn it. This is how the system actually works.</h2>
         <p class="section__intro">
           Not a video, not a diagram. This is a live 3D model of one of the systems on this
           site, running in your browser right now. Take hold of it and turn it. Then load a
@@ -149,7 +168,7 @@
           </div>
         </div>
         <figcaption class="stage__caption" id="stage-caption">
-          <strong>SQL Database Engine.</strong> B+tree Pulse: queries descend the tree, range scans sweep the leaves, and the write-ahead log never stops.
+          <strong>SQL Database Engine.</strong> B+tree Pulse: a search dives down the index to one row, a scan sweeps sideways across many, and every change goes into a safety journal first, so a crash loses nothing.
         </figcaption>
       </figure>
 
@@ -159,7 +178,7 @@
                 data-title="SQL Database Engine"
                 data-shot="assets/screenshots/sqlmill.webp"
                 data-alt="Benchmark charts for the SQL Database Engine"
-                data-caption="B+tree Pulse: queries descend the tree, range scans sweep the leaves, and the write-ahead log never stops."
+                data-caption="B+tree Pulse: a search dives down the index to one row, a scan sweeps sideways across many, and every change goes into a safety journal first, so a crash loses nothing."
                 data-cta="Killed 300 times, it never lost a byte">
           <span class="stage__pick-name">SQL Database Engine</span>
           <span class="stage__pick-num">300 / 300 crash rounds</span>
@@ -170,10 +189,10 @@
                 data-title="Raft Consensus KV Store"
                 data-shot="assets/screenshots/raft-kv.webp"
                 data-alt="Terminal output from a real Raft chaos test run"
-                data-caption="Consensus Ring: heartbeats, replication, a network partition, an election, and the cluster heals."
+                data-caption="Consensus Ring: the machines check in on each other, copy every change, get cut off by a broken network, vote in a new leader, and heal."
                 data-cta="5,000 disasters, never once contradicted itself">
           <span class="stage__pick-name">Raft Consensus KV Store</span>
-          <span class="stage__pick-num">564,170 ops, 0 violations</span>
+          <span class="stage__pick-num">564,170 reads and writes, 0 contradictions</span>
         </button>
 
         <button class="stage__pick" type="button" aria-pressed="false"
@@ -181,10 +200,10 @@
                 data-title="LLM Inference Engine"
                 data-shot="assets/screenshots/inference-engine.webp"
                 data-alt="Benchmark chart for the LLM Inference Engine"
-                data-caption="Paged Attention: token streams thread a lattice of KV-cache pages while speculative ghosts race ahead."
-                data-cta="Where speculative decoding goes backwards">
+                data-caption="Paged Attention: the model's short-term memory is filed in fixed-size pages instead of one big block, while a smaller model races ahead guessing the next words."
+                data-cta="The trick that made it slower">
           <span class="stage__pick-name">LLM Inference Engine</span>
-          <span class="stage__pick-num">113.5 tok/s on CPU</span>
+          <span class="stage__pick-num">113.5 tokens a second, no GPU</span>
         </button>
 
         <button class="stage__pick" type="button" aria-pressed="false"
@@ -192,10 +211,10 @@
                 data-title="Vector Database Engine"
                 data-shot="assets/screenshots/vector-db.webp"
                 data-alt="Recall vs throughput chart for the Vector Database Engine"
-                data-caption="HNSW Descent: a greedy search hops the sparse top layer, then drops a level and closes in."
-                data-cta="Matches FAISS recall, 10x slower">
+                data-caption="HNSW Descent: the search starts on a sparse top map, takes big hops toward the target, then drops to a denser layer and closes in."
+                data-cta="Just as accurate, 10x slower">
           <span class="stage__pick-name">Vector Database Engine</span>
-          <span class="stage__pick-num">0.9997 recall@10</span>
+          <span class="stage__pick-num">99.97% of the right matches found</span>
         </button>
 
         <button class="stage__pick" type="button" aria-pressed="false"
@@ -214,10 +233,10 @@
                 data-title="Urdu Language Model"
                 data-shot="assets/screenshots/urdu-slm.webp"
                 data-alt="Training loss curve for the Urdu Language Model"
-                data-caption="Attention Loom: tokens stream right to left, the way Urdu reads, weaving attention as they go."
+                data-caption="Attention Loom: the model reads right to left, the way Urdu does, and every word weighs every other word as it goes."
                 data-cta="Fluent Urdu, still wrong on facts">
           <span class="stage__pick-name">Urdu Language Model</span>
-          <span class="stage__pick-num">5.23x fewer tokens than GPT-2</span>
+          <span class="stage__pick-num">5.23x fewer chunks than GPT-2</span>
         </button>
       </div>
 
@@ -270,7 +289,7 @@
         <div class="pain-card">
           <div class="pain-card__icon" aria-hidden="true">&#128038;</div>
           <h3>Slow, clunky software</h3>
-          <p>The app is fine with one user and buckles the moment real traffic or concurrent writes hit it.</p>
+          <p>The app is fine with one user and buckles the moment real traffic arrives, or two people save at the same time.</p>
         </div>
         <div class="pain-card">
           <div class="pain-card__icon" aria-hidden="true">&#10060;</div>
@@ -320,7 +339,7 @@
           </div>
           <h3 class="pcard__title">Agency Blog SaaS</h3>
           <code class="pcard__repo">agency-blog-saas</code>
-          <p class="pcard__what"><strong>Problem:</strong> Content agencies need to scale blog production. <strong>Solution:</strong> Multi-tenant SaaS with AI-powered generation, user auth, and credit-based billing. <strong>Results:</strong> Seven live clients on production infrastructure, 132 of 132 tests passing.</p>
+          <p class="pcard__what"><strong>Problem:</strong> An agency selling blog writing needs one place for clients to order it. <strong>Solution:</strong> The web app that runs Salman's own agency: a client signs in, asks for a post, and the system writes, stores, and publishes it; the credits are refunded automatically if the writing fails. <strong>Results:</strong> Seven live clients on the agency's own servers; 132 of 132 tests pass. The code is private, so the linked demo is a scripted tour on made-up data.</p>
           <ul class="pcard__tags"><li>Django</li><li>Postgres</li><li>Production</li></ul>
           <span class="pcard__go">Read the 53-issue internal audit <span aria-hidden="true">&rarr;</span></span>
         </a>
@@ -329,11 +348,11 @@
           <div class="pcard__media"><img src="assets/screenshots/blog-posting-pipeline.webp" alt="A real live blog post published on davonex.com" loading="lazy" decoding="async"></div>
           <div class="pcard__head">
             <span class="pcard__idx">02</span>
-            <span class="pcard__metric">7 clients, unattended</span>
+            <span class="pcard__metric">Runs unattended, real posts live</span>
           </div>
           <h3 class="pcard__title">Blog Posting Pipeline</h3>
           <code class="pcard__repo">blog-posting-pipeline</code>
-          <p class="pcard__what"><strong>Problem:</strong> Publishing blogs is manual and time-consuming. <strong>Solution:</strong> 7-step automation: research, write, generate images, publish. Runs unattended on VPS. <strong>Results:</strong> Multiple clients served, real publications live, at a measured $0.37 to $0.40 per post.</p>
+          <p class="pcard__what"><strong>Problem:</strong> Small businesses want a steady stream of articles and nobody has time to write them. <strong>Solution:</strong> One program does the whole job: researches, plans, writes, makes the picture, publishes. It cannot invent a source or a link, only use pages it genuinely found. <strong>Results:</strong> Runs unattended on a rented server for several agency clients, at a typical $0.37 to $0.40 per post, billed exactly per run. The linked demo is a made-up walkthrough.</p>
           <ul class="pcard__tags"><li>Python</li><li>AI</li><li>Production</li></ul>
           <span class="pcard__go">It cannot invent a link <span aria-hidden="true">&rarr;</span></span>
         </a>
@@ -347,7 +366,7 @@
     <div class="wrap">
       <div class="section__head">
         <p class="eyebrow">Core systems</p>
-        <h2 id="work-title" class="section__title">Infrastructure that proves depth.</h2>
+        <h2 id="work-title" class="section__title">The hard parts, built from scratch.</h2>
         <p class="section__intro">
           Each system solves a real constraint: responding to AI requests faster, keeping data safe through crashes, coordinating between computers, finding information instantly, running AI agents you can trust, and training language models from scratch. Six systems, each built solo from scratch and measured by tests and benchmarks you can re-run yourself. The seventh card, the C++ ray tracer, is team coursework and is badged as such.
         </p>
@@ -359,30 +378,26 @@
           <div class="pcard__media"><img src="assets/screenshots/urdu-slm.webp" alt="Training loss curve for the Urdu Language Model" loading="lazy" decoding="async"></div>
           <div class="pcard__head">
             <span class="pcard__idx">01</span>
-            <span class="pcard__metric">5.23x fewer tokens than GPT-2</span>
+            <span class="pcard__metric">5.23x fewer chunks than GPT-2</span>
           </div>
           <h3 class="pcard__title">Urdu Language Model</h3>
           <code class="pcard__repo">urdu-slm</code>
-          <p class="pcard__what"><strong>Problem:</strong> Standard AI language models are built for English. They're terrible at Urdu.
-
-<strong>Solution:</strong> Built from scratch with data and a customized system for Urdu.
-
-<strong>Result:</strong> Processes Urdu text 5x more efficiently than English models.</p>
+          <p class="pcard__what"><strong>Problem:</strong> AI text models are built for English. They chop Urdu into far more pieces than it needs, so every word costs more to read. <strong>Solution:</strong> One built from scratch on cleaned Urdu text, with a splitter taught to cut Urdu sensibly. <strong>Result:</strong> Reads the same Urdu in 5.23x fewer pieces than GPT-2. It writes fluent Urdu, but it is small and still gets facts wrong.</p>
           <ul class="pcard__tags"><li>Python</li><li>Language</li></ul>
           <span class="pcard__go">Fluent Urdu, still wrong on facts <span aria-hidden="true">&rarr;</span></span>
         </a>
 
-        <a class="pcard span-2 acc-yellow" href="projects/inference-engine.html" aria-label="LLM Inference Engine: where speculative decoding goes backwards">
+        <a class="pcard span-2 acc-yellow" href="projects/inference-engine.html" aria-label="LLM Inference Engine: the trick that made it slower">
           <div class="pcard__media"><img src="assets/screenshots/inference-engine.webp" alt="Benchmark chart for the LLM Inference Engine" loading="lazy" decoding="async"></div>
           <div class="pcard__head">
             <span class="pcard__idx">02</span>
-            <span class="pcard__metric">113.5 tok/s on CPU</span>
+            <span class="pcard__metric">113.5 tokens a second, no GPU</span>
           </div>
           <h3 class="pcard__title">LLM Inference Engine</h3>
           <code class="pcard__repo">inference-engine</code>
-          <p class="pcard__what"><strong>Problem:</strong> AI responses are too slow when handling multiple requests. <strong>Solution:</strong> Smart memory management and request batching. <strong>Result:</strong> Serves 8 people simultaneously instead of 1 on the same computer.</p>
+          <p class="pcard__what"><strong>Problem:</strong> A machine running an AI model sits idle between requests, so a queue of users crawls. <strong>Solution:</strong> Careful memory housekeeping, and serving eight requests at once instead of one at a time. <strong>Result:</strong> 2.8x more words per second on the same plain CPU, with no graphics card involved.</p>
           <ul class="pcard__tags"><li>Python</li><li>Performance</li></ul>
-          <span class="pcard__go">Where speculative decoding goes backwards <span aria-hidden="true">&rarr;</span></span>
+          <span class="pcard__go">The trick that made it slower <span aria-hidden="true">&rarr;</span></span>
         </a>
 
         <a class="pcard span-2 acc-purple" href="projects/sqlmill.html" aria-label="SQL Database Engine: the bug only a crash found">
@@ -393,22 +408,22 @@
           </div>
           <h3 class="pcard__title">SQL Database Engine</h3>
           <code class="pcard__repo">sqlmill</code>
-          <p class="pcard__what"><strong>Problem:</strong> Data must survive power failures without corruption. Multiple people need to write at the same time. <strong>Solution:</strong> Built from scratch. <strong>Result:</strong> Passes every safety test, 300 crash scenarios without data loss.</p>
+          <p class="pcard__what"><strong>Problem:</strong> If the power cuts out mid-write, the data must not come back scrambled, and several people must be able to write at once. <strong>Solution:</strong> A database built from scratch, with a safety journal written before every change. <strong>Result:</strong> Killed at random 300 times; all 300 times the data came back intact.</p>
           <ul class="pcard__tags"><li>Python</li><li>Systems</li></ul>
           <span class="pcard__go">The bug only a crash found <span aria-hidden="true">&rarr;</span></span>
         </a>
 
-        <a class="pcard span-2 acc-coral" href="projects/raft-kv.html" aria-label="Raft Consensus KV Store: weaken the quorum, watch it catch">
+        <a class="pcard span-2 acc-coral" href="projects/raft-kv.html" aria-label="Raft Consensus KV Store: break the voting rule on purpose">
           <div class="pcard__media"><img src="assets/screenshots/raft-kv.webp" alt="Terminal output from a real Raft chaos test run" loading="lazy" decoding="async"></div>
           <div class="pcard__head">
             <span class="pcard__idx">04</span>
-            <span class="pcard__metric">564,170 ops, 0 violations</span>
+            <span class="pcard__metric">564,170 reads and writes, 0 contradictions</span>
           </div>
           <h3 class="pcard__title">Raft Consensus KV Store</h3>
           <code class="pcard__repo">raft-kv</code>
-          <p class="pcard__what"><strong>Problem:</strong> When computers are spread out, keeping them synchronized is hard, especially if the network breaks. <strong>Solution:</strong> Consensus protocol that coordinates replicas. <strong>Result:</strong> Survives 5,000 different failure scenarios without losing agreement.</p>
+          <p class="pcard__what"><strong>Problem:</strong> Keep a copy of your data on several machines so no crash loses it, and they can drift into two versions that both look right. <strong>Solution:</strong> An agreement protocol: the machines must vote before anything counts as written. <strong>Result:</strong> 5,000 randomly generated disasters, and the data never once contradicted itself.</p>
           <ul class="pcard__tags"><li>Python</li><li>Distributed</li></ul>
-          <span class="pcard__go">Weaken the quorum, watch it catch <span aria-hidden="true">&rarr;</span></span>
+          <span class="pcard__go">Break the voting rule on purpose <span aria-hidden="true">&rarr;</span></span>
         </a>
 
         <a class="pcard span-2 acc-yellow" href="projects/agent-runtime.html" aria-label="Agent Runtime: replay a run byte for byte">
@@ -424,20 +439,20 @@
           <span class="pcard__go">Replay a run byte for byte <span aria-hidden="true">&rarr;</span></span>
         </a>
 
-        <a class="pcard span-2 acc-purple" href="projects/vector-db.html" aria-label="Vector Database Engine: matches FAISS recall, 10x slower">
+        <a class="pcard span-2 acc-purple" href="projects/vector-db.html" aria-label="Vector Database Engine: just as accurate, 10x slower">
           <div class="pcard__media"><img src="assets/screenshots/vector-db.webp" alt="Recall vs throughput chart for the Vector Database Engine" loading="lazy" decoding="async"></div>
           <div class="pcard__head">
             <span class="pcard__idx">06</span>
-            <span class="pcard__metric">0.9997 recall@10</span>
+            <span class="pcard__metric">99.97% of the right matches found</span>
           </div>
           <h3 class="pcard__title">Vector Database Engine</h3>
           <code class="pcard__repo">vector-db</code>
-          <p class="pcard__what"><strong>Problem:</strong> Finding similar information in a massive database is slow. <strong>Solution:</strong> Fast search index that understands meaning, not just keywords. <strong>Result:</strong> Finds the right answer as fast as expensive commercial libraries.</p>
+          <p class="pcard__what"><strong>Problem:</strong> Searching a huge pile of text by meaning, not exact words, is slow if you check every item. <strong>Solution:</strong> A search index built from the original research paper, not from a ready-made library. <strong>Result:</strong> At least as accurate as FAISS, the library the industry uses, though FAISS answers each search 10 to 13x faster.</p>
           <ul class="pcard__tags"><li>Python</li><li>Search</li></ul>
-          <span class="pcard__go">Matches FAISS recall, 10x slower <span aria-hidden="true">&rarr;</span></span>
+          <span class="pcard__go">Just as accurate, 10x slower <span aria-hidden="true">&rarr;</span></span>
         </a>
 
-        <a class="pcard span-2 acc-yellow" href="projects/cpp-ray-tracer.html" aria-label="C++ Ray Tracer, team project: why the BVH is everything">
+        <a class="pcard span-2 acc-yellow" href="projects/cpp-ray-tracer.html" aria-label="C++ Ray Tracer, team project: how a surface catches light">
           <div class="pcard__media"><img src="assets/screenshots/cpp-ray-tracer.webp" alt="A rendered scene from the C++ Ray Tracer" loading="lazy" decoding="async"></div>
           <div class="pcard__head">
             <span class="pcard__idx">07</span>
@@ -445,9 +460,9 @@
           </div>
           <h3 class="pcard__title">C++ Ray Tracer <span class="badge badge--purple">Team</span></h3>
           <code class="pcard__repo">cpp-ray-tracer</code>
-          <p class="pcard__what"><strong>Problem:</strong> Drawing realistic images by simulating light is slow, tracing millions of rays. <strong>Solution:</strong> Acceleration structures to skip unnecessary calculations. <strong>Result:</strong> Renders complex scenes with realistic shadows and reflections efficiently.</p>
+          <p class="pcard__what"><strong>Problem:</strong> Drawing a scene by following each ray of light means testing that ray against 1.29 million triangles. <strong>Solution:</strong> A three-person course project. Salman wrote the shading layer: how each surface catches light, dull, glossy, or mirror-like. <strong>Result:</strong> Film-style shadows and reflections on a crystal-cave scene.</p>
           <ul class="pcard__tags"><li>C++</li><li>Graphics</li></ul>
-          <span class="pcard__go">Why the BVH is everything <span aria-hidden="true">&rarr;</span></span>
+          <span class="pcard__go">How a surface catches light <span aria-hidden="true">&rarr;</span></span>
         </a>
 
       </div>
@@ -459,7 +474,7 @@
     <div class="wrap">
       <div class="section__head">
         <p class="eyebrow">Real-world problems solved</p>
-        <h2 id="apps-title" class="section__title">Full-stack applications, built end to end.</h2>
+        <h2 id="apps-title" class="section__title">Complete applications, front to back.</h2>
         <p class="section__intro">
           Real problems from real people. Traders needing regulations fast. Farmers and buyers finding each other. A poetry corpus nobody had digitized. Appointments booked over a real phone line. Each page says plainly what runs live and what is still ahead.
         </p>
@@ -475,7 +490,7 @@
           </div>
           <h3 class="pcard__title">Trade Intelligence Copilot</h3>
           <code class="pcard__repo">trade-intelligence-copilot</code>
-          <p class="pcard__what"><strong>Problem:</strong> Traders need to look up international trade regulations instantly. <strong>Solution:</strong> AI system that finds the right answer and shows you where it came from. <strong>Results:</strong> 15 out of 15 evaluation queries correct, every answer cited, and an honest refusal when the data cannot support one.</p>
+          <p class="pcard__what"><strong>Problem:</strong> Answering a question about Pakistan's sugar import records means digging through the records yourself. <strong>Solution:</strong> Ask in plain English; it looks the answer up and shows you the exact rows it used. <strong>Results:</strong> 15 of 15 database answers correct, and it refuses to answer rather than invent one when the records cannot support it. Its misses on the rest of the 28-question test are published too.</p>
           <ul class="pcard__tags"><li>Python</li><li>Agents</li><li>Evaluation</li></ul>
           <span class="pcard__go">Watch it refuse to answer <span aria-hidden="true">&rarr;</span></span>
         </a>
@@ -488,7 +503,7 @@
           </div>
           <h3 class="pcard__title">ZaraiLink <span class="badge badge--purple">Team</span></h3>
           <code class="pcard__repo">zarailink</code>
-          <p class="pcard__what"><strong>Problem:</strong> Farmers and traders can't find each other. <strong>Solution:</strong> Directory where you can search in plain language. <strong>Results:</strong> Full platform, led by Salman, with 112 tests passing (63 backend, 49 frontend).</p>
+          <p class="pcard__what"><strong>Problem:</strong> A trader looking for suppliers of one commodity, from one country, under a price, has nowhere to ask. <strong>Solution:</strong> A directory you search in plain words, typos included, over Pakistani customs records. <strong>Results:</strong> Final-year project, led by Salman, 112 tests passing. The demo runs on 14 made-up companies, not live customs data.</p>
           <ul class="pcard__tags"><li>Django</li><li>React</li><li>NLP</li></ul>
           <span class="pcard__go">Ask in plain English, typos included <span aria-hidden="true">&rarr;</span></span>
         </a>
@@ -501,7 +516,7 @@
           </div>
           <h3 class="pcard__title">Balochi Poet Classifier <span class="badge badge--purple">Team</span></h3>
           <code class="pcard__repo">balochi-poet-classifier</code>
-          <p class="pcard__what"><strong>Problem:</strong> Balochi poetry exists, but nobody's digitized it or trained systems on it. <strong>Solution:</strong> Built a dataset of 1,670 poems and a system to identify which poet wrote each one. <strong>Results:</strong> Pipeline complete and verified end to end; the full training run is waiting on a GPU.</p>
+          <p class="pcard__what"><strong>Problem:</strong> Balochi poetry exists, but almost no language technology has ever been built for it. <strong>Solution:</strong> Three students hand-checked 1,670 verses; Salman built the part that cleans them and teaches a computer to tell three poets apart. <strong>Results:</strong> Every step runs end to end on the real verses, but the full training needs a faster machine than he had, so no success rate is claimed.</p>
           <ul class="pcard__tags"><li>Python</li><li>NLP</li><li>Low-Resource</li></ul>
           <span class="pcard__go">No accuracy claimed, and why <span aria-hidden="true">&rarr;</span></span>
         </a>
@@ -514,7 +529,7 @@
           </div>
           <h3 class="pcard__title">Voice Appointment Agent</h3>
           <code class="pcard__repo">voice-agent</code>
-          <p class="pcard__what"><strong>Problem:</strong> Booking appointments by phone is slow and tedious. <strong>Solution:</strong> AI that answers the phone and books appointments for you. <strong>Results:</strong> 25 of 25 scripted scenarios pass, plus a real Twilio-signed booking driven over the public internet.</p>
+          <p class="pcard__what"><strong>Problem:</strong> Somebody has to pick up the phone to book, move, or cancel an appointment. <strong>Solution:</strong> A phone line that answers itself, asks for whatever detail is missing, and never gives away a slot that is taken. <strong>Results:</strong> 25 of 25 scripted calls pass, and one real booking was driven over the open internet into a real calendar entry. The live phone number was never used, so no human voice has tested it yet.</p>
           <ul class="pcard__tags"><li>Python</li><li>Voice</li><li>Agents</li></ul>
           <span class="pcard__go">It booked over the real internet <span aria-hidden="true">&rarr;</span></span>
         </a>
@@ -540,43 +555,43 @@
           <span class="mini__metric">22 tests</span>
           <span class="mini__repo">task-manager-django</span>
           <h3>Task Manager</h3>
-          <p>A Django and WebSockets task manager with real-time notifications.</p>
+          <p>A shared to-do list in the browser: hand a task to a colleague and they see it appear instantly, with no page refresh. Built during an internship.</p>
           <span class="mini__go">Anyone could change your task <span aria-hidden="true">&rarr;</span></span>
         </a>
 
         <a class="mini" href="projects/prompt-evolution-ga.html" aria-label="Prompt Evolution GA: the hand-written prompt held its own">
           <div class="mini__media"><img src="assets/screenshots/prompt-evolution-ga.webp" alt="GA convergence chart for Prompt Evolution GA" loading="lazy" decoding="async"></div>
-          <span class="mini__metric">200 held-out problems</span>
+          <span class="mini__metric">200 unseen problems</span>
           <span class="mini__repo">prompt-evolution-ga</span>
           <h3>Prompt Evolution GA</h3>
-          <p>A genetic algorithm that evolves LLM prompts, judged by running the generated code.</p>
+          <p>Breeds better wording for AI coding instructions across generations, scored not by opinion but by actually running the code each one writes. A course project.</p>
           <span class="mini__go">The hand-written prompt held its own <span aria-hidden="true">&rarr;</span></span>
         </a>
 
         <a class="mini" href="projects/postgres-scaling-lab.html" aria-label="Postgres Scaling Lab: one change made it 70% slower">
           <div class="mini__media"><img src="assets/screenshots/postgres-scaling-lab.webp" alt="Terminal output of a real EXPLAIN ANALYZE indexing demo" loading="lazy" decoding="async"></div>
-          <span class="mini__metric">2,494 blocks read, then 4</span>
+          <span class="mini__metric">Read 2,494 pages, then 4</span>
           <span class="mini__repo">postgres-scaling-lab</span>
           <h3>Postgres Scaling Lab</h3>
-          <p>An indexing, partitioning, and streaming-replication study on PostgreSQL.</p>
+          <p>How far an ordinary database goes before you replace it: add an index, split a table by date, copy it to a second machine. Course work; the numbers come from the original course runs.</p>
           <span class="mini__go">One change made it 70% slower <span aria-hidden="true">&rarr;</span></span>
         </a>
 
         <a class="mini" href="projects/webgl-terrain-explorer.html" aria-label="WebGL Terrain Explorer: every matrix written by hand">
           <div class="mini__media"><img src="assets/screenshots/webgl-terrain-explorer.webp" alt="Screenshot of the WebGL Terrain Explorer" loading="lazy" decoding="async"></div>
-          <span class="mini__metric">0 dependencies</span>
+          <span class="mini__metric">0 outside libraries</span>
           <span class="mini__repo">webgl-terrain-explorer</span>
           <h3>WebGL Terrain Explorer</h3>
-          <p>A raw-WebGL procedural landscape explorer with a fly camera.</p>
+          <p>Fly over a 3D landscape in the browser. Nothing is a downloaded model: the hills, the sky, and the rippling water are worked out by the code. A university graphics course project, deliberately with no ready-made 3D toolkit.</p>
           <span class="mini__go">Every matrix written by hand <span aria-hidden="true">&rarr;</span></span>
         </a>
 
         <a class="mini" href="projects/reelflow-studio.html" aria-label="ReelFlow Studio: six retries, or it never happened">
           <div class="mini__media"><img src="assets/screenshots/reelflow-studio.webp" alt="Screenshot of the ReelFlow Studio UI" loading="lazy" decoding="async"></div>
-          <span class="mini__metric">33 n8n endpoints</span>
+          <span class="mini__metric">33 automation hooks</span>
           <span class="mini__repo">reelflow-studio</span>
           <h3>ReelFlow Studio</h3>
-          <p>A web front end over n8n workflows for video approval, captioning, and publishing.</p>
+          <p>A client's video publishing was fully automated with no screen a person could use. This is that screen: one button per decision, approve, caption, publish. The demo runs on a made-up queue, not the client's live system.</p>
           <span class="mini__go">Six retries, or it never happened <span aria-hidden="true">&rarr;</span></span>
         </a>
 
@@ -585,7 +600,7 @@
           <span class="mini__metric">6-digit emailed login code</span>
           <span class="mini__repo">university-enrollment-system</span>
           <h3>University Enrollment System <span class="badge badge--purple">Team</span></h3>
-          <p>A PyQt6 desktop course-registration app with SQLite and Excel export.</p>
+          <p>The app a student uses to add, drop, and swap courses, with clashes and full sections blocked and the timetable exported to Excel. Coursework: the accounts are invented and passwords sit in the database as plain readable text.</p>
           <span class="mini__go">Clashes and full sections blocked <span aria-hidden="true">&rarr;</span></span>
         </a>
 
@@ -594,7 +609,7 @@
           <span class="mini__metric">11,000-line Shopify export</span>
           <span class="mini__repo">hitec-shopify-automation</span>
           <h3>Hi-Tec Shopify Automation</h3>
-          <p>Client automation: Shopify stock, pricing, and dimension tooling over CSV exports.</p>
+          <p>A client's stock counts and costs lived in one spreadsheet and its shop's product list in another, so matching them took hours. Three tools do it instead. A person reviews the result; the tools never touch the live store.</p>
           <span class="mini__go">Two spreadsheets, no shared key <span aria-hidden="true">&rarr;</span></span>
         </a>
 
@@ -603,7 +618,7 @@
           <span class="mini__metric">14 s verified live run</span>
           <span class="mini__repo">codeforces-mashup-generator</span>
           <h3>Codeforces Mashup Generator</h3>
-          <p>A tool that builds fair practice contests from the Codeforces API.</p>
+          <p>Builds a practice contest from a programming-puzzle site, keeping only puzzles that nobody in the study group has already solved, so nothing is spoiled.</p>
           <span class="mini__go">Only problems nobody has solved <span aria-hidden="true">&rarr;</span></span>
         </a>
 
@@ -612,7 +627,7 @@
           <span class="mini__metric">11 tests</span>
           <span class="mini__repo">paws-rescue-donations</span>
           <h3>Paws Rescue Donations</h3>
-          <p>A Django donation-management system for a pet rescue.</p>
+          <p>A private site for an animal rescue to log who donated what, and for which pet, replacing the shared spreadsheet anyone with the link could edit.</p>
           <span class="mini__go">Replaces the spreadsheet anyone could edit <span aria-hidden="true">&rarr;</span></span>
         </a>
 
@@ -621,7 +636,7 @@
           <span class="mini__metric">59 automations</span>
           <span class="mini__repo">n8n-automations</span>
           <h3>N8N Automations</h3>
-          <p>Curated n8n visual-workflow automations built for Digitalise Agency, documented and secret-scrubbed.</p>
+          <p>59 business chores, each built as a flowchart that then runs itself: scraping leads, chasing enquiries, sending invoices. Documented honestly, faults included; live account keys found in the files were stripped.</p>
           <span class="mini__go">An 8-stage campaign, 1 stage wired <span aria-hidden="true">&rarr;</span></span>
         </a>
 
@@ -639,26 +654,26 @@
           <span class="mini__metric">2,535 records</span>
           <span class="mini__repo">police-shootings-analysis</span>
           <h3>Police Shootings Analysis</h3>
-          <p>An interactive dashboard cross-referencing fatal police shooting records with state demographic data.</p>
+          <p>2,535 records of people killed by police in the United States, set beside US Census figures on poverty, schooling, income, and race, in charts you can filter by state, year, or type of case.</p>
           <span class="mini__go">Joined to five Census datasets <span aria-hidden="true">&rarr;</span></span>
         </a>
 
         <a class="mini" href="projects/earnings-regression.html" aria-label="Earnings Regression: watch the model fail honestly">
           <div class="mini__media"><img src="assets/screenshots/earnings-regression.webp" alt="Residuals chart from the Earnings Regression model" loading="lazy" decoding="async"></div>
-          <span class="mini__metric">-0.008 test R-squared</span>
+          <span class="mini__metric">-0.008: worse than guessing</span>
           <span class="mini__repo">earnings-regression</span>
           <h3>Earnings Regression</h3>
-          <p>A live regression dashboard predicting hourly earnings from schooling and experience, with a 3D prediction surface.</p>
+          <p>Does more schooling, or more experience, mean a higher wage? Move two sliders and it predicts one. The honest answer: those two facts barely predict anything at all.</p>
           <span class="mini__go">Watch the model fail honestly <span aria-hidden="true">&rarr;</span></span>
         </a>
 
-        <a class="mini" href="projects/flask-todo-list.html" aria-label="Flask TODO List: plaintext passwords, now scrypt hashed">
+        <a class="mini" href="projects/flask-todo-list.html" aria-label="Flask TODO List: passwords were readable, now scrambled">
           <div class="mini__media"><img src="assets/screenshots/flask-todo-list.webp" alt="Screenshot of the Flask TODO List app" loading="lazy" decoding="async"></div>
           <span class="mini__metric">8 flows verified by hand</span>
           <span class="mini__repo">flask-todo-list</span>
           <h3>Flask TODO List</h3>
-          <p>A multi-user Flask task list with hashed-password auth and an AJAX-driven interface.</p>
-          <span class="mini__go">Plaintext passwords, now scrypt hashed <span aria-hidden="true">&rarr;</span></span>
+          <p>A to-do list in the browser: everyone signs in and sees only their own tasks, ticking them off without the page reloading.</p>
+          <span class="mini__go">Passwords were readable, now scrambled <span aria-hidden="true">&rarr;</span></span>
         </a>
 
         <a class="mini" href="projects/flask-online-shop.html" aria-label="Flask Online Shop: find the login bug">
@@ -666,7 +681,7 @@
           <span class="mini__metric">9 planets in the catalog</span>
           <span class="mini__repo">flask-online-shop</span>
           <h3>Flask Online Shop</h3>
-          <p>A Flask storefront with Stripe Checkout, hashed accounts, and a hand-built UI.</p>
+          <p>A demo storefront: sign-up, login, and checkout through Stripe in practice mode, so no real money moves. Two real bugs turned up, including one that let anybody into anybody else's account.</p>
           <span class="mini__go">Find the login bug <span aria-hidden="true">&rarr;</span></span>
         </a>
 
@@ -675,7 +690,7 @@
           <span class="mini__metric">0 API keys required</span>
           <span class="mini__repo">pdf-to-audiobook</span>
           <h3>PDF to Audiobook</h3>
-          <p>A desktop tool that extracts PDF text and converts it into an mp3 audiobook via Google TTS.</p>
+          <p>Turns a PDF, a report or a book chapter, into an mp3 you can listen to on a walk. It needs the internet: the voice comes from Google's speech service, not from your own machine.</p>
           <span class="mini__go">One bad page crashed the batch <span aria-hidden="true">&rarr;</span></span>
         </a>
 
@@ -684,25 +699,25 @@
           <span class="mini__metric">10 colors per image</span>
           <span class="mini__repo">color-palette-generator</span>
           <h3>Color Palette Generator</h3>
-          <p>A Flask tool that extracts an image's dominant colors into a sortable swatch palette.</p>
+          <p>Drop in a picture and it shows the ten colors that cover most of it, with the exact code for each so you can paste it into a design. Nothing is sent anywhere and nothing is stored.</p>
           <span class="mini__go">A silent numpy 2.x breakage <span aria-hidden="true">&rarr;</span></span>
         </a>
 
         <a class="mini" href="projects/custom-web-scraper.html" aria-label="Web Element Inspector: point, click, highlight in Chrome">
           <div class="mini__media"><img src="assets/screenshots/custom-web-scraper.webp" alt="Screenshot of the Web Element Inspector tool" loading="lazy" decoding="async"></div>
-          <span class="mini__metric">7 locator strategies</span>
+          <span class="mini__metric">7 ways to search a page</span>
           <span class="mini__repo">custom-web-scraper</span>
           <h3>Web Element Inspector</h3>
-          <p>A Selenium-driven desktop tool for locating page elements by any locator type, with live-browser highlighting.</p>
+          <p>Point and click instead of writing a program: type a web address, pick what to look for, and it drives a real Chrome browser to find every match and outline it. A live scrape against a real site is not demonstrated; the machine it was checked on had no internet.</p>
           <span class="mini__go">Point, click, highlight in Chrome <span aria-hidden="true">&rarr;</span></span>
         </a>
 
         <a class="mini" href="projects/morse-code-converter.html" aria-label="Morse Code Converter: the missing letter V">
           <div class="mini__media"><img src="assets/screenshots/morse-code-converter.webp" alt="Screenshot of the Morse Code Converter GUI" loading="lazy" decoding="async"></div>
-          <span class="mini__metric">0 third-party dependencies</span>
+          <span class="mini__metric">0 outside libraries used</span>
           <span class="mini__repo">morse-code-converter</span>
           <h3>Morse Code Converter</h3>
-          <p>A two-way Morse code converter with a live GUI and a visual dot-dash playback.</p>
+          <p>Converts ordinary writing into Morse code and back, live as you type, and flashes the dots and dashes on screen so you can see the rhythm.</p>
           <span class="mini__go">The missing letter V <span aria-hidden="true">&rarr;</span></span>
         </a>
 
@@ -711,16 +726,16 @@
           <span class="mini__metric">8 win lines checked</span>
           <span class="mini__repo">tic-tac-toe-gui</span>
           <h3>Tic Tac Toe</h3>
-          <p>Two-player Tic Tac Toe with a tkinter GUI, full win detection, and a running score tracker.</p>
+          <p>Two players, a 3x3 grid, and the program spots the win, highlights the line, and keeps score. A small learning exercise.</p>
           <span class="mini__go">A win-check bug, and the fix <span aria-hidden="true">&rarr;</span></span>
         </a>
 
         <a class="mini" href="projects/image-watermarking-tool.html" aria-label="Image Watermarking Tool: why paste() never actually blended">
           <div class="mini__media"><img src="assets/screenshots/image-watermarking-tool.webp" alt="Screenshot of the Image Watermarking Tool" loading="lazy" decoding="async"></div>
-          <span class="mini__metric">9 position presets</span>
+          <span class="mini__metric">9 stamp positions</span>
           <span class="mini__repo">image-watermarking-tool</span>
           <h3>Image Watermarking Tool</h3>
-          <p>A desktop batch photo watermarking tool with a live before/after preview.</p>
+          <p>Stamps a logo onto a whole batch of photos at once: size it, fade it, drop it in one of nine spots, preview it, then one click does every photo, leaving the originals untouched.</p>
           <span class="mini__go">Why paste() never actually blended <span aria-hidden="true">&rarr;</span></span>
         </a>
 
@@ -729,7 +744,7 @@
           <span class="mini__metric">65,000+ word list</span>
           <span class="mini__repo">typing-master-gui</span>
           <h3>Typing Master</h3>
-          <p>A tkinter typing-speed test with live accuracy feedback and a persisted history chart.</p>
+          <p>Retype a block of text against the clock. Each letter turns green when it is right and red when it is wrong, so you see the mistake as it happens, and it charts your last ten attempts. A small learning exercise.</p>
           <span class="mini__go">Mistakes you can actually see <span aria-hidden="true">&rarr;</span></span>
         </a>
 
@@ -738,16 +753,16 @@
           <span class="mini__metric">52 blocks, verified run</span>
           <span class="mini__repo">breakout-game</span>
           <h3>Breakout</h3>
-          <p>A Python turtle Breakout clone with lives, a difficulty ramp, and particle effects.</p>
+          <p>The arcade game: slide the paddle, bounce the ball, knock out the wall of blocks. Built from scratch with no game engine, so the lives, the speed-up, and spotting a hit are all hand-made.</p>
           <span class="mini__go">A crude collision check, admitted <span aria-hidden="true">&rarr;</span></span>
         </a>
 
         <a class="mini" href="projects/disappearing-text-app.html" aria-label="Disappearing Text: making an invisible timer visible">
           <div class="mini__media"><img src="assets/screenshots/disappearing-text-app.webp" alt="Screenshot of the Disappearing Text app" loading="lazy" decoding="async"></div>
-          <span class="mini__metric">40 ms animation tick</span>
+          <span class="mini__metric">Redraws every 40 ms</span>
           <span class="mini__repo">disappearing-text-app</span>
           <h3>Disappearing Text</h3>
-          <p>A tkinter app where typed text fades away after inactivity, with a live countdown ring.</p>
+          <p>Type, and if you stop the words fade until the box wipes itself clean. A ring above drains like an egg timer, so you can see the deadline coming.</p>
           <span class="mini__go">Making an invisible timer visible <span aria-hidden="true">&rarr;</span></span>
         </a>
 
@@ -756,7 +771,7 @@
           <span class="mini__metric">Pixels only, no game state</span>
           <span class="mini__repo">dino-game-bot</span>
           <h3>Dino Game Bot</h3>
-          <p>A screen-vision bot that plays Chrome's offline Dino game, with a live status dashboard.</p>
+          <p>Plays Chrome's offline dinosaur game by watching pixels on the screen, never peeking inside the game. It was never run against the real game here, and the patch of screen it watches fits one setup only.</p>
           <span class="mini__go">Only correct on one screen <span aria-hidden="true">&rarr;</span></span>
         </a>
 
@@ -770,7 +785,7 @@
         <p class="eyebrow">My Approach</p>
         <h2 id="process-title" class="section__title">How I work.</h2>
         <p class="section__intro">
-          A structured, transparent process ensures your project ships on time, meets specifications, and is built to last. This is the approach every client engagement follows, from first call to launch.
+          The same four steps on every job, from the first call to launch, so you always know what is being built and what state it is in.
         </p>
       </div>
 
@@ -778,22 +793,22 @@
         <div class="process-step">
           <div class="step-num">01</div>
           <h3>Understand the Problem</h3>
-          <p>I start by deeply understanding your requirements, constraints, and success metrics. Not every project is solved the same way, and assumptions are the enemy of good software.</p>
+          <p>I start with what you actually need, what you cannot change, and what success would look like. Not every project is solved the same way, and assumptions are the enemy of good software.</p>
         </div>
         <div class="process-step">
           <div class="step-num">02</div>
           <h3>Plan & Design</h3>
-          <p>Architecture first. I design the system, database schema, and API contracts before writing production code. Clear plans catch problems early when they're cheap to fix.</p>
+          <p>Design first. I map out how the pieces fit, how the data is stored, and how the pieces talk to each other, before writing the real code. A problem caught on paper is cheap. The same problem caught after launch is not.</p>
         </div>
         <div class="process-step">
           <div class="step-num">03</div>
           <h3>Implement with Tests</h3>
-          <p>Code is written test-first. Every feature gets unit tests, integration tests, and real end-to-end verification. Tests are documentation that never lies.</p>
+          <p>I write the checks before the code. Every feature gets automatic tests: on each small piece, on the pieces working together, and on the whole thing as a person would actually use it. Tests are documentation that never lies.</p>
         </div>
         <div class="process-step">
           <div class="step-num">04</div>
           <h3>Verify & Deploy</h3>
-          <p>Before shipping, systems are load-tested, security-reviewed, and staged in production-like environments. Deployment is automated and reversible. No surprises on launch day.</p>
+          <p>Before it goes live I push it under heavy traffic, review it for security holes, and run it on a copy of the real setup. Going live is one command, and so is undoing it. No surprises on launch day.</p>
         </div>
       </div>
     </div>
@@ -811,21 +826,21 @@
         <details class="faq-item">
           <summary>What languages and frameworks do you use?</summary>
           <div class="faq-content">
-            <p>Python (Django, PyTorch), JavaScript/React, SQL, C++, and Go. I pick the right tool for each job rather than forcing one stack everywhere. For most backend systems, Python + PostgreSQL. For frontends, React. For performance-critical systems, C++ or Rust.</p>
+            <p>Python (Django, PyTorch), JavaScript and React, SQL, and C++. I pick the tool that fits the job instead of forcing one everywhere: Python and PostgreSQL for the machinery behind the scenes, React for what you see in the browser, C++ when raw speed decides the outcome.</p>
           </div>
         </details>
 
         <details class="faq-item">
           <summary>How long do projects typically take?</summary>
           <div class="faq-content">
-            <p>Depends entirely on scope. A single feature: 1-2 weeks. A full-stack application: 4-12 weeks. A from-scratch system: 8+ weeks. I give honest estimates upfront, with clear milestones so you know what to expect every step.</p>
+            <p>Depends entirely on how big it is. A single feature: 1 to 2 weeks. A complete application, browser through to database: 4 to 12 weeks. A system built from the ground up: 8 weeks or more. I give honest estimates upfront, with clear milestones, so you know what to expect at every step.</p>
           </div>
         </details>
 
         <details class="faq-item">
           <summary>Do you do revisions and changes?</summary>
           <div class="faq-content">
-            <p>Absolutely. I budget time for feedback and iteration. Reasonable changes within scope are covered. Scope creep gets discussed openly, if requirements change significantly, timeline and budget adjust with your agreement.</p>
+            <p>Yes. I budget time for feedback and rework. Reasonable changes to what we agreed are covered. If the job grows, we talk about it openly: when what you need changes significantly, the timeline and the budget change with it, and only with your agreement.</p>
           </div>
         </details>
 
@@ -839,7 +854,7 @@
         <details class="faq-item">
           <summary>How do you handle security?</summary>
           <div class="faq-content">
-            <p>Security is built in from day one, not added later. Input validation, encryption at rest and in transit, proper authentication/authorization, OWASP compliance. All systems get security reviews before deployment.</p>
+            <p>Security is built in from day one, not bolted on later. Everything a user types is checked before it is trusted. Data is scrambled both while it sits on disk and while it travels. Sign-in and permissions are enforced on the server, not just hidden in the interface. Every system gets a security review against the OWASP Top Ten, the industry's standard list of the ten most common web weaknesses, before it goes live.</p>
           </div>
         </details>
 
@@ -875,7 +890,7 @@
         </div>
         <div class="achievement">
           <div class="achievement-stat">300 / 300</div>
-          <div class="achievement-label">SIGKILL crash rounds survived,<br>zero data loss</div>
+          <div class="achievement-label">Sudden-kill crash rounds survived,<br>zero data loss</div>
         </div>
       </div>
     </div>
@@ -896,32 +911,32 @@
         <div class="deliverable">
           <div class="deliverable-icon">⚙️</div>
           <h3>Working Code</h3>
-          <p>Production-ready code, architected for clarity and performance. Clean, idiomatic, follows community best practices. Not clever, boring, maintainable code.</p>
+          <p>Code written for the next person to read, not to show off. It follows the ordinary conventions of its language, so any competent developer can pick it up. Boring and maintainable beats clever.</p>
         </div>
         <div class="deliverable">
           <div class="deliverable-icon">🧪</div>
           <h3>Full Test Suite</h3>
-          <p>Unit, integration, and end-to-end tests. High coverage on critical paths. Tests double as documentation, anyone can understand what the system does by reading them.</p>
+          <p>Automatic checks at every level: on each small piece, on the pieces working together, and on the whole thing as a person would use it. The paths that matter most are covered heaviest, and the tests double as documentation: read them and you know what the system does.</p>
         </div>
         <div class="deliverable">
           <div class="deliverable-icon">📖</div>
           <h3>Documentation</h3>
-          <p>README files, architecture diagrams, API docs, deployment guides. Everything you need to understand, maintain, or extend the system without constantly asking for help.</p>
+          <p>A plain-English guide, diagrams of how the pieces fit, a reference for anything another program plugs into, and step-by-step instructions for putting it live. Enough to understand, maintain, or extend it without having to ask me.</p>
         </div>
         <div class="deliverable">
           <div class="deliverable-icon">🚀</div>
           <h3>Deploy Ready</h3>
-          <p>CI/CD pipelines, Docker configs, environment setup. You can ship to production with confidence, with rollback plans in place if something goes wrong.</p>
+          <p>One command puts it live: the build and release steps run themselves, the app is packaged so it behaves the same on any machine, and there is a written way to undo the release if something goes wrong.</p>
         </div>
         <div class="deliverable">
           <div class="deliverable-icon">🔐</div>
           <h3>Security Verified</h3>
-          <p>Security review checklist completed. Inputs validated, secrets managed, authentication/authorization working. Compliant with OWASP guidelines.</p>
+          <p>A security review before launch: everything a user types is checked before it is trusted, passwords and keys are kept out of the code, and sign-in and permissions are enforced on the server. Reviewed against the OWASP Top Ten, the industry's standard list of the most common web weaknesses.</p>
         </div>
         <div class="deliverable">
           <div class="deliverable-icon">📊</div>
           <h3>Performance Audited</h3>
-          <p>Load tests run. Bottlenecks identified and fixed. You'll know exactly how many concurrent users your system can handle and where constraints are.</p>
+          <p>I push the system under heavy traffic until something gives, fix what gave, and hand you the number: how many people it can serve at once, and what breaks first when it cannot.</p>
         </div>
       </div>
     </div>
@@ -932,7 +947,7 @@
       <p class="eyebrow eyebrow--light">Contact</p>
       <h2 id="contact-title" class="contact__title">Have a system that needs building?</h2>
       <p class="contact__lead">
-        I take on AI and infrastructure work, and I am happy to talk through a hard problem before you commit.
+        I take on AI work and the systems underneath it, and I am happy to talk a hard problem through before you commit to anything.
       </p>
       <div class="contact__actions">
         <a class="btn btn--primary btn--big" href="#book-a-call">Book a free call &rarr;</a>
@@ -964,6 +979,6 @@
   </div>
 </footer>
 
-<script src="script.js" defer></script>
+<script src="script.js?v=20260714" defer></script>
 </body>
 </html>
