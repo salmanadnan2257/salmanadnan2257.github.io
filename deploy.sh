@@ -16,9 +16,12 @@ echo "🚀 Deploying portfolio to salmanadnan.com..."
 echo "📤 Pushing to GitHub..."
 git push origin main || echo "⚠️  Already up to date"
 
-# Sync to VPS (rsync mirrors the post-commit hook; scp -r recopied .git every time)
+# Sync to VPS (rsync mirrors the post-commit hook; scp -r recopied .git every time).
+# tests/node_modules and tests/out are dev-only artifacts (56M once deps are
+# installed and screenshots pile up); they are never part of the site, so keep them
+# off the production web root. --delete is still deliberately absent (see README).
 echo "📤 Syncing to VPS..."
-rsync -az --exclude='.git' -e ssh ./ da:/root/salmanadnan.com/
+rsync -az --exclude='.git' --exclude='tests/node_modules' --exclude='tests/out' -e ssh ./ da:/root/salmanadnan.com/
 
 echo "✅ Deployment complete!"
 echo "   Live at: https://salmanadnan.com"
