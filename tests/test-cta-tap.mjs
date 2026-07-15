@@ -18,7 +18,8 @@ for (const dev of [{ w: 390, h: 844 }, { w: 360, h: 740 }]) {
   await sleep(1200);
   /* the 38 non-flagship cards ship inside the folded wall (display:none); open it via
      the real toggle before hit-testing, or every hidden card reads as an unhittable
-     0x0. Open there are 39 anchors: 38 wall cards + the flagship (2nd sqlmill link). */
+     0x0. Open there are 41 anchors: 38 wall cards + 3 flagship cards (each a second
+     link to its own wall card). */
   await page.evaluate(() => document.getElementById('all-toggle')?.click());
   await sleep(500);
 
@@ -86,7 +87,7 @@ for (const dev of [{ w: 390, h: 844 }, { w: 360, h: 740 }]) {
      and under-40px are the real defects. */
   const cornerOnly = anyBadPt.length - badCentre.length;
   if (cornerOnly > 0) console.log(`   (${cornerOnly} cards miss only on inset corners, expected from the +-1deg card rotation; centres all tappable)`);
-  const pass = out.length === 39 && !badCentre.length && !clipped.length && !offView.length && !short.length;
+  const pass = out.length === 41 && !badCentre.length && !clipped.length && !offView.length && !short.length;
   if (!pass) verdictFail++;
   console.log('A1 verdict: ' + (pass ? 'PASS' : 'FAIL'));
   await page.close();

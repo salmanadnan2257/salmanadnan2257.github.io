@@ -54,7 +54,7 @@ node test-viz.mjs           # all 38 viz: drag orbits, reset restores exactly, w
 | `test-drift.mjs` | The camera-runaway class of bug. Four scenes ease the camera from its own current position, so they can read the viewer's orbit back as their own starting point and compound away. Runs a no-drag control per scene first, because sparse pulsing scenes vary on their own. |
 | `test-embed.mjs` | An embedded visualization never hijacks host-page scrolling before the visitor engages with it. |
 | `test-a11y.mjs` | Keyboard orbit and zoom, reset via `r`, visible focus ring, `prefers-reduced-motion`, aria labels. |
-| `test-home.mjs` | Opens the folded project wall via the real toggle, then checks 39 card anchors (38 distinct projects plus the flagship's deliberate second link to sqlmill), each with a distinct curiosity hook and a metric badge; a card click navigates to its project page. |
+| `test-home.mjs` | Opens the folded project wall via the real toggle, then checks 41 card anchors (38 distinct projects plus the three "Start with three" flagship cards, each a deliberate second link to its own wall card), each with a distinct curiosity hook and a metric badge; a card click navigates to its project page. |
 | `test-hooks.mjs` | Opens the folded wall, then at 1280x800, 390x844 and 360x740: no card CTA or badge spills its card, and the page never scrolls horizontally (39 cards). |
 | `test-mobile.mjs` | Opens the folded wall for the homepage layout checks (tap targets, no horizontal pan). Then, on a project page, the scroll-trap check: a vertical swipe starting on a visualization must still scroll the page, before and after the viz is engaged. |
 | `test-stage.mjs` | The "Start here" stage: one live WebGL context at a time (counted as DOM-connected, non-context-lost canvases, so the homepage's `webglOK()` capability probe is not miscounted), no scroll trap, no layout shift, reduced-motion path. |
@@ -65,7 +65,7 @@ node test-viz.mjs           # all 38 viz: drag orbits, reset restores exactly, w
 | `check-runtime-identical.mjs` | The load-bearing invariant: the shared runtime block is byte-identical across all 38 viz files, apart from each file's own PNG download name. If this fails, the 38 have forked and any future patch will hit them unevenly. |
 
 Probe scripts (added 2026-07-15 to verify the folded-wall and 2026-07-14 conversion batch; not in the table above because they target specific claims rather than a broad surface):
-`probe-wall.mjs` (folded → open, 39 anchors / 38 distinct, all CTAs render, whole-card tap resolves),
+`probe-wall.mjs` (folded → open, 41 anchors / 38 distinct, all CTAs render, whole-card tap resolves),
 `probe-conversion.mjs` (exit-nudge suppression + triggers, reduced-motion conversion panel, deep-link cold load),
 `probe-stage-ctx.mjs` (locates every WebGL context per frame, live vs released),
 `probe-cursor.mjs` (cursor motif at the 1240px breakpoint and 200% zoom),
@@ -103,9 +103,10 @@ now fixed (see below). Every fix is in the harness, not the site.
    homepage's `webglOK()` capability probe: a throwaway canvas that support-tests WebGL and is never
    added to the DOM. One live context, the documented invariant, holds. `probe-stage-ctx` locates
    each context per frame.
-4. **The folded wall.** `probe-wall`: folded at load (flagship visible, wall `display: none`,
-   `aria-expanded=false`), opens via the toggle to 39 anchors / 38 distinct hrefs / the flagship a
-   deliberate second sqlmill link, all 39 CTAs render >=40px, whole-card tap resolves to each card's
+4. **The folded wall.** `probe-wall`: folded at load (the three flagship cards visible, wall
+   `display: none`, `aria-expanded=false`), opens via the toggle to 41 anchors / 38 distinct hrefs /
+   three flagship cards each a deliberate second link to its wall card, all 41 CTAs render >=40px,
+   whole-card tap resolves to each card's
    own link, no horizontal scroll, zero JS errors. `probe-nojs`: with JavaScript off the wall ships
    open, all 38 links are in the crawlable source, and the toggle is not rendered.
 5. **The exit nudge (items 6 and 7, event path).** `probe-conversion`: dismiss -> reload -> stays
@@ -117,8 +118,9 @@ now fixed (see below). Every fix is in the harness, not the site.
    context mounts.
 7. **Deep links into the folded region (item 11).** `probe-conversion`: a cold load of
    `index.html#work`, `#more`, `#apps`, `#production` unfolds the wall and scrolls to the target.
-8. **The flagship duplicate link (item 12).** 39 anchors, 38 distinct hrefs, the one duplicate is
-   `projects/sqlmill.html`; `test-home` tolerates exactly that same-href duplicate.
+8. **The flagship duplicate links (item 12).** 41 anchors, 38 distinct hrefs; the three duplicates
+   are the "Start with three" flagship cards (agency-blog-saas, inference-engine, raft-kv), each a
+   second link to its own wall card; `test-home` tolerates same-href duplicates.
 9. **The cursor motif at the breakpoint (item 13, Chromium).** `probe-cursor`: hidden below 1240px,
    appears at 1240 / 1241 / 1440 including 200% zoom, with no horizontal scroll and no glyph past
    the viewport edge.

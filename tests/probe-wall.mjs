@@ -1,8 +1,8 @@
 /* Verifies the folded project wall (README items 10 & 12), which the pre-wall
    harnesses (home/hooks/mobile/cta-tap) never open, so they measure the 38
    hidden cards as 0x0 and fail. This proves the intended behaviour directly:
-   folded at load, flagship visible; open it and all 38 cards render with a real,
-   whole-card-tappable CTA; 38 distinct hrefs + 1 flagship duplicate = 39 anchors;
+   folded at load, the 3 flagship cards visible; open it and all cards render with a
+   real, whole-card-tappable CTA; 38 distinct hrefs + 3 flagship duplicates = 41 anchors;
    no horizontal scroll and no JS errors in either state. */
 import puppeteer from 'puppeteer-core';
 const SITE = '/home/rolex/Salman Adnan/Programming/Portfolio/portfolio-website';
@@ -28,10 +28,13 @@ for (const dev of [{ w: 1280, h: 800, label: 'desktop' }, { w: 390, h: 844, labe
   const folded = await page.evaluate(() => {
     const wall = document.querySelector('.allproj, #all-projects');
     const toggle = document.querySelector('#all-toggle');
-    const flag = document.querySelector('.pcard--flag');
+    // the "Start with three" flagship cards live outside the wall, so they are the
+    // only project cards visible while it is folded.
+    const flagCards = [...document.querySelectorAll('#flagship .pcard')]
+      .filter((c) => c.getBoundingClientRect().height > 40).length;
     const jsClass = document.documentElement.classList.contains('js');
     const wallDisplay = wall ? getComputedStyle(wall).display : 'MISSING';
-    const flagVisible = flag ? flag.getBoundingClientRect().height > 40 : false;
+    const flagVisible = flagCards === 3;
     // tab-stops inside the folded wall (item 10: nothing focusable while folded)
     const focusables = wall ? [...wall.querySelectorAll('a,button,[tabindex]')].filter((e) => {
       const r = e.getBoundingClientRect(); return r.width > 0 && r.height > 0;
@@ -39,9 +42,9 @@ for (const dev of [{ w: 1280, h: 800, label: 'desktop' }, { w: 390, h: 844, labe
     return { jsClass, wallDisplay, flagVisible, aria: toggle?.getAttribute('aria-expanded'),
              toggleText: toggle?.textContent.trim(), hasToggle: !!toggle };
   });
-  say(`folded: js=${folded.jsClass} wallDisplay=${folded.wallDisplay} flagVisible=${folded.flagVisible} toggle="${folded.toggleText}" aria-expanded=${folded.aria}`);
+  say(`folded: js=${folded.jsClass} wallDisplay=${folded.wallDisplay} flagCardsVisible=${folded.flagVisible} toggle="${folded.toggleText}" aria-expanded=${folded.aria}`);
   if (folded.wallDisplay !== 'none') bad.push('wall not folded at load (display ' + folded.wallDisplay + ')');
-  if (!folded.flagVisible) bad.push('flagship not visible at load');
+  if (!folded.flagVisible) bad.push('the 3 flagship cards not all visible at load');
   if (folded.aria !== 'false') bad.push('toggle aria-expanded != false at load');
 
   const noHScrollFolded = await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth);
@@ -83,7 +86,7 @@ for (const dev of [{ w: 1280, h: 800, label: 'desktop' }, { w: 390, h: 844, labe
   say(`open:   whole-card tap resolves to its own link: ${open.tapWholeCard}/${open.count}`);
   if (open.aria !== 'true') bad.push('toggle aria-expanded != true after open');
   if (open.wallDisplay === 'none') bad.push('wall still display:none after open');
-  if (open.count !== 39) bad.push('anchors ' + open.count + ' != 39 (38 wall + 1 flagship)');
+  if (open.count !== 41) bad.push('anchors ' + open.count + ' != 41 (38 wall + 3 flagship)');
   if (open.distinct !== 38) bad.push('distinct project hrefs ' + open.distinct + ' != 38');
   if (open.goZero > 0) bad.push(open.goZero + ' CTAs still 0x0 after open');
   if (open.tapWholeCard !== open.count) bad.push('whole-card tap failed on ' + (open.count - open.tapWholeCard) + ' cards');

@@ -5,8 +5,8 @@
    S4  prefers-reduced-motion: no iframe, no WebGL, the still and the rail still work
    S5  the context is handed back when the stage is scrolled well away, and taken again
    S6  no layout shift when the 3D replaces the still (the box is reserved)
-   S7  the rail is real keyboard-operable buttons, and the CTA always points at the
-       project whose system is loaded
+   S7  the rail is real keyboard-operable buttons, and the loaded 3D system + caption
+       always follow the picked rail slot (the per-system CTA was removed)
 */
 import puppeteer from 'puppeteer-core';
 import http from 'node:http';
@@ -115,24 +115,25 @@ for (const dev of [{ t: 'desktop 1280x800', w: 1280, h: 800, m: false }, { t: 'p
   say(`S1b after 6 rapid rail switches: iframes=${framesH}, live contexts=${ctxH} (${totalMade} created in total, so the old ones were torn down) -> ${okH ? 'PASS' : 'FAIL'}`);
   if (!okH) bad.push(`${dev.t} S1b`);
 
-  // S7: the CTA follows the loaded system. Whatever system the rail's 2nd slot holds,
-  // picking it must re-point the CTA, the caption and the iframe at THAT project.
+  // S7: the loaded system follows the rail. Whatever system the rail's 2nd slot holds,
+  // picking it must re-point the caption and the iframe at THAT project. The per-system
+  // stage CTA was removed (the "Start with three" flagship trio is the page's exit into
+  // projects now), so there is no CTA href to check here.
   await page.evaluate(() => document.querySelectorAll('.stage__pick')[1].click());
   await sleep(4000);
   const want = await page.$eval('.stage__pick:nth-of-type(2)', (b) => b.getAttribute('data-viz'));
   const wired = await page.evaluate(() => ({
-    cta: document.getElementById('stage-cta').getAttribute('href'),
-    /* the "open the 3D full screen" button was removed on purpose: the stage's only
-       exit is the CTA into the project page. Assert it stays gone. */
+    /* the "open the 3D full screen" button was removed on purpose: the stage has no
+       button chrome. Assert it stays gone. */
     full: document.getElementById('stage-full') ? 'STILL PRESENT' : 'gone',
     src: (document.querySelector('#stage-frame iframe') || {}).src || '',
     pressed: [...document.querySelectorAll('.stage__pick')].map((b) => b.getAttribute('aria-pressed')).join(','),
     tag: [...document.querySelectorAll('.stage__pick')].every((b) => b.tagName === 'BUTTON'),
     cap: document.getElementById('stage-caption').textContent.trim().slice(0, 28),
   }));
-  const ok7 = wired.cta === `projects/${want}.html` && wired.full === 'gone'
+  const ok7 = wired.full === 'gone'
     && wired.src.includes(`/viz/${want}.html`) && wired.pressed === 'false,true,false,false,false,false' && wired.tag;
-  say(`S7 rail -> stage wiring: cta=${wired.cta} full-screen-button=${wired.full} loaded=${wired.src.split('/').pop()} aria-pressed=[${wired.pressed}] caption="${wired.cap}..." -> ${ok7 ? 'PASS' : 'FAIL'}`);
+  say(`S7 rail -> stage wiring: full-screen-button=${wired.full} loaded=${wired.src.split('/').pop()} aria-pressed=[${wired.pressed}] caption="${wired.cap}..." -> ${ok7 ? 'PASS' : 'FAIL'}`);
   if (!ok7) bad.push(`${dev.t} S7`);
 
   // S5: scroll well away -> the context is handed back; come back -> it is taken again
@@ -250,14 +251,12 @@ for (const dev of [{ t: 'desktop 1280x800', w: 1280, h: 800, m: false }, { t: 'p
   const after = await page.evaluate(() => ({
     n: document.querySelectorAll('#stage-frame iframe').length,
     poster: document.getElementById('stage-poster').getAttribute('src'),
-    cta: document.getElementById('stage-cta').getAttribute('href'),
     bar: document.getElementById('stage-grab').textContent.trim(),
   }));
-  const okR = honoured && n === 0 && ctx === 0 && after.n === 0
-    && after.poster.includes(want3) && after.cta === `projects/${want3}.html`;
+  const okR = honoured && n === 0 && ctx === 0 && after.n === 0 && after.poster.includes(want3);
   say(`media query honoured: ${honoured}`);
   say(`R1 no WebGL under reduced motion: iframes=${n}, contexts=${ctx} -> ${n === 0 && ctx === 0 ? 'PASS' : 'FAIL'}`);
-  say(`R2 rail still swaps the still + links with no WebGL: poster=${after.poster.split('/').pop()} cta=${after.cta} iframes=${after.n} -> ${after.n === 0 && after.cta === `projects/${want3}.html` ? 'PASS' : 'FAIL'}`);
+  say(`R2 rail still swaps the still with no WebGL: poster=${after.poster.split('/').pop()} iframes=${after.n} -> ${after.n === 0 && after.poster.includes(want3) ? 'PASS' : 'FAIL'}`);
   say(`R3 the bar says so instead of promising a drag: "${after.bar}"`);
   await page.screenshot({ path: OUT + '/stage-reduced.png' });
   if (!okR) bad.push('reduced-motion');

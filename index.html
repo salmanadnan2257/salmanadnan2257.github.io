@@ -261,11 +261,6 @@
         </button>
       </div>
 
-      <div class="stage__actions">
-        <a class="btn btn--primary btn--big" href="projects/agency-blog-saas.html">Agency Blog SaaS &rarr;</a>
-        <a class="btn btn--primary btn--big" href="projects/inference-engine.html">LLM Inference Engine &rarr;</a>
-        <a class="btn btn--primary btn--big" href="projects/raft-kv.html">Raft KV Store &rarr;</a>
-      </div>
     </div>
   </section>
 
@@ -352,27 +347,55 @@
   <section class="section flagship" id="flagship" aria-labelledby="flag-title">
     <div class="wrap">
       <div class="section__head">
-        <p class="eyebrow">Start with one</p>
-        <h2 id="flag-title" class="section__title">If you read one thing here, read this.</h2>
+        <p class="eyebrow">Start with three</p>
+        <h2 id="flag-title" class="section__title">If you read three things here, read these.</h2>
         <p class="section__intro">
-          Thirty-eight projects is a wall, and nobody reads a wall. So here is the single one to judge me on. Everything else is one click away, underneath.
+          Thirty-eight projects is a wall, and nobody reads a wall. So here are three to judge me on. Everything else is one click away, underneath.
         </p>
       </div>
 
-      <a class="pcard pcard--flag acc-purple" href="projects/sqlmill.html" aria-label="SQL Database Engine: the bug only a crash found">
-        <div class="pcard__media"><img src="assets/screenshots/sqlmill.webp" alt="Benchmark chart for the SQL Database Engine" loading="lazy" decoding="async"></div>
-        <div class="pcard__body">
+      <div class="featured-grid">
+
+        <a class="pcard span-2 acc-yellow" href="projects/agency-blog-saas.html" aria-label="Agency Blog SaaS: read the internal audit">
+          <div class="pcard__media"><img src="assets/screenshots/agency-blog-saas.webp" alt="The davonex.com homepage, a Digitalise Agency client site" loading="lazy" decoding="async"></div>
           <div class="pcard__head">
-            <span class="pcard__idx">The one</span>
-            <span class="pcard__metric">300 / 300 crash rounds</span>
+            <span class="pcard__idx">01</span>
+            <span class="pcard__metric">132 / 132 tests pass</span>
           </div>
-          <h3 class="pcard__title">SQL Database Engine</h3>
-          <code class="pcard__repo">sqlmill</code>
-          <p class="pcard__what"><strong>Problem:</strong> If the power cuts out mid-write, the data must not come back scrambled, and several people must be able to write at once. <strong>Solution:</strong> A database built from scratch, with a safety journal written before every change. <strong>Result:</strong> Killed at random 300 times; all 300 times the data came back intact.</p>
-          <ul class="pcard__tags"><li>Python</li><li>Systems</li><li>Crash-safe</li></ul>
-          <span class="pcard__go">The bug only a crash found <span aria-hidden="true">&rarr;</span></span>
-        </div>
-      </a>
+          <h3 class="pcard__title">Agency Blog SaaS</h3>
+          <code class="pcard__repo">agency-blog-saas</code>
+          <p class="pcard__what"><strong>Problem:</strong> An agency selling blog writing needs one place for clients to order it. <strong>Solution:</strong> The web app that runs Salman's own agency: a client signs in, asks for a post, and the system writes, stores, and publishes it; the credits are refunded automatically if the writing fails. <strong>Results:</strong> Seven live clients on the agency's own servers; 132 of 132 tests pass. The code is private, so the linked demo is a scripted tour on made-up data.</p>
+          <ul class="pcard__tags"><li>Django</li><li>Postgres</li><li>Production</li></ul>
+          <span class="pcard__go">Read the audit <span aria-hidden="true">&rarr;</span></span>
+        </a>
+
+        <a class="pcard span-2 acc-purple" href="projects/inference-engine.html" aria-label="LLM Inference Engine: the trick that made it slower">
+          <div class="pcard__media"><img src="assets/screenshots/inference-engine.webp" alt="Benchmark chart for the LLM Inference Engine" loading="lazy" decoding="async"></div>
+          <div class="pcard__head">
+            <span class="pcard__idx">02</span>
+            <span class="pcard__metric">113.5 tokens a second, no GPU</span>
+          </div>
+          <h3 class="pcard__title">LLM Inference Engine</h3>
+          <code class="pcard__repo">inference-engine</code>
+          <p class="pcard__what"><strong>Problem:</strong> A machine running an AI model sits idle between requests, so a queue of users crawls. <strong>Solution:</strong> Careful memory housekeeping, and serving eight requests at once instead of one at a time. <strong>Result:</strong> 2.8x more words per second on the same plain CPU, with no graphics card involved.</p>
+          <ul class="pcard__tags"><li>Python</li><li>Performance</li></ul>
+          <span class="pcard__go">Made it slower <span aria-hidden="true">&rarr;</span></span>
+        </a>
+
+        <a class="pcard span-2 acc-coral" href="projects/raft-kv.html" aria-label="Raft Consensus KV Store: break the voting rule on purpose">
+          <div class="pcard__media"><img src="assets/screenshots/raft-kv.webp" alt="Terminal output from a real Raft chaos test run" loading="lazy" decoding="async"></div>
+          <div class="pcard__head">
+            <span class="pcard__idx">03</span>
+            <span class="pcard__metric">564,170 reads and writes, 0 contradictions</span>
+          </div>
+          <h3 class="pcard__title">Raft Consensus KV Store</h3>
+          <code class="pcard__repo">raft-kv</code>
+          <p class="pcard__what"><strong>Problem:</strong> Keep a copy of your data on several machines so no crash loses it, and they can drift into two versions that both look right. <strong>Solution:</strong> An agreement protocol: the machines must vote before anything counts as written. <strong>Result:</strong> 5,000 randomly generated disasters, and the data never once contradicted itself.</p>
+          <ul class="pcard__tags"><li>Python</li><li>Distributed</li></ul>
+          <span class="pcard__go">Break the vote <span aria-hidden="true">&rarr;</span></span>
+        </a>
+
+      </div>
 
       <div class="flagship__more">
         <button class="btn btn--ghost btn--big" id="all-toggle" type="button" aria-expanded="false" aria-controls="all-projects">See all 38 projects</button>
@@ -406,7 +429,7 @@
           <code class="pcard__repo">agency-blog-saas</code>
           <p class="pcard__what"><strong>Problem:</strong> An agency selling blog writing needs one place for clients to order it. <strong>Solution:</strong> The web app that runs Salman's own agency: a client signs in, asks for a post, and the system writes, stores, and publishes it; the credits are refunded automatically if the writing fails. <strong>Results:</strong> Seven live clients on the agency's own servers; 132 of 132 tests pass. The code is private, so the linked demo is a scripted tour on made-up data.</p>
           <ul class="pcard__tags"><li>Django</li><li>Postgres</li><li>Production</li></ul>
-          <span class="pcard__go">Read the 53-issue internal audit <span aria-hidden="true">&rarr;</span></span>
+          <span class="pcard__go">The internal audit <span aria-hidden="true">&rarr;</span></span>
         </a>
 
         <a class="pcard span-3 acc-coral" href="projects/blog-posting-pipeline.html" aria-label="Blog Posting Pipeline: it cannot invent a link">
@@ -419,7 +442,7 @@
           <code class="pcard__repo">blog-posting-pipeline</code>
           <p class="pcard__what"><strong>Problem:</strong> Small businesses want a steady stream of articles and nobody has time to write them. <strong>Solution:</strong> One program does the whole job: researches, plans, writes, makes the picture, publishes. It cannot invent a source or a link, only use pages it genuinely found. <strong>Results:</strong> Runs unattended on a rented server for several agency clients, at a typical $0.37 to $0.40 per post, billed exactly per run. The linked demo is a made-up walkthrough.</p>
           <ul class="pcard__tags"><li>Python</li><li>AI</li><li>Production</li></ul>
-          <span class="pcard__go">It cannot invent a link <span aria-hidden="true">&rarr;</span></span>
+          <span class="pcard__go">Cannot invent links <span aria-hidden="true">&rarr;</span></span>
         </a>
 
       </div>
@@ -449,7 +472,7 @@
           <code class="pcard__repo">urdu-slm</code>
           <p class="pcard__what"><strong>Problem:</strong> AI text models are built for English. They chop Urdu into far more pieces than it needs, so every word costs more to read. <strong>Solution:</strong> One built from scratch on cleaned Urdu text, with a splitter taught to cut Urdu sensibly. <strong>Result:</strong> Reads the same Urdu in 5.23x fewer pieces than GPT-2. It writes fluent Urdu, but it is small and still gets facts wrong.</p>
           <ul class="pcard__tags"><li>Python</li><li>Language</li></ul>
-          <span class="pcard__go">Fluent Urdu, still wrong on facts <span aria-hidden="true">&rarr;</span></span>
+          <span class="pcard__go">Fluent, often wrong <span aria-hidden="true">&rarr;</span></span>
         </a>
 
         <a class="pcard span-2 acc-yellow" href="projects/inference-engine.html" aria-label="LLM Inference Engine: the trick that made it slower">
@@ -462,7 +485,7 @@
           <code class="pcard__repo">inference-engine</code>
           <p class="pcard__what"><strong>Problem:</strong> A machine running an AI model sits idle between requests, so a queue of users crawls. <strong>Solution:</strong> Careful memory housekeeping, and serving eight requests at once instead of one at a time. <strong>Result:</strong> 2.8x more words per second on the same plain CPU, with no graphics card involved.</p>
           <ul class="pcard__tags"><li>Python</li><li>Performance</li></ul>
-          <span class="pcard__go">The trick that made it slower <span aria-hidden="true">&rarr;</span></span>
+          <span class="pcard__go">The slower trick <span aria-hidden="true">&rarr;</span></span>
         </a>
 
         <a class="pcard span-2 acc-purple" href="projects/sqlmill.html" aria-label="SQL Database Engine: the bug only a crash found">
@@ -475,7 +498,7 @@
           <code class="pcard__repo">sqlmill</code>
           <p class="pcard__what"><strong>Problem:</strong> If the power cuts out mid-write, the data must not come back scrambled, and several people must be able to write at once. <strong>Solution:</strong> A database built from scratch, with a safety journal written before every change. <strong>Result:</strong> Killed at random 300 times; all 300 times the data came back intact.</p>
           <ul class="pcard__tags"><li>Python</li><li>Systems</li></ul>
-          <span class="pcard__go">The bug only a crash found <span aria-hidden="true">&rarr;</span></span>
+          <span class="pcard__go">Found by crashing <span aria-hidden="true">&rarr;</span></span>
         </a>
 
         <a class="pcard span-2 acc-coral" href="projects/raft-kv.html" aria-label="Raft Consensus KV Store: break the voting rule on purpose">
@@ -488,7 +511,7 @@
           <code class="pcard__repo">raft-kv</code>
           <p class="pcard__what"><strong>Problem:</strong> Keep a copy of your data on several machines so no crash loses it, and they can drift into two versions that both look right. <strong>Solution:</strong> An agreement protocol: the machines must vote before anything counts as written. <strong>Result:</strong> 5,000 randomly generated disasters, and the data never once contradicted itself.</p>
           <ul class="pcard__tags"><li>Python</li><li>Distributed</li></ul>
-          <span class="pcard__go">Break the voting rule on purpose <span aria-hidden="true">&rarr;</span></span>
+          <span class="pcard__go">Break voting rules <span aria-hidden="true">&rarr;</span></span>
         </a>
 
         <a class="pcard span-2 acc-yellow" href="projects/agent-runtime.html" aria-label="Agent Runtime: replay a run byte for byte">
@@ -501,7 +524,7 @@
           <code class="pcard__repo">agent-runtime</code>
           <p class="pcard__what"><strong>Problem:</strong> AI agents are unpredictable. You can't audit what they did or test if they broke. <strong>Solution:</strong> Record every action so you can replay it exactly the same way. <strong>Result:</strong> Test changes, audit decisions, debug problems with perfect records.</p>
           <ul class="pcard__tags"><li>Python</li><li>AI</li></ul>
-          <span class="pcard__go">Replay a run byte for byte <span aria-hidden="true">&rarr;</span></span>
+          <span class="pcard__go">Replay it exactly <span aria-hidden="true">&rarr;</span></span>
         </a>
 
         <a class="pcard span-2 acc-purple" href="projects/vector-db.html" aria-label="Vector Database Engine: built from the paper, matches FAISS">
@@ -514,7 +537,7 @@
           <code class="pcard__repo">vector-db</code>
           <p class="pcard__what"><strong>Problem:</strong> Searching a huge pile of text by meaning, not exact words, is slow if you check every item. <strong>Solution:</strong> A search index built from the original research paper, not from a ready-made library. <strong>Result:</strong> At least as accurate as FAISS, the library the industry uses, though FAISS answers each search 10 to 13x faster.</p>
           <ul class="pcard__tags"><li>Python</li><li>Search</li></ul>
-          <span class="pcard__go">Built from the paper, matches FAISS <span aria-hidden="true">&rarr;</span></span>
+          <span class="pcard__go">It matches FAISS <span aria-hidden="true">&rarr;</span></span>
         </a>
 
         <a class="pcard span-2 acc-yellow" href="projects/cpp-ray-tracer.html" aria-label="C++ Ray Tracer, team project: how a surface catches light">
@@ -527,7 +550,7 @@
           <code class="pcard__repo">cpp-ray-tracer</code>
           <p class="pcard__what"><strong>Problem:</strong> Drawing a scene by following each ray of light means testing that ray against 1.29 million triangles. <strong>Solution:</strong> A three-person course project. Salman wrote the shading layer: how each surface catches light, dull, glossy, or mirror-like. <strong>Result:</strong> Film-style shadows and reflections on a crystal-cave scene.</p>
           <ul class="pcard__tags"><li>C++</li><li>Graphics</li></ul>
-          <span class="pcard__go">How a surface catches light <span aria-hidden="true">&rarr;</span></span>
+          <span class="pcard__go">How light lands <span aria-hidden="true">&rarr;</span></span>
         </a>
 
       </div>
@@ -557,7 +580,7 @@
           <code class="pcard__repo">trade-intelligence-copilot</code>
           <p class="pcard__what"><strong>Problem:</strong> Answering a question about Pakistan's sugar import records means digging through the records yourself. <strong>Solution:</strong> Ask in plain English; it looks the answer up and shows you the exact rows it used. <strong>Results:</strong> 15 of 15 database answers correct, and it refuses to answer rather than invent one when the records cannot support it. Its misses on the rest of the 28-question test are published too.</p>
           <ul class="pcard__tags"><li>Python</li><li>Agents</li><li>Evaluation</li></ul>
-          <span class="pcard__go">Watch it refuse to answer <span aria-hidden="true">&rarr;</span></span>
+          <span class="pcard__go">Watch it refuse <span aria-hidden="true">&rarr;</span></span>
         </a>
 
         <a class="pcard span-2 acc-yellow" href="projects/zarailink.html" aria-label="ZaraiLink, team project: ask in plain English, typos included">
@@ -570,7 +593,7 @@
           <code class="pcard__repo">zarailink</code>
           <p class="pcard__what"><strong>Problem:</strong> A trader looking for suppliers of one commodity, from one country, under a price, has nowhere to ask. <strong>Solution:</strong> A directory you search in plain words, typos included, over Pakistani customs records. <strong>Results:</strong> Final-year project, led by Salman, 112 tests passing. The demo runs on 14 made-up companies, not live customs data.</p>
           <ul class="pcard__tags"><li>Django</li><li>React</li><li>NLP</li></ul>
-          <span class="pcard__go">Ask in plain English, typos included <span aria-hidden="true">&rarr;</span></span>
+          <span class="pcard__go">Ask in English <span aria-hidden="true">&rarr;</span></span>
         </a>
 
         <a class="pcard span-2 acc-purple" href="projects/balochi-poet-classifier.html" aria-label="Balochi Poet Classifier, team project: no accuracy claimed, and why">
@@ -583,7 +606,7 @@
           <code class="pcard__repo">balochi-poet-classifier</code>
           <p class="pcard__what"><strong>Problem:</strong> Balochi poetry exists, but almost no language technology has ever been built for it. <strong>Solution:</strong> Three students hand-checked 1,670 verses; Salman built the part that cleans them and teaches a computer to tell three poets apart. <strong>Results:</strong> Every step runs end to end on the real verses, but the full training needs a faster machine than he had, so no success rate is claimed.</p>
           <ul class="pcard__tags"><li>Python</li><li>NLP</li><li>Low-Resource</li></ul>
-          <span class="pcard__go">No accuracy claimed, and why <span aria-hidden="true">&rarr;</span></span>
+          <span class="pcard__go">No accuracy claimed <span aria-hidden="true">&rarr;</span></span>
         </a>
 
         <a class="pcard span-2 acc-coral" href="projects/voice-agent.html" aria-label="Voice Appointment Agent: it booked over the real internet">
@@ -596,7 +619,7 @@
           <code class="pcard__repo">voice-agent</code>
           <p class="pcard__what"><strong>Problem:</strong> Somebody has to pick up the phone to book, move, or cancel an appointment. <strong>Solution:</strong> A phone line that answers itself, asks for whatever detail is missing, and never gives away a slot that is taken. <strong>Results:</strong> 25 of 25 scripted calls pass, and one real booking was driven over the open internet into a real calendar entry. The live phone number was never used, so no human voice has tested it yet.</p>
           <ul class="pcard__tags"><li>Python</li><li>Voice</li><li>Agents</li></ul>
-          <span class="pcard__go">It booked over the real internet <span aria-hidden="true">&rarr;</span></span>
+          <span class="pcard__go">It booked online <span aria-hidden="true">&rarr;</span></span>
         </a>
 
       </div>
@@ -621,7 +644,7 @@
           <span class="mini__repo">task-manager-django</span>
           <h3>Task Manager</h3>
           <p>A shared to-do list in the browser: hand a task to a colleague and they see it appear instantly, with no page refresh. Built during an internship.</p>
-          <span class="mini__go">Anyone could change your task <span aria-hidden="true">&rarr;</span></span>
+          <span class="mini__go">The sharing bug <span aria-hidden="true">&rarr;</span></span>
         </a>
 
         <a class="mini" href="projects/prompt-evolution-ga.html" aria-label="Prompt Evolution GA: the hand-written prompt held its own">
@@ -630,7 +653,7 @@
           <span class="mini__repo">prompt-evolution-ga</span>
           <h3>Prompt Evolution GA</h3>
           <p>Breeds better wording for AI coding instructions across generations, scored not by opinion but by actually running the code each one writes. A course project.</p>
-          <span class="mini__go">The hand-written prompt held its own <span aria-hidden="true">&rarr;</span></span>
+          <span class="mini__go">Hand-written still won <span aria-hidden="true">&rarr;</span></span>
         </a>
 
         <a class="mini" href="projects/postgres-scaling-lab.html" aria-label="Postgres Scaling Lab: one change made it 70% slower">
@@ -639,7 +662,7 @@
           <span class="mini__repo">postgres-scaling-lab</span>
           <h3>Postgres Scaling Lab</h3>
           <p>How far an ordinary database goes before you replace it: add an index, split a table by date, copy it to a second machine. Course work; the numbers come from the original course runs.</p>
-          <span class="mini__go">One change made it 70% slower <span aria-hidden="true">&rarr;</span></span>
+          <span class="mini__go">The 70% regression <span aria-hidden="true">&rarr;</span></span>
         </a>
 
         <a class="mini" href="projects/webgl-terrain-explorer.html" aria-label="WebGL Terrain Explorer: every matrix written by hand">
@@ -648,7 +671,7 @@
           <span class="mini__repo">webgl-terrain-explorer</span>
           <h3>WebGL Terrain Explorer</h3>
           <p>Fly over a 3D landscape in the browser. Nothing is a downloaded model: the hills, the sky, and the rippling water are worked out by the code. A university graphics course project, deliberately with no ready-made 3D toolkit.</p>
-          <span class="mini__go">Every matrix written by hand <span aria-hidden="true">&rarr;</span></span>
+          <span class="mini__go">Matrices by hand <span aria-hidden="true">&rarr;</span></span>
         </a>
 
         <a class="mini" href="projects/reelflow-studio.html" aria-label="ReelFlow Studio: six retries, or it never happened">
@@ -657,7 +680,7 @@
           <span class="mini__repo">reelflow-studio</span>
           <h3>ReelFlow Studio</h3>
           <p>A client's video publishing was fully automated with no screen a person could use. This is that screen: one button per decision, approve, caption, publish. The demo runs on a made-up queue, not the client's live system.</p>
-          <span class="mini__go">Six retries, or it never happened <span aria-hidden="true">&rarr;</span></span>
+          <span class="mini__go">Retries or nothing <span aria-hidden="true">&rarr;</span></span>
         </a>
 
         <a class="mini" href="projects/university-enrollment-system.html" aria-label="University Enrollment System, team project: clashes and full sections blocked">
@@ -666,7 +689,7 @@
           <span class="mini__repo">university-enrollment-system</span>
           <h3>University Enrollment System <span class="badge badge--purple">Team</span></h3>
           <p>The app a student uses to add, drop, and swap courses, with clashes and full sections blocked and the timetable exported to Excel. Coursework: the accounts are invented and passwords sit in the database as plain readable text.</p>
-          <span class="mini__go">Clashes and full sections blocked <span aria-hidden="true">&rarr;</span></span>
+          <span class="mini__go">Clashes get blocked <span aria-hidden="true">&rarr;</span></span>
         </a>
 
         <a class="mini" href="projects/hitec-shopify-automation.html" aria-label="Hi-Tec Shopify Automation: two spreadsheets, no shared key">
@@ -675,7 +698,7 @@
           <span class="mini__repo">hitec-shopify-automation</span>
           <h3>Hi-Tec Shopify Automation</h3>
           <p>A client's stock counts and costs lived in one spreadsheet and its shop's product list in another, so matching them took hours. Three tools do it instead. A person reviews the result; the tools never touch the live store.</p>
-          <span class="mini__go">Two spreadsheets, no shared key <span aria-hidden="true">&rarr;</span></span>
+          <span class="mini__go">No shared key <span aria-hidden="true">&rarr;</span></span>
         </a>
 
         <a class="mini" href="projects/codeforces-mashup-generator.html" aria-label="Codeforces Mashup Generator: only problems nobody has solved">
@@ -684,7 +707,7 @@
           <span class="mini__repo">codeforces-mashup-generator</span>
           <h3>Codeforces Mashup Generator</h3>
           <p>Builds a practice contest from a programming-puzzle site, keeping only puzzles that nobody in the study group has already solved, so nothing is spoiled.</p>
-          <span class="mini__go">Only problems nobody has solved <span aria-hidden="true">&rarr;</span></span>
+          <span class="mini__go">Only unsolved problems <span aria-hidden="true">&rarr;</span></span>
         </a>
 
         <a class="mini" href="projects/paws-rescue-donations.html" aria-label="Paws Rescue Donations: replaces the spreadsheet anyone could edit">
@@ -693,7 +716,7 @@
           <span class="mini__repo">paws-rescue-donations</span>
           <h3>Paws Rescue Donations</h3>
           <p>A private site for an animal rescue to log who donated what, and for which pet, replacing the shared spreadsheet anyone with the link could edit.</p>
-          <span class="mini__go">Replaces the spreadsheet anyone could edit <span aria-hidden="true">&rarr;</span></span>
+          <span class="mini__go">Replaces the spreadsheet <span aria-hidden="true">&rarr;</span></span>
         </a>
 
         <a class="mini" href="projects/n8n-automations.html" aria-label="N8N Automations: an 8-stage campaign, 1 stage wired">
@@ -702,7 +725,7 @@
           <span class="mini__repo">n8n-automations</span>
           <h3>N8N Automations</h3>
           <p>59 business chores, each built as a flowchart that then runs itself: scraping leads, chasing enquiries, sending invoices. Documented honestly, faults included; live account keys found in the files were stripped.</p>
-          <span class="mini__go">An 8-stage campaign, 1 stage wired <span aria-hidden="true">&rarr;</span></span>
+          <span class="mini__go">One stage wired <span aria-hidden="true">&rarr;</span></span>
         </a>
 
         <a class="mini" href="projects/space-race-analysis.html" aria-label="Space Race Analysis: count the Cold War launches">
@@ -711,7 +734,7 @@
           <span class="mini__repo">space-race-analysis</span>
           <h3>Space Race Analysis</h3>
           <p>An interactive dashboard analyzing every recorded space launch, from the Cold War rivalry to the present.</p>
-          <span class="mini__go">Count the Cold War launches <span aria-hidden="true">&rarr;</span></span>
+          <span class="mini__go">Cold War launches <span aria-hidden="true">&rarr;</span></span>
         </a>
 
         <a class="mini" href="projects/police-shootings-analysis.html" aria-label="Police Shootings Analysis: joined to five Census datasets">
@@ -720,7 +743,7 @@
           <span class="mini__repo">police-shootings-analysis</span>
           <h3>Police Shootings Analysis</h3>
           <p>2,535 records of people killed by police in the United States, set beside US Census figures on poverty, schooling, income, and race, in charts you can filter by state, year, or type of case.</p>
-          <span class="mini__go">Joined to five Census datasets <span aria-hidden="true">&rarr;</span></span>
+          <span class="mini__go">Five Census datasets <span aria-hidden="true">&rarr;</span></span>
         </a>
 
         <a class="mini" href="projects/earnings-regression.html" aria-label="Earnings Regression: watch the model fail honestly">
@@ -729,7 +752,7 @@
           <span class="mini__repo">earnings-regression</span>
           <h3>Earnings Regression</h3>
           <p>Does more schooling, or more experience, mean a higher wage? Move two sliders and it predicts one. The honest answer: those two facts barely predict anything at all.</p>
-          <span class="mini__go">Watch the model fail honestly <span aria-hidden="true">&rarr;</span></span>
+          <span class="mini__go">It fails honestly <span aria-hidden="true">&rarr;</span></span>
         </a>
 
         <a class="mini" href="projects/flask-todo-list.html" aria-label="Flask TODO List: passwords were readable, now scrambled">
@@ -738,7 +761,7 @@
           <span class="mini__repo">flask-todo-list</span>
           <h3>Flask TODO List</h3>
           <p>A to-do list in the browser: everyone signs in and sees only their own tasks, ticking them off without the page reloading.</p>
-          <span class="mini__go">Passwords were readable, now scrambled <span aria-hidden="true">&rarr;</span></span>
+          <span class="mini__go">Passwords now scrambled <span aria-hidden="true">&rarr;</span></span>
         </a>
 
         <a class="mini" href="projects/flask-online-shop.html" aria-label="Flask Online Shop: find the login bug">
@@ -747,7 +770,7 @@
           <span class="mini__repo">flask-online-shop</span>
           <h3>Flask Online Shop</h3>
           <p>A demo storefront: sign-up, login, and checkout through Stripe in practice mode, so no real money moves. Two real bugs turned up, including one that let anybody into anybody else's account.</p>
-          <span class="mini__go">Find the login bug <span aria-hidden="true">&rarr;</span></span>
+          <span class="mini__go">The login bug <span aria-hidden="true">&rarr;</span></span>
         </a>
 
         <a class="mini" href="projects/pdf-to-audiobook.html" aria-label="PDF to Audiobook: one bad page crashed the batch">
@@ -756,7 +779,7 @@
           <span class="mini__repo">pdf-to-audiobook</span>
           <h3>PDF to Audiobook</h3>
           <p>Turns a PDF, a report or a book chapter, into an mp3 you can listen to on a walk. It needs the internet: the voice comes from Google's speech service, not from your own machine.</p>
-          <span class="mini__go">One bad page crashed the batch <span aria-hidden="true">&rarr;</span></span>
+          <span class="mini__go">One page crashed <span aria-hidden="true">&rarr;</span></span>
         </a>
 
         <a class="mini" href="projects/color-palette-generator.html" aria-label="Color Palette Generator: a silent numpy 2.x breakage">
@@ -765,7 +788,7 @@
           <span class="mini__repo">color-palette-generator</span>
           <h3>Color Palette Generator</h3>
           <p>Drop in a picture and it shows the ten colors that cover most of it, with the exact code for each so you can paste it into a design. Nothing is sent anywhere and nothing is stored.</p>
-          <span class="mini__go">A silent numpy 2.x breakage <span aria-hidden="true">&rarr;</span></span>
+          <span class="mini__go">A numpy breakage <span aria-hidden="true">&rarr;</span></span>
         </a>
 
         <a class="mini" href="projects/custom-web-scraper.html" aria-label="Web Element Inspector: point, click, highlight in Chrome">
@@ -774,7 +797,7 @@
           <span class="mini__repo">custom-web-scraper</span>
           <h3>Web Element Inspector</h3>
           <p>Point and click instead of writing a program: type a web address, pick what to look for, and it drives a real Chrome browser to find every match and outline it. A live scrape against a real site is not demonstrated; the machine it was checked on had no internet.</p>
-          <span class="mini__go">Point, click, highlight in Chrome <span aria-hidden="true">&rarr;</span></span>
+          <span class="mini__go">Point and click <span aria-hidden="true">&rarr;</span></span>
         </a>
 
         <a class="mini" href="projects/morse-code-converter.html" aria-label="Morse Code Converter: the missing letter V">
@@ -783,7 +806,7 @@
           <span class="mini__repo">morse-code-converter</span>
           <h3>Morse Code Converter</h3>
           <p>Converts ordinary writing into Morse code and back, live as you type, and flashes the dots and dashes on screen so you can see the rhythm.</p>
-          <span class="mini__go">The missing letter V <span aria-hidden="true">&rarr;</span></span>
+          <span class="mini__go">The missing V <span aria-hidden="true">&rarr;</span></span>
         </a>
 
         <a class="mini" href="projects/tic-tac-toe-gui.html" aria-label="Tic Tac Toe: a win-check bug, and the fix">
@@ -792,7 +815,7 @@
           <span class="mini__repo">tic-tac-toe-gui</span>
           <h3>Tic Tac Toe</h3>
           <p>Two players, a 3x3 grid, and the program spots the win, highlights the line, and keeps score. A small learning exercise.</p>
-          <span class="mini__go">A win-check bug, and the fix <span aria-hidden="true">&rarr;</span></span>
+          <span class="mini__go">The win-check bug <span aria-hidden="true">&rarr;</span></span>
         </a>
 
         <a class="mini" href="projects/image-watermarking-tool.html" aria-label="Image Watermarking Tool: why paste() never actually blended">
@@ -801,7 +824,7 @@
           <span class="mini__repo">image-watermarking-tool</span>
           <h3>Image Watermarking Tool</h3>
           <p>Stamps a logo onto a whole batch of photos at once: size it, fade it, drop it in one of nine spots, preview it, then one click does every photo, leaving the originals untouched.</p>
-          <span class="mini__go">Why paste() never actually blended <span aria-hidden="true">&rarr;</span></span>
+          <span class="mini__go">Why paste() failed <span aria-hidden="true">&rarr;</span></span>
         </a>
 
         <a class="mini" href="projects/typing-master-gui.html" aria-label="Typing Master: mistakes you can actually see">
@@ -810,7 +833,7 @@
           <span class="mini__repo">typing-master-gui</span>
           <h3>Typing Master</h3>
           <p>Retype a block of text against the clock. Each letter turns green when it is right and red when it is wrong, so you see the mistake as it happens, and it charts your last ten attempts. A small learning exercise.</p>
-          <span class="mini__go">Mistakes you can actually see <span aria-hidden="true">&rarr;</span></span>
+          <span class="mini__go">See your mistakes <span aria-hidden="true">&rarr;</span></span>
         </a>
 
         <a class="mini" href="projects/breakout-game.html" aria-label="Breakout: a crude collision check, admitted">
@@ -819,7 +842,7 @@
           <span class="mini__repo">breakout-game</span>
           <h3>Breakout</h3>
           <p>The arcade game: slide the paddle, bounce the ball, knock out the wall of blocks. Built from scratch with no game engine, so the lives, the speed-up, and spotting a hit are all hand-made.</p>
-          <span class="mini__go">A crude collision check, admitted <span aria-hidden="true">&rarr;</span></span>
+          <span class="mini__go">Crude collision check <span aria-hidden="true">&rarr;</span></span>
         </a>
 
         <a class="mini" href="projects/disappearing-text-app.html" aria-label="Disappearing Text: making an invisible timer visible">
@@ -828,7 +851,7 @@
           <span class="mini__repo">disappearing-text-app</span>
           <h3>Disappearing Text</h3>
           <p>Type, and if you stop the words fade until the box wipes itself clean. A ring above drains like an egg timer, so you can see the deadline coming.</p>
-          <span class="mini__go">Making an invisible timer visible <span aria-hidden="true">&rarr;</span></span>
+          <span class="mini__go">The invisible timer <span aria-hidden="true">&rarr;</span></span>
         </a>
 
         <a class="mini" href="projects/dino-game-bot.html" aria-label="Dino Game Bot: only correct on one screen">
@@ -837,7 +860,7 @@
           <span class="mini__repo">dino-game-bot</span>
           <h3>Dino Game Bot</h3>
           <p>Plays Chrome's offline dinosaur game by watching pixels on the screen, never peeking inside the game. It was never run against the real game here, and the patch of screen it watches fits one setup only.</p>
-          <span class="mini__go">Only correct on one screen <span aria-hidden="true">&rarr;</span></span>
+          <span class="mini__go">One screen only <span aria-hidden="true">&rarr;</span></span>
         </a>
 
       </div>
