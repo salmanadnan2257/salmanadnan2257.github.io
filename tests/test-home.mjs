@@ -24,6 +24,13 @@ await page.goto('file://' + SITE + '/index.html', { waitUntil: 'networkidle2' })
 await page.addStyleTag({ content: 'html{scroll-behavior:auto !important}' });
 await new Promise((r) => setTimeout(r, 1200));
 
+/* The 38 non-flagship cards ship inside the folded project wall (display:none for
+   scripted visitors); open it via the real toggle before measuring, or every card
+   inside it reads as a 0x0, unclickable element. Once open there are 39 anchors:
+   the 38 wall cards plus the flagship, which is a deliberate second link to sqlmill. */
+await page.evaluate(() => document.getElementById('all-toggle')?.click());
+await new Promise((r) => setTimeout(r, 500));
+
 const bad = [];
 
 /* every card CTA: visible, has a solid background, a hard border, and its card
@@ -35,6 +42,7 @@ const cards = await page.$$eval('.pcard, .mini', (els) => els.map((el) => {
   const r = go.getBoundingClientRect();
   return {
     href: el.getAttribute('href'),
+    isFlag: el.classList.contains('pcard--flag'),
     text: go.textContent.trim().replace(/\s+/g, ' '),
     bg: cs.backgroundColor,
     border: cs.borderTopWidth,
@@ -45,8 +53,12 @@ const cards = await page.$$eval('.pcard, .mini', (els) => els.map((el) => {
   };
 }));
 
-if (cards.length !== 38) bad.push(`expected 38 cards, found ${cards.length}`);
-const hooks = new Set();
+/* 39 anchors: 38 wall cards + the flagship (a deliberate second link to sqlmill,
+   so exactly one duplicate href and one duplicate hook are expected). */
+if (cards.length !== 39) bad.push(`expected 39 card anchors, found ${cards.length}`);
+const distinctHrefs = new Set(cards.map((c) => c.href)).size;
+if (distinctHrefs !== 38) bad.push(`expected 38 distinct project links, found ${distinctHrefs}`);
+const hooks = new Map();   // hook -> href it first appeared on
 for (const c of cards) {
   if (c.missing) { bad.push(`card ${c.href} has no CTA`); continue; }
   if (!c.href || !c.href.startsWith('projects/')) bad.push(`CTA does not lead to a project page: ${c.href}`);
@@ -60,8 +72,11 @@ for (const c of cards) {
   const words = hook.split(/\s+/).length;
   if (/view project/i.test(hook)) bad.push(`${c.href}: CTA is still the generic label`);
   if (words < 3 || words > 6) bad.push(`${c.href}: CTA is ${words} words ("${hook}")`);
-  if (hooks.has(hook.toLowerCase())) bad.push(`${c.href}: CTA duplicates another card ("${hook}")`);
-  hooks.add(hook.toLowerCase());
+  /* A repeated hook is only wrong when it lands on a DIFFERENT project. The flagship
+     and its wall card both point at sqlmill, so their shared hook is intended. */
+  const key = hook.toLowerCase();
+  if (hooks.has(key) && hooks.get(key) !== c.href) bad.push(`${c.href}: CTA duplicates another card ("${hook}")`);
+  if (!hooks.has(key)) hooks.set(key, c.href);
 }
 
 /* every card carries exactly one hard number, and it must be visible */
@@ -122,7 +137,7 @@ console.log('cards checked:', cards.length, '| hero stats:', heroStats, '| achie
 console.log('distinct CTA hooks:', hooks.size, '| number badges:', metrics.filter((m) => m.n === 1).length);
 console.log('stat numbers on the page:', nums.join(' , '));
 if (bad.length) { console.log('\nFAIL'); bad.slice(0, 12).forEach((b) => console.log('  ' + b)); }
-else console.log('\nPASS: 38 card buttons, each a distinct specific hook + one number, all pointing at project pages, click navigates, stats trimmed, no JS errors');
+else console.log('\nPASS: 39 card anchors (38 distinct projects + flagship duplicate of sqlmill), each a distinct specific hook + one number, all pointing at project pages, click navigates, stats trimmed, no JS errors');
 
 await browser.close();
 process.exit(bad.length ? 1 : 0);

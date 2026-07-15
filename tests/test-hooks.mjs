@@ -28,10 +28,15 @@ for (const v of VIEWS) {
   await page.goto('file://' + SITE + '/index.html', { waitUntil: 'networkidle2' });
   await page.addStyleTag({ content: 'html{scroll-behavior:auto !important}' });
   await sleep(1200);
+  /* the 38 non-flagship cards ship inside the folded wall (display:none); open it via
+     the real toggle before measuring, or they read as unrendered. Open there are 39
+     anchors: 38 wall cards plus the flagship (a deliberate second link to sqlmill). */
+  await page.evaluate(() => document.getElementById('all-toggle')?.click());
+  await sleep(500);
 
   const bad = [];
   const n = await page.$$eval('.pcard, .mini', (e) => e.length);
-  if (n !== 38) bad.push(`${n} cards, expected 38`);
+  if (n !== 39) bad.push(`${n} cards, expected 39 (38 wall + flagship)`);
 
   /* measure each card with it scrolled into view (getBoundingClientRect is fine either
      way, but reveal animations are not, so force everything visible first) */
@@ -72,7 +77,7 @@ for (const v of VIEWS) {
   console.log(`\n===== ${v.w}x${v.h} =====`);
   console.log(`cards ${cards.length} | CTA h ${Math.min(...cards.map((c) => c.goH))}-${Math.max(...cards.map((c) => c.goH))}px, w ${Math.min(...cards.map((c) => c.goW))}-${Math.max(...cards.map((c) => c.goW))}px | number badges ${cards.filter((c) => c.metric).length}`);
   console.log(`scrollWidth ${ov.sw} vs innerWidth ${ov.iw} | JS errors ${errs.length}`);
-  console.log(bad.length ? 'FAIL\n  ' + bad.join('\n  ') : 'PASS: 38 cards, nothing clipped, no sideways scroll, clean console');
+  console.log(bad.length ? 'FAIL\n  ' + bad.join('\n  ') : 'PASS: 39 cards, nothing clipped, no sideways scroll, clean console');
   if (bad.length) failed++;
 
   for (const [name, sel] of [['prod', '#production'], ['core', '#work'], ['apps', '#apps'], ['minis', '.minis']]) {

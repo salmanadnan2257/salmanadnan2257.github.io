@@ -54,107 +54,91 @@ node test-viz.mjs           # all 38 viz: drag orbits, reset restores exactly, w
 | `test-drift.mjs` | The camera-runaway class of bug. Four scenes ease the camera from its own current position, so they can read the viewer's orbit back as their own starting point and compound away. Runs a no-drag control per scene first, because sparse pulsing scenes vary on their own. |
 | `test-embed.mjs` | An embedded visualization never hijacks host-page scrolling before the visitor engages with it. |
 | `test-a11y.mjs` | Keyboard orbit and zoom, reset via `r`, visible focus ring, `prefers-reduced-motion`, aria labels. |
-| `test-home.mjs` | 38 cards, each with a distinct curiosity hook and a metric badge; every card click navigates to its project page. |
-| `test-hooks.mjs` | At 1280x800, 390x844 and 360x740: no card CTA or badge spills its card, and the page never scrolls horizontally. |
-| `test-mobile.mjs` | Tap targets, no horizontal pan, and the scroll-trap check: a vertical swipe starting on a visualization must still scroll the page. |
-| `test-stage.mjs` | The "Start here" stage: one live WebGL context at a time, no scroll trap, no layout shift, reduced-motion path. |
-| `test-compact.mjs` | Compact mode (`?compact=1`) at card size: the title panel, legend and HUD are hidden, the scene still renders and still responds to a drag. |
+| `test-home.mjs` | Opens the folded project wall via the real toggle, then checks 39 card anchors (38 distinct projects plus the flagship's deliberate second link to sqlmill), each with a distinct curiosity hook and a metric badge; a card click navigates to its project page. |
+| `test-hooks.mjs` | Opens the folded wall, then at 1280x800, 390x844 and 360x740: no card CTA or badge spills its card, and the page never scrolls horizontally (39 cards). |
+| `test-mobile.mjs` | Opens the folded wall for the homepage layout checks (tap targets, no horizontal pan). Then, on a project page, the scroll-trap check: a vertical swipe starting on a visualization must still scroll the page, before and after the viz is engaged. |
+| `test-stage.mjs` | The "Start here" stage: one live WebGL context at a time (counted as DOM-connected, non-context-lost canvases, so the homepage's `webglOK()` capability probe is not miscounted), no scroll trap, no layout shift, reduced-motion path. |
+| `test-cta-tap.mjs` | Opens the folded wall, then at 390x844 and 360x740 hit-tests each card CTA's centre (the corners are reported but not failed, since the cards' intentional ±1deg rotation moves the axis-aligned bounding box off the visual button). |
+| `test-domain.mjs` | Index and three project pages render with zero JS errors and zero failed local requests; canonical/og/twitter tags all carry the real domain, and no old host remains. |
+| `test-cpu-leak.mjs` | Six viz pages stop requesting animation frames when hidden, when paused-and-settled, and under `prefers-reduced-motion`, so no page burns a core in the background. |
+| `test-compact.mjs` | Compact mode (`?compact=1`) at card size: the title panel, legend and HUD are hidden, the scene still renders and still responds to a drag. Creates its own output dir. One expected non-pass: `disappearing-text-app`, which is excluded from live preview by design and keeps its screenshot. |
 | `check-runtime-identical.mjs` | The load-bearing invariant: the shared runtime block is byte-identical across all 38 viz files, apart from each file's own PNG download name. If this fails, the 38 have forked and any future patch will hit them unevenly. |
+
+Probe scripts (added 2026-07-15 to verify the folded-wall and 2026-07-14 conversion batch; not in the table above because they target specific claims rather than a broad surface):
+`probe-wall.mjs` (folded → open, 39 anchors / 38 distinct, all CTAs render, whole-card tap resolves),
+`probe-conversion.mjs` (exit-nudge suppression + triggers, reduced-motion conversion panel, deep-link cold load),
+`probe-stage-ctx.mjs` (locates every WebGL context per frame, live vs released),
+`probe-cursor.mjs` (cursor motif at the 1240px breakpoint and 200% zoom),
+`probe-nojs.mjs` (with JavaScript off the wall ships open, all 38 links crawlable, toggle not rendered).
 
 Chrome path is hardcoded to `/usr/bin/google-chrome`. On a machine without a GPU, Chrome falls back
 to software rendering, so absolute frame rates from these runs are not representative of real
 hardware; treat them as relative only.
 
-## Not yet verified
+## Verification status
 
-The following shipped after the owner chose to cut the verification passes for speed. Each is
-implemented, and where a claim is made below it was observed; everything else is untested and
-should be checked before it is relied on.
+Updated 2026-07-15: the items below were run in a real headless Chrome and now pass unless marked
+otherwise. The homepage layout harnesses (`test-home`, `test-hooks`, `test-cta-tap`, `test-mobile`)
+were stale after the 2026-07-14 folded wall shipped: they measured the 38 non-flagship cards while
+those cards sat inside the folded wall (`display: none`), so the CTAs read as 0x0 and the tests
+failed. They now open the wall via the real toggle before measuring. No site defect was involved;
+the failures were the tests, not the page. `test-stage` "2 live contexts" was a counter bug, also
+now fixed (see below). Every fix is in the harness, not the site.
 
-**Observed working:** the rail loads and swaps systems; the fullscreen button is gone; hovering a
-card mounts `viz/<name>.html?compact=1` with `pointer-events: none` in the identical box as the
-screenshot (so there is no layout shift), and it tears down when the pointer leaves; compact mode
-hides the panels and the HUD and the canvas still draws; zero JS errors and no horizontal scroll at
-1280x800 and 390x844; the shared runtime block is still one hash across all 38 files.
+**Verified (harness or probe, both viewports unless noted):**
 
-**Implemented but NOT verified, in priority order:**
+1. **The touch scroll-trap (the case that matters most).** `test-mobile` B1b/B1c: a vertical swipe
+   starting on the raft-kv viz scrolls the host page (~245px, matching the plain-body control) and
+   still scrolls after the viz is engaged, at 390x844 and 360x740; a horizontal drag engages it
+   (B2). Card previews carry `pointer-events: none`, so a touch on a card passes through to the
+   wrapping link: `probe-wall` confirms all 39 card centres hit-test to their own project link.
+2. **The full committed suite.** `test-viz` 38/38, `test-drift` 4/4, `test-embed` 4/4, `test-a11y`
+   8/8, `test-domain` 4/4, `test-cpu-leak` (no rAF leak hidden / paused / reduced-motion),
+   `check-runtime-identical` (one hash across all 38), `test-compact` 37/38, and `test-home`,
+   `test-hooks`, `test-cta-tap`, `test-stage`, `test-mobile` all green after the folded-wall
+   un-staling.
+3. **The stage holds one live WebGL context.** `test-stage` S1/S1b now count DOM-connected,
+   non-context-lost canvases and read 1 at rest and after six rapid rail switches. The earlier "2"
+   was a counter that tallied `getContext` creations and never released them, double-counting the
+   homepage's `webglOK()` capability probe: a throwaway canvas that support-tests WebGL and is never
+   added to the DOM. One live context, the documented invariant, holds. `probe-stage-ctx` locates
+   each context per frame.
+4. **The folded wall.** `probe-wall`: folded at load (flagship visible, wall `display: none`,
+   `aria-expanded=false`), opens via the toggle to 39 anchors / 38 distinct hrefs / the flagship a
+   deliberate second sqlmill link, all 39 CTAs render >=40px, whole-card tap resolves to each card's
+   own link, no horizontal scroll, zero JS errors. `probe-nojs`: with JavaScript off the wall ships
+   open, all 38 links are in the crawlable source, and the toggle is not rendered.
+5. **The exit nudge (items 6 and 7, event path).** `probe-conversion`: dismiss -> reload -> stays
+   suppressed (`sa.nudge.off`); open a real project -> back -> never appears (`sa.project.opened`);
+   top-edge `mouseout` and foot-of-page scroll both trigger it.
+6. **The conversion panel's reduced-motion path (item 9).** `probe-conversion` and `test-stage`
+   R1/R2/R3: under `prefers-reduced-motion` the panel reveals with no drag, the grab hint is
+   reworded ("Reduced motion: showing the still instead of the live 3D"), and no iframe / WebGL
+   context mounts.
+7. **Deep links into the folded region (item 11).** `probe-conversion`: a cold load of
+   `index.html#work`, `#more`, `#apps`, `#production` unfolds the wall and scrolls to the target.
+8. **The flagship duplicate link (item 12).** 39 anchors, 38 distinct hrefs, the one duplicate is
+   `projects/sqlmill.html`; `test-home` tolerates exactly that same-href duplicate.
+9. **The cursor motif at the breakpoint (item 13, Chromium).** `probe-cursor`: hidden below 1240px,
+   appears at 1240 / 1241 / 1440 including 200% zoom, with no horizontal scroll and no glyph past
+   the viewport edge.
 
-1. **The touch path on the cards.** A quick tap should navigate to the project; a long press or a
-   swipe should keep the preview playing and NOT navigate; a vertical swipe starting on a card must
-   still scroll the page. The scroll-trap case is the one that matters: if it regressed, a phone
-   visitor gets stuck. `test-mobile.mjs` covers the equivalent case for the embedded viz.
-2. **The full regression suite, after the compact-mode patch.** `test-viz`, `test-drift`,
-   `test-embed`, `test-a11y`, `test-mobile` were last green BEFORE compact mode landed. The patch
-   changed four existing statements, each an identity when compact mode is off, but that argument is
-   a diff argument, not a test result.
-3. **Homepage performance with live card previews.** Peak simultaneous WebGL contexts, frame rate
-   while scrolling, and JS heap growth across two full scrolls (to catch a teardown leak). The cap
-   is 2 contexts on desktop and 1 on touch, enforced with explicit LRU eviction and `about:blank`
-   before removal, but it was not measured after the final wiring.
-4. **`test-home`, `test-hooks`, `test-mobile`, `test-stage` after the last two changes** (the stage
-   re-curation and the cursor motif / conversion levers). `test-stage.mjs` was updated to expect the
-   fullscreen button to be absent, but was not executed.
-5. **Legibility of every scene at card size.** 20 of the 38 were checked and read clearly. Two are
-   marginal: `space-race-analysis` (fine dust) and `vector-db` (blue on navy, low contrast).
-   `disappearing-text-app` is excluded from live preview by design and keeps its screenshot.
+**Still not verified (need the owner, or an environment this sandbox does not have):**
 
-### The 2026-07-14 conversion batch: what was observed, and what is left
-
-Four levers shipped together: the headline cursor motif, the stage conversion panel, the folded
-project wall behind one flagship, and the exit nudge. One smoke run at 1280x800 and 390x844 was
-executed (headless Chromium, the page served over `http://`), and nothing beyond it.
-
-**Observed in that run, on both viewports:** zero JS errors and zero horizontal scroll, at load,
-after the wall is opened, and after the nudge appears; all 38 cards present in the DOM while the
-wall is folded (`display: none`, not injected) and all 38 laid out and visible once it is opened;
-the toggle carries `aria-expanded=false` then `true` and swaps its label; the cursor glyphs render
-at 1280 (`display: block`) and are gone at 390 (`display: none`), with `pointer-events: none` on
-both; a real 2.1-second mouse drag inside the stage iframe reveals the conversion panel, and the
-panel's copy names the loaded system correctly ("You are holding Trade Intelligence Copilot. 15 /
-15 SQL answers correct."); the exit nudge stays hidden until leave intent, then appears with
-`role="region"`.
-
-**Left to check, in priority order:**
-
-6. **The exit nudge's suppression rules, end to end, in a real browser.** Dismiss it, reload, and
-   confirm it never returns (`localStorage` key `sa.nudge.off`). Then clear storage, click into any
-   project, come back, and confirm it never appears at all (`sa.project.opened`). Both keys were
-   read and written in the smoke run only implicitly; neither round trip was exercised across a
-   real navigation.
-7. **The exit nudge's real leave-intent trigger.** The smoke run dispatched a synthetic `mouseout`.
-   A genuine mouse leaving the top of the window, and the bottom-of-page trigger after a real
-   scroll, were not driven. Also unchecked: that the bar never covers the cal.com booking embed it
-   sits over at the foot of the page, and that it is announced sanely by a screen reader.
-8. **The stage conversion panel's fallback engagement path.** The primary path reaches into the
-   same-origin iframe and attaches capture-phase pointer listeners, and that is the path that was
-   observed working. The `file://` fallback (window blur while the pointer is over the stage, then
-   still over it `DWELL_MS` later) has never been run. Anyone opening `index.html` straight off the
-   disk is on that path, and on a phone it will not fire at all, because a touch that starts inside
-   a cross-origin frame never reaches the host. Served over `http(s)`, which is how the site
-   actually ships, the fallback is dead code.
-9. **The conversion panel's reduced-motion and no-WebGL paths.** Both are wired to reveal the panel
-   at once (there is no drag to earn it with), and neither was exercised. Check with
-   `prefers-reduced-motion: reduce` forced on, and with WebGL disabled, that the poster shows, the
-   grab hint changes its wording, and the panel is visible and not animated.
-10. **The folded wall under a real crawler.** The 37 other cards sit inside a `display: none`
-    container. They are in the HTML source, which is what a crawler parses, and the container is
-    folded only for scripted visitors (the `js` class is set by the one inline script in the head;
-    with JS off the wall ships open and the toggle is not rendered at all). Confirm with Google's
-    URL Inspection tool after deploy that all 38 project links are still discovered, and re-run
-    `test-a11y` for the disclosure: keyboard open and close, focus order into the revealed grid,
-    and that nothing inside the folded region is a tab stop while it is folded.
-11. **Deep links into the folded region.** `#work`, `#more`, `#apps`, `#production` from the nav and
-    the hero buttons unfold the wall on click, and a page loaded with one of those hashes already in
-    the URL unfolds and scrolls. The in-page click path was exercised; the cold load with a hash was
-    not, and neither was a back-button return to a hash.
-12. **The flagship card is a second link to `sqlmill`.** The page now links that project twice, from
-    the flagship and from its card inside the wall. That is harmless for SEO and correct for the
-    visitor, but if click analytics are ever added, the two must be told apart.
-13. **The cursor motif across browsers and at zoom.** It renders in Chromium at 1280. Not checked in
-    Firefox or Safari, at 200% browser zoom, or at exactly 1240px, which is the breakpoint where it
-    appears. The failure mode to look for is a glyph crossing the headline text or pushing a
-    horizontal scrollbar; it is absolutely positioned inside the `h1` and hidden below 1240px
-    precisely to make that impossible, but it was not measured at the boundary.
+- **Legibility of every scene at card size (item 5).** A visual judgment, not automatable. 20 of 38
+  were checked and read clearly; two are marginal, `space-race-analysis` (fine dust) and `vector-db`
+  (blue on navy, low contrast). `disappearing-text-app` is excluded from live preview by design and
+  keeps its screenshot; it is also `test-compact`'s one expected non-pass.
+- **The exit nudge's genuine hardware leave-intent, its overlap with the cal.com embed, and its
+  screen-reader read-out (item 7).** The event path is verified; a real cursor leaving the OS
+  window, the visual overlap at the foot of the page, and the SR announcement are not.
+- **The stage conversion panel's `file://` fallback (item 8).** Dead code when the site is served
+  over `http(s)`, which is how it ships; unrunnable and moot in production. Left as-is.
+- **The folded wall under a real crawler (item 10).** Structurally verified (38 links in source,
+  wall folds only under `.js`, ships open with JS off, toggle not rendered without JS). Google's URL
+  Inspection tool is a post-deploy step for the owner. The disclosure's keyboard focus order into
+  the revealed grid was not re-run under `test-a11y`.
+- **The cursor motif in Firefox / Safari (item 13).** Only Chromium is available in this sandbox.
 
 ## Open questions for the owner
 

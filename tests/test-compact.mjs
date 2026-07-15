@@ -13,10 +13,11 @@
 import puppeteer from 'puppeteer-core';
 import { PNG } from 'pngjs';
 import pixelmatch from 'pixelmatch';
-import { readdirSync, writeFileSync } from 'node:fs';
+import { readdirSync, writeFileSync, mkdirSync } from 'node:fs';
 
 const VIZ = '/home/rolex/Salman Adnan/Programming/Portfolio/portfolio-website/viz';
 const OUT = '/home/rolex/Salman Adnan/Programming/Portfolio/portfolio-website/tests/out/compact';
+mkdirSync(OUT, { recursive: true });
 const W = 380, H = 260;
 
 const only = (process.argv[2] || '').split(',').map((s) => s.trim()).filter(Boolean);

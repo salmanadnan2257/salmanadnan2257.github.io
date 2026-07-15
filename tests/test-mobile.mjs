@@ -63,7 +63,11 @@ for (const dev of DEVICES) {
   await page.evaluate(() => {
     document.querySelectorAll('.reveal, [class*=reveal]').forEach((e) => e.classList.add('is-visible', 'in'));
   });
-  await sleep(400);
+  // The 38 non-flagship cards ship inside the folded wall (display:none); open it via
+  // the real toggle before measuring, or they read as 0x0 and every hit-test lands on
+  // the nav. Open there are 39 anchors: 38 wall cards + the flagship (2nd sqlmill link).
+  await page.evaluate(() => document.getElementById('all-toggle')?.click());
+  await sleep(500);
 
   say('\n===== HOMEPAGE ' + dev.label + ' =====');
 
@@ -125,7 +129,7 @@ for (const dev of DEVICES) {
   await sleep(200);
 
   const bad = [];
-  if (cards.length !== 38) bad.push(`expected 38 cards, found ${cards.length}`);
+  if (cards.length !== 39) bad.push(`expected 39 cards (38 wall + flagship), found ${cards.length}`);
   const missing = cards.filter((c) => c.missing);
   const invisible = cards.filter((c) => !c.missing && (c.display === 'none' || c.visibility === 'hidden' || c.opacity < 0.99 || c.w < 1 || c.h < 1));
   const clipped = cards.filter((c) => !c.missing && (c.spillRight > 0.6 || c.spillBottom > 0.6 || c.spillLeft > 0.6));
@@ -147,7 +151,7 @@ for (const dev of DEVICES) {
   if (tooShort.length) say('    short e.g.: ' + tooShort.slice(0, 5).map((c) => `${c.href} ${c.w}x${c.h}`).join(', '));
   if (coveredC.length) say('    covered e.g.: ' + coveredC.slice(0, 3).map((c) => `${c.href} (centre hit: ${c.hitDesc})`).join(', '));
   if (missing.length || invisible.length || clipped.length || offCanvas.length || coveredC.length || tooShort.length) bad.push('A1 CTA problems');
-  say(`A1: ${missing.length + invisible.length + clipped.length + offCanvas.length + coveredC.length + tooShort.length === 0 && cards.length === 38 ? 'PASS' : 'FAIL'}`);
+  say(`A1: ${missing.length + invisible.length + clipped.length + offCanvas.length + coveredC.length + tooShort.length === 0 && cards.length === 39 ? 'PASS' : 'FAIL'}`);
 
   // A2 horizontal overflow
   const ov = await page.evaluate(() => {
@@ -242,23 +246,32 @@ for (const dev of DEVICES) {
   stats.achievement.forEach((s, i) => say(`    .achievement[${i}] ${s.w}x${s.h} @(${s.x},${s.y}) "${s.t}"`));
   if (!a3ok) bad.push('A3 stats');
 
-  // A4 screenshots at 390 only
+  // A4 screenshots at 390 only. The 38 non-flagship cards now live inside the
+  // folded project wall (display:none), so open it first or the element-level
+  // screenshots hit a zero-box node and throw. Guard them so a debug-screenshot
+  // failure never aborts the real scroll-trap tests in section B.
   if (dev.width === 390) {
-    await page.evaluate(() => document.querySelector('#production, .pcards, .cards')?.scrollIntoView({ block: 'start' }));
-    await sleep(800);
-    await page.screenshot({ path: OUT + '/m390-featured.png' });
-    await page.evaluate(() => document.querySelector('.minis')?.scrollIntoView({ block: 'start' }));
-    await sleep(800);
-    await page.screenshot({ path: OUT + '/m390-minis.png' });
-    await page.evaluate(() => document.querySelector('.pcard')?.scrollIntoView({ block: 'center' }));
-    await sleep(600);
-    const el = await page.$('.pcard');
-    await el.screenshot({ path: OUT + '/m390-pcard-closeup.png' });
-    const el2 = await page.$('.mini');
-    await page.evaluate(() => document.querySelector('.mini')?.scrollIntoView({ block: 'center' }));
-    await sleep(500);
-    await el2.screenshot({ path: OUT + '/m390-mini-closeup.png' });
-    say('A4 screenshots: m390-featured.png, m390-minis.png, m390-pcard-closeup.png, m390-mini-closeup.png');
+    try {
+      await page.evaluate(() => document.querySelector('#all-toggle')?.click());
+      await sleep(400);
+      await page.evaluate(() => document.querySelector('#production, .pcards, .cards')?.scrollIntoView({ block: 'start' }));
+      await sleep(800);
+      await page.screenshot({ path: OUT + '/m390-featured.png' });
+      await page.evaluate(() => document.querySelector('.minis, .allproj')?.scrollIntoView({ block: 'start' }));
+      await sleep(800);
+      await page.screenshot({ path: OUT + '/m390-minis.png' });
+      await page.evaluate(() => document.querySelector('.pcard')?.scrollIntoView({ block: 'center' }));
+      await sleep(600);
+      const el = await page.$('.pcard');
+      if (el) await el.screenshot({ path: OUT + '/m390-pcard-closeup.png' });
+      await page.evaluate(() => document.querySelector('.mini')?.scrollIntoView({ block: 'center' }));
+      await sleep(500);
+      const el2 = await page.$('.mini');
+      if (el2) await el2.screenshot({ path: OUT + '/m390-mini-closeup.png' });
+      say('A4 screenshots: m390-featured.png, m390-minis.png, m390-pcard-closeup.png, m390-mini-closeup.png');
+    } catch (e) {
+      say('A4 screenshots skipped (non-fatal): ' + e.message.split('\n')[0]);
+    }
   }
 
   if (errs.length) say('JS ERRORS (' + errs.length + '): ' + errs.slice(0, 4).join(' || '));

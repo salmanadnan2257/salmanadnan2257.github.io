@@ -41,19 +41,32 @@ async function touchSwipe(cdp, x, y, dx, dy, steps = 16, stepMs = 16) {
   await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
 }
 
-/* counts live WebGL contexts across every frame on the page, from inside those frames */
+/* Counts truly LIVE WebGL contexts across every frame, from inside those frames.
+   The earlier version counted getContext('webgl') CALLS and never decremented, so it
+   double-counted the homepage's webglOK() capability probe: that probe makes a canvas,
+   calls getContext to test support, and throws the canvas away without ever adding it
+   to the DOM. Here we keep a reference to each canvas that received a webgl context and,
+   at measurement time, count only those still connected to the document and not
+   context-lost. The probe canvas (never connected) and any torn-down iframe's canvas
+   (disconnected on removal) drop out, leaving the count of contexts actually holding
+   GPU resources. */
 const PROBE = () => {
-  window.__ctx = 0;
+  window.__glCanvases = [];
   const gc = HTMLCanvasElement.prototype.getContext;
   HTMLCanvasElement.prototype.getContext = function (type, ...rest) {
     const c = gc.call(this, type, ...rest);
-    if (c && /webgl/i.test(type)) { window.__ctx++; try { window.top.__ctxTotal = (window.top.__ctxTotal || 0) + 1; } catch (e) {} }
+    if (c && /webgl/i.test(type)) window.__glCanvases.push({ cv: this, ctx: c });
     return c;
   };
 };
 const liveCtx = async (page) => {
   let n = 0;
-  for (const f of page.frames()) { try { n += await f.evaluate(() => window.__ctx || 0); } catch (e) {} }
+  for (const f of page.frames()) {
+    try {
+      n += await f.evaluate(() => (window.__glCanvases || []).filter(
+        (e) => e.cv.isConnected && !(e.ctx.isContextLost && e.ctx.isContextLost())).length);
+    } catch (e) {}
+  }
   return n;
 };
 
@@ -96,7 +109,8 @@ for (const dev of [{ t: 'desktop 1280x800', w: 1280, h: 800, m: false }, { t: 'p
   await sleep(6000);
   const framesH = await page.$$eval('#stage-frame iframe', (e) => e.length);
   const ctxH = await liveCtx(page);
-  const totalMade = await page.evaluate(() => window.__ctxTotal || 0);
+  let totalMade = 0;
+  for (const f of page.frames()) { try { totalMade += await f.evaluate(() => (window.__glCanvases || []).length); } catch (e) {} }
   const okH = framesH === 1 && ctxH === 1;
   say(`S1b after 6 rapid rail switches: iframes=${framesH}, live contexts=${ctxH} (${totalMade} created in total, so the old ones were torn down) -> ${okH ? 'PASS' : 'FAIL'}`);
   if (!okH) bad.push(`${dev.t} S1b`);
