@@ -140,9 +140,8 @@ const GITHUB_HANDLE = "salmanadnan2257";
   var poster = document.getElementById("stage-poster");
   var caption = document.getElementById("stage-caption");
   var grab = document.getElementById("stage-grab");
-  var cta = document.getElementById("stage-cta");
   var picks = document.querySelectorAll(".stage__pick");
-  if (!frame || !poster || !caption || !cta || !picks.length) return;
+  if (!frame || !poster || !caption || !picks.length) return;
 
   var convert = document.getElementById("stage-convert");
   var convertCopy = document.getElementById("stage-convert-copy");
@@ -201,7 +200,6 @@ const GITHUB_HANDLE = "salmanadnan2257";
       shot: b.getAttribute("data-shot"),
       alt: b.getAttribute("data-alt"),
       caption: b.getAttribute("data-caption"),
-      cta: b.getAttribute("data-cta"),
       num: num ? num.textContent.trim() : ""
     };
   }
@@ -319,8 +317,6 @@ const GITHUB_HANDLE = "salmanadnan2257";
     strong.textContent = c.title + ".";
     caption.appendChild(strong);
     caption.appendChild(document.createTextNode(" " + c.caption));
-    cta.href = "projects/" + c.viz + ".html";
-    cta.textContent = c.cta + " →";
     for (var i = 0; i < picks.length; i++) {
       var on = i === selected;
       picks[i].classList.toggle("is-on", on);
