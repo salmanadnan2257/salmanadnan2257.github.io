@@ -65,14 +65,16 @@ const GITHUB_HANDLE = "salmanadnan2257";
 
     if (words.length > 1 && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
       var wIndex = 0;
+      // The 180 matches the fade in styles.css; the word is swapped at the far
+      // end of it, while it is invisible. Change the two together.
       setInterval(function () {
         rotatorWord.classList.add("is-swapping");
         setTimeout(function () {
           wIndex = (wIndex + 1) % words.length;
           rotatorWord.textContent = words[wIndex];
           rotatorWord.classList.remove("is-swapping");
-        }, 350);
-      }, 2200);
+        }, 180);
+      }, 1400);
     }
   }
 
@@ -102,7 +104,7 @@ const GITHUB_HANDLE = "salmanadnan2257";
 })();
 
 // ============================================================================
-// THE LIVE 3D STAGE ("Start here")
+// THE LIVE 3D STAGE ("See it running")
 //
 // Why one stage and not one per card. Every project page embeds its own 3D piece,
 // and the obvious move is to drop those same iframes into the 38 homepage cards.
@@ -133,9 +135,6 @@ const GITHUB_HANDLE = "salmanadnan2257";
   var NEAR = "600px 0px";
   var FAR = "1400px 0px";
 
-  var DWELL_MS = 1600;   // how long a hand has to be ON the model before it counts as engaged
-  var DRAG_PX = 24;      // and how far it has to have travelled. A click is not a drag.
-
   var frame = document.getElementById("stage-frame");
   var poster = document.getElementById("stage-poster");
   var caption = document.getElementById("stage-caption");
@@ -143,10 +142,8 @@ const GITHUB_HANDLE = "salmanadnan2257";
   var picks = document.querySelectorAll(".stage__pick");
   if (!frame || !poster || !caption || !picks.length) return;
 
-  var convert = document.getElementById("stage-convert");
   var convertCopy = document.getElementById("stage-convert-copy");
   var convertCta = document.getElementById("stage-convert-cta");
-  var convertX = document.getElementById("stage-convert-x");
 
   var reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
@@ -187,7 +184,6 @@ const GITHUB_HANDLE = "salmanadnan2257";
     f.setAttribute("data-viz-live", name);
     frame.appendChild(f);
     liveFrames.push(f);
-    f.addEventListener("load", function () { watch(f); });
   }
 
   var selected = 0;
@@ -205,106 +201,17 @@ const GITHUB_HANDLE = "salmanadnan2257";
   }
 
   // --------------------------------------------------------------------------
-  // THE OFFER, AND HOW ENGAGEMENT IS DETECTED
+  // THE OFFER
   //
-  // A visitor with a hand on the model, turning it, is the warmest this page gets, and
-  // it is the one moment when naming the project underneath their fingers is worth
-  // something. So once they have genuinely dragged for DWELL_MS (not clicked: the drag
-  // must also have travelled DRAG_PX), a panel grows in UNDER the canvas, naming the
-  // system they are actually holding and offering it. It never covers the scene, it is
-  // rebuilt from the rail's own data so it can never name the wrong system, and it can
-  // be dismissed for good.
-  //
-  // HOW THE DRAG IS SEEN. The scene lives in an iframe, and a parent page is not sent
-  // pointer events that happen over an iframe, so the host cannot simply listen on the
-  // stage. The viz files may not be edited, so they cannot post a message out either.
-  // What is left is that the iframe is SAME-ORIGIN: the host can reach into its
-  // document and attach its own capture-phase pointer listeners, without changing a
-  // line of it. That is the primary path and the one that runs on the real site.
-  //
-  // If that document is ever unreachable (opening the page straight off the disk with
-  // file:// makes every frame cross-origin), the fallback watches from outside: the
-  // pointer is over the stage, then the window loses focus, which means the press
-  // landed inside the frame; if the pointer is still on the stage DWELL_MS later, they
-  // are dragging it. Coarser, and it is only ever the understudy.
+  // The way into the loaded project sits under the model and under the rail, and it
+  // is simply always there. It used to be earned: a panel that grew in only once a
+  // visitor had genuinely dragged the model for a spell. That gate read pointer
+  // events by reaching into the same-origin iframe, with a focus-loss heuristic as
+  // the fallback, and neither could see a touch inside a cross-origin frame, so the
+  // one visitor most likely to be holding a phone could be left with no way through.
+  // A permanent button costs nothing and cannot fail to appear. Its text is still
+  // rebuilt from the rail data in paint(), so it always names the loaded system.
   // --------------------------------------------------------------------------
-  var CONVERT_OFF = "sa.stage.convert.off";
-  var revealed = false;
-  var dragMs = 0;              // engagement accrues across separate drags
-  var outsideWired = false;
-
-  function dismissed() {
-    try { return window.localStorage.getItem(CONVERT_OFF) === "1"; } catch (e) { return false; }
-  }
-
-  function reveal() {
-    if (revealed || !convert || dismissed()) return;
-    revealed = true;
-    convert.classList.add("is-on");
-  }
-
-  if (convertX && convert) {
-    convertX.addEventListener("click", function () {
-      convert.classList.remove("is-on");
-      revealed = true;                                     // and it does not come back
-      try { window.localStorage.setItem(CONVERT_OFF, "1"); } catch (e) {}
-    });
-  }
-
-  function watchInside(doc) {
-    var down = null;
-    var timer = 0;
-
-    function check() {
-      if (!down) return;
-      if (down.moved >= DRAG_PX && dragMs + (Date.now() - down.t) >= DWELL_MS) reveal();
-    }
-
-    doc.addEventListener("pointerdown", function (e) {
-      down = { t: Date.now(), x: e.clientX, y: e.clientY, moved: 0 };
-      clearTimeout(timer);
-      // A hand can hold the model still after turning it, and a still hand fires no
-      // move events, so the clock is also watched on a timer rather than only on moves.
-      timer = setTimeout(check, Math.max(0, DWELL_MS - dragMs) + 30);
-    }, { capture: true, passive: true });
-
-    doc.addEventListener("pointermove", function (e) {
-      if (!down) return;
-      down.moved += Math.abs(e.clientX - down.x) + Math.abs(e.clientY - down.y);
-      down.x = e.clientX;
-      down.y = e.clientY;
-      check();
-    }, { capture: true, passive: true });
-
-    function end() {
-      if (!down) return;
-      if (down.moved >= DRAG_PX) dragMs += Date.now() - down.t;
-      down = null;
-      clearTimeout(timer);
-      if (dragMs >= DWELL_MS) reveal();
-    }
-    doc.addEventListener("pointerup", end, { capture: true, passive: true });
-    doc.addEventListener("pointercancel", end, { capture: true, passive: true });
-  }
-
-  function watchOutside() {
-    if (outsideWired) return;
-    outsideWired = true;
-    var over = false;
-    frame.addEventListener("pointerenter", function () { over = true; });
-    frame.addEventListener("pointerleave", function () { over = false; });
-    window.addEventListener("blur", function () {
-      if (!over || revealed) return;                       // the press landed in the frame
-      setTimeout(function () { if (over) reveal(); }, DWELL_MS);
-    });
-  }
-
-  function watch(f) {
-    var doc = null;
-    try { doc = f.contentDocument; } catch (e) { doc = null; }
-    if (doc && doc.addEventListener) watchInside(doc);
-    else watchOutside();
-  }
 
   var inView = false;
 
@@ -369,7 +276,6 @@ const GITHUB_HANDLE = "salmanadnan2257";
         : "This browser has no 3D support: showing the still instead";
     }
     paint();
-    reveal();
     return;
   }
 
@@ -810,7 +716,7 @@ const GITHUB_HANDLE = "salmanadnan2257";
   }
   var CREAM = token("--cream", "#FFFDF5");
   var INK = token("--ink", "#000000");
-  var CORAL = token("--coral", "#FF6B6B");
+  var CORAL = token("--coral", "#F03E3E");
   var YELLOW = token("--yellow", "#FFD93D");
   var PURPLE = token("--purple", "#C4B5FD");
 

@@ -60,7 +60,7 @@ node test-viz.mjs           # all 38 viz: drag orbits, reset restores exactly, w
 | `probe-autoplay.mjs` | Card previews play with nothing touching them: the header stage mounts on load, all three "Start with three" cards are live once the section is on screen, the three sit in two rows (01 full width, 02 and 03 half), and the desktop cap of 4 holds across a full scroll of the open wall. |
 | `probe-phone-thrash.mjs` | The same at 390x844 and 1280x800, counting mounts and unmounts: the cap holds (2 phone, 4 desktop) and a slow scroll does not tear contexts up and down. |
 | `probe-cap-cost.mjs` | Idle frame rate against the number of live card previews, one arm per cap. Software-rasterizer numbers in this sandbox: use it to compare caps, never as a real visitor's frame rate. See "Still not verified". |
-| `test-stage.mjs` | The "Start here" stage: one live WebGL context at a time (counted as DOM-connected, non-context-lost canvases, so the homepage's `webglOK()` capability probe is not miscounted), no scroll trap, no layout shift, reduced-motion path. |
+| `test-stage.mjs` | The "See it running" stage (its section id is still `start-here`): one live WebGL context at a time (counted as DOM-connected, non-context-lost canvases, so the homepage's `webglOK()` capability probe is not miscounted), no scroll trap, no layout shift, reduced-motion path. |
 | `test-cta-tap.mjs` | Opens the folded wall, then at 390x844 and 360x740 hit-tests each card CTA's centre (the corners are reported but not failed, since the cards' intentional ±1deg rotation moves the axis-aligned bounding box off the visual button). |
 | `test-domain.mjs` | Index and three project pages render with zero JS errors and zero failed local requests; canonical/og/twitter tags all carry the real domain, and no old host remains. |
 | `test-cpu-leak.mjs` | Six viz pages stop requesting animation frames when hidden, when paused-and-settled, and under `prefers-reduced-motion`, so no page burns a core in the background. |
@@ -69,7 +69,7 @@ node test-viz.mjs           # all 38 viz: drag orbits, reset restores exactly, w
 
 Probe scripts (added 2026-07-15 to verify the folded-wall and 2026-07-14 conversion batch; not in the table above because they target specific claims rather than a broad surface):
 `probe-wall.mjs` (folded → open, 41 anchors / 38 distinct, all CTAs render, whole-card tap resolves),
-`probe-conversion.mjs` (exit-nudge suppression + triggers, reduced-motion conversion panel, deep-link cold load),
+`probe-conversion.mjs` (exit-nudge suppression + triggers, reduced-motion stage button, deep-link cold load),
 `probe-stage-ctx.mjs` (locates every WebGL context per frame, live vs released),
 `probe-cursor.mjs` (cursor motif at the 1240px breakpoint and 200% zoom),
 `probe-nojs.mjs` (with JavaScript off the wall ships open, all 38 links crawlable, toggle not rendered).
@@ -115,8 +115,9 @@ now fixed (see below). Every fix is in the harness, not the site.
 5. **The exit nudge (items 6 and 7, event path).** `probe-conversion`: dismiss -> reload -> stays
    suppressed (`sa.nudge.off`); open a real project -> back -> never appears (`sa.project.opened`);
    top-edge `mouseout` and foot-of-page scroll both trigger it.
-6. **The conversion panel's reduced-motion path (item 9).** `probe-conversion` and `test-stage`
-   R1/R2/R3: under `prefers-reduced-motion` the panel reveals with no drag, the grab hint is
+6. **The stage's project button (was item 9).** It is no longer earned by a drag: it is always
+   in the section, under the model and under the rail. `probe-conversion` and `test-stage`
+   R1/R2/R3: under `prefers-reduced-motion` the button is visible with no drag, the grab hint is
    reworded ("Reduced motion: showing the still instead of the live 3D"), and no iframe / WebGL
    context mounts.
 7. **Deep links into the folded region (item 11).** `probe-conversion`: a cold load of
@@ -155,8 +156,7 @@ now fixed (see below). Every fix is in the harness, not the site.
 - **The exit nudge's genuine hardware leave-intent, its overlap with the cal.com embed, and its
   screen-reader read-out (item 7).** The event path is verified; a real cursor leaving the OS
   window, the visual overlap at the foot of the page, and the SR announcement are not.
-- **The stage conversion panel's `file://` fallback (item 8).** Dead code when the site is served
-  over `http(s)`, which is how it ships; unrunnable and moot in production. Left as-is.
+
 - **The folded wall under a real crawler (item 10).** Structurally verified (38 links in source,
   wall folds only under `.js`, ships open with JS off, toggle not rendered without JS). Google's URL
   Inspection tool is a post-deploy step for the owner. The disclosure's keyboard focus order into

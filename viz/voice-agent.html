@@ -157,7 +157,7 @@
     <span role="listitem"><i style="--c:#3A4358"></i>Calendar slot</span>
     <span role="listitem"><i style="--c:#EFC868"></i>Booked</span>
   </div>
-  <p id="hint" aria-hidden="true"><b>Drag</b> to orbit<span id="hintMore"> &middot; scroll to zoom &middot; double-click to reset</span></p>
+  <p id="hint" aria-hidden="true"><b>Drag</b> to turn it any way<span id="hintMore"> &middot; shift-drag to roll &middot; scroll to zoom &middot; double-click to reset</span></p>
   <div id="err"><p>This visualization needs WebGL, which is unavailable here.<br>
      A screenshot of it lives on the project page.</p></div>
 </div>
@@ -631,36 +631,91 @@ window.addEventListener('pointermove', (e) => {
 }, { passive: true });
 
 /* ================= direct manipulation =================
-   Grab the piece and it orbits around whatever the scene is looking at, with
-   a little weight on release. Wheel or pinch zooms, double-click or the Reset
-   button returns the framing. The orbit is an offset applied after the scene
-   has placed its camera for the frame, never a replacement for it, so the
-   animation keeps playing from wherever the viewer parked the view. */
+   Grab the piece and it turns freely around whatever the scene is looking at,
+   with a little weight on release. Wheel or pinch zooms, double-click or the
+   Reset button returns the framing. The orbit is an offset applied after the
+   scene has placed its camera for the frame, never a replacement for it, so the
+   animation keeps playing from wherever the viewer parked the view.
+
+   The rotation is a quaternion, not a yaw/pitch pair, and that is the whole
+   design. A yaw/pitch orbit against a fixed up vector has two poles: straight
+   over the top the view snaps a half turn, which is why such an orbit has to be
+   clamped short of them and can never come all the way round. A quaternion has
+   no poles and no gimbal lock, so every axis turns the full 360 and keeps going.
+
+   It is held in the camera's own frame (qL below), not the world's. That is what
+   lets it survive the scene flying its camera around underneath: the viewer's
+   turn means "from where this piece is being watched, spin it this way", and it
+   stays true whatever the scene does with the framing next frame. */
 
 const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-const PITCH_LIMIT = 1.15;            // radians of tilt either side of the scene's own
 const ZOOM_MIN = 0.4, ZOOM_MAX = 2.6;
 const EPS = 1e-4;
+const SPIN_EPS = 1e-5;               // radians per frame below which momentum is spent
 
+/* The viewer's rotation, in the camera's local frame: x is the axis a vertical
+   drag turns about, y a horizontal one, z the roll axis down the line of sight.
+   qL is what is applied this frame, qGoal where it is easing to. Momentum on
+   release is an axis and a per-frame angle, also local, decayed like the old
+   yaw/pitch velocities were. */
 const view = {
-  yaw: 0, pitch: 0, zoom: 1,               // what is applied this frame
-  yawGoal: 0, pitchGoal: 0, zoomGoal: 1,   // where it is easing to
-  vYaw: 0, vPitch: 0,                      // release momentum
+  qL: new THREE.Quaternion(),
+  qGoal: new THREE.Quaternion(),
+  zoom: 1, zoomGoal: 1,
+  spinAxis: new THREE.Vector3(0, 1, 0),
+  spinAngle: 0,
   touched: false                           // the viewer has taken the wheel
 };
+const QI = new THREE.Quaternion();         // identity, for comparisons and resets
+const dq = new THREE.Quaternion();         // scratch: the delta a gesture just asked for
+const dqAxis = new THREE.Vector3();
 const drag = { id: -1, x: 0, y: 0 };
-const touches = new Map();                 // live touch points, for pinch
-let pinchFrom = 0, pinchZoom = 1;
+const touches = new Map();                 // live touch points, for pinch and twist
+let pinchFrom = 0, pinchZoom = 1, twistFrom = 0;
 /* What the view looked like when the gesture now in flight began. Embedded, the
    canvas is touch-action: pan-y, so a vertical swipe is the host page's to keep:
    the browser hands over a pointerdown and a move, then cancels. That gesture was
    never an orbit, and this is what it gets put back to. */
 const gesture = {
   active: false,
-  yaw: 0, pitch: 0, zoom: 1,
-  yawGoal: 0, pitchGoal: 0, zoomGoal: 1,
+  qL: new THREE.Quaternion(),
+  qGoal: new THREE.Quaternion(),
+  zoom: 1, zoomGoal: 1,
   touched: false
 };
+
+/* Turn the view by `ang` about a local axis. Post-multiplying is what keeps the
+   gesture in the camera's frame: the axis is read from where the viewer is sitting
+   now, not from where the scene first framed the piece, so a turn means the same
+   thing to the hand however far round it has already been brought. */
+function turn(x, y, z, ang) {
+  if (!ang) return;
+  dq.setFromAxisAngle(dqAxis.set(x, y, z), ang);
+  view.qGoal.multiply(dq).normalize();
+}
+
+/* A drag step: turn by rx about local x, ry about local y, rz about local z, and
+   remember the whole of it as the momentum to carry on with when the pointer
+   lifts. The three collapse to one axis and one angle, so a release keeps
+   travelling along the exact arc the hand was drawing, roll included, rather than
+   along a pair of axes that have to be re-composed every frame. */
+const spinQ = new THREE.Quaternion();
+function spinFrom(rx, ry, rz) {
+  if (!rx && !ry && !rz) return;
+  spinQ.identity();
+  if (ry) { dq.setFromAxisAngle(dqAxis.set(0, 1, 0), ry); spinQ.multiply(dq); }
+  if (rx) { dq.setFromAxisAngle(dqAxis.set(1, 0, 0), rx); spinQ.multiply(dq); }
+  if (rz) { dq.setFromAxisAngle(dqAxis.set(0, 0, 1), rz); spinQ.multiply(dq); }
+  spinQ.normalize();
+  view.qGoal.multiply(spinQ).normalize();
+  /* Read the composed turn back as an axis and an angle. w is cos(angle/2) and the
+     vector part is the axis scaled by sin(angle/2), so the axis needs normalising
+     out; a turn too small to have a stable axis is simply no momentum. */
+  const s = Math.hypot(spinQ.x, spinQ.y, spinQ.z);
+  if (s < 1e-8) { view.spinAngle = 0; return; }
+  view.spinAxis.set(spinQ.x / s, spinQ.y / s, spinQ.z / s);
+  view.spinAngle = 2 * Math.atan2(s, spinQ.w);
+}
 
 const hintEl = document.getElementById('hint');
 const btnReset = document.getElementById('btnReset');
@@ -675,28 +730,32 @@ function engage() { view.touched = true; }
 function beginGesture() {
   if (gesture.active) return;
   gesture.active = true;
-  gesture.yaw = view.yaw; gesture.pitch = view.pitch; gesture.zoom = view.zoom;
-  gesture.yawGoal = view.yawGoal; gesture.pitchGoal = view.pitchGoal;
-  gesture.zoomGoal = view.zoomGoal;
+  gesture.qL.copy(view.qL); gesture.qGoal.copy(view.qGoal);
+  gesture.zoom = view.zoom; gesture.zoomGoal = view.zoomGoal;
   gesture.touched = view.touched;
 }
 
 function undoGesture() {
   if (!gesture.active) return;
-  view.yaw = gesture.yaw; view.pitch = gesture.pitch; view.zoom = gesture.zoom;
-  view.yawGoal = gesture.yawGoal; view.pitchGoal = gesture.pitchGoal;
-  view.zoomGoal = gesture.zoomGoal;
-  view.vYaw = 0; view.vPitch = 0;
+  view.qL.copy(gesture.qL); view.qGoal.copy(gesture.qGoal);
+  view.zoom = gesture.zoom; view.zoomGoal = gesture.zoomGoal;
+  view.spinAngle = 0;
   view.touched = gesture.touched;
+}
+
+/* Is a quaternion the identity turn, to within the same hair the eased scalars are
+   settled against? w is the cosine of half the angle, and -q is the same rotation
+   as q, so it is the distance of |w| from 1 that answers it. */
+function isIdentity(q) {
+  return Math.abs(Math.abs(q.w) - 1) < EPS;
 }
 
 /* Is there anything to reset? Only if the view sits off the framing the scene gave
    it, or is still carrying a release back into one. A finger that merely crossed the
    canvas on its way down the page moved nothing, so it is offered nothing. */
 function viewMoved() {
-  return view.yaw !== 0 || view.pitch !== 0 || view.zoom !== 1 ||
-    view.yawGoal !== 0 || view.pitchGoal !== 0 || view.zoomGoal !== 1 ||
-    view.vYaw !== 0 || view.vPitch !== 0;
+  return !isIdentity(view.qL) || !isIdentity(view.qGoal) ||
+    view.zoom !== 1 || view.zoomGoal !== 1 || view.spinAngle !== 0;
 }
 
 function syncViewUi() {
@@ -713,9 +772,9 @@ function syncViewUi() {
 }
 
 function resetView() {
-  view.yawGoal = 0; view.pitchGoal = 0; view.zoomGoal = 1;
-  view.vYaw = 0; view.vPitch = 0;
-  if (reduceMotion) { view.yaw = 0; view.pitch = 0; view.zoom = 1; }
+  view.qGoal.copy(QI); view.zoomGoal = 1;
+  view.spinAngle = 0;
+  if (reduceMotion) { view.qL.copy(QI); view.zoom = 1; }
   kickView();
 }
 
@@ -738,6 +797,13 @@ function pinchSpan() {
   return Math.hypot(p[0].x - p[1].x, p[0].y - p[1].y);
 }
 
+/* The angle of the line between two fingers. Turning that line rolls the piece,
+   which is the one axis a single finger cannot reach on its own. */
+function twistAngle() {
+  const p = Array.from(touches.values());
+  return Math.atan2(p[1].y - p[0].y, p[1].x - p[0].x);
+}
+
 canvas.addEventListener('pointerdown', (e) => {
   if (e.pointerType === 'mouse' && e.button !== 0) return;   // the left button orbits; leave the rest alone
   beginGesture();
@@ -746,10 +812,12 @@ canvas.addEventListener('pointerdown', (e) => {
     if (touches.size >= 2) {
       drag.id = -1;
       canvas.classList.remove('is-grabbing');
-      /* seed the pinch on exactly two fingers; a third neither orbits nor re-seeds */
+      /* seed the pinch and the twist on exactly two fingers; a third neither
+         orbits nor re-seeds */
       if (touches.size === 2) {
         pinchFrom = pinchSpan();
         pinchZoom = view.zoomGoal;
+        twistFrom = twistAngle();
         engage();
       }
       return;
@@ -759,7 +827,7 @@ canvas.addEventListener('pointerdown', (e) => {
   drag.id = e.pointerId;
   drag.x = e.clientX;
   drag.y = e.clientY;
-  view.vYaw = 0; view.vPitch = 0;
+  view.spinAngle = 0;
   try { canvas.setPointerCapture(e.pointerId); } catch (err) { /* capture is a nicety */ }
   canvas.classList.add('is-grabbing');
   canvas.focus({ preventScroll: true });
@@ -772,6 +840,16 @@ canvas.addEventListener('pointermove', (e) => {
     touches.set(e.pointerId, { x: e.clientX, y: e.clientY });
     if (touches.size === 2 && pinchFrom > 0) {
       view.zoomGoal = clamp(pinchZoom * (pinchFrom / Math.max(1, pinchSpan())), ZOOM_MIN, ZOOM_MAX);
+      /* Twisting the two fingers rolls the piece. Re-seeded every move, so the
+         step is always the small angle just travelled and never has to be
+         unwrapped across the half turn where atan2 changes sign. */
+      const tw = twistAngle();
+      let roll = tw - twistFrom;
+      if (roll > Math.PI) roll -= Math.PI * 2;
+      else if (roll < -Math.PI) roll += Math.PI * 2;
+      twistFrom = tw;
+      turn(0, 0, 1, roll);
+      view.qL.copy(view.qGoal);   // a two-finger turn tracks the fingers, unsmoothed
       kickView();
       return;
     }
@@ -781,20 +859,30 @@ canvas.addEventListener('pointermove', (e) => {
   const dy = e.clientY - drag.y;
   drag.x = e.clientX;
   drag.y = e.clientY;
-  const yawStep = -(dx / Math.max(1, window.innerWidth)) * Math.PI * 2;
-  const pitchStep = (dy / Math.max(1, window.innerHeight)) * Math.PI * 1.4;
-  view.yawGoal += yawStep;
-  view.pitchGoal = clamp(view.pitchGoal + pitchStep, -PITCH_LIMIT, PITCH_LIMIT);
-  view.vYaw = yawStep;
-  view.vPitch = pitchStep;
+  /* Held shift, a horizontal drag rolls instead of turning: the third axis from a
+     single pointer, for anyone without two fingers to twist with. */
+  if (e.shiftKey) {
+    spinFrom(0, 0, -(dx / Math.max(1, window.innerWidth)) * Math.PI * 2);
+  } else {
+    /* Direct manipulation: the piece follows the pointer. Drag right and it turns
+       right, which is the camera going the other way around it, hence the signs.
+       Nothing is clamped: keep dragging and it keeps coming round, past the top,
+       upside down, and back, because a quaternion has no pole to snag on. */
+    spinFrom(
+      -(dy / Math.max(1, window.innerHeight)) * Math.PI * 1.4,
+      -(dx / Math.max(1, window.innerWidth)) * Math.PI * 2,
+      0
+    );
+  }
   engage();
   kickView();
 });
 
 function endDrag(e) {
   touches.delete(e.pointerId);
-  if (touches.size === 2) { pinchFrom = pinchSpan(); pinchZoom = view.zoomGoal; }
-  else if (touches.size < 2) pinchFrom = 0;
+  if (touches.size === 2) {
+    pinchFrom = pinchSpan(); pinchZoom = view.zoomGoal; twistFrom = twistAngle();
+  } else if (touches.size < 2) pinchFrom = 0;
   if (e.pointerId === drag.id) {
     drag.id = -1;
     canvas.classList.remove('is-grabbing');
@@ -823,7 +911,8 @@ if (btnReset) btnReset.addEventListener('click', resetView);
 
 /* The same orbit from the keyboard, for anyone not using a pointer. */
 canvas.setAttribute('aria-label', (canvas.getAttribute('aria-label') || '') +
-  ' Interactive: drag or use the arrow keys to orbit the view, plus and minus to zoom, R to reset it.');
+  ' Interactive: drag or use the arrow keys to turn the view freely in any direction,' +
+  ' shift and drag or Q and E to roll it, plus and minus to zoom, R to reset it.');
 
 let userPaused = false;
 let hidden = false;
@@ -848,10 +937,15 @@ btnPlay.addEventListener('click', () => {
 canvas.addEventListener('keydown', (e) => {
   if (e.code === 'Space') { e.preventDefault(); btnPlay.click(); return; }
   const step = 0.14;
-  if (e.code === 'ArrowLeft') view.yawGoal += step;
-  else if (e.code === 'ArrowRight') view.yawGoal -= step;
-  else if (e.code === 'ArrowUp') view.pitchGoal = clamp(view.pitchGoal - step, -PITCH_LIMIT, PITCH_LIMIT);
-  else if (e.code === 'ArrowDown') view.pitchGoal = clamp(view.pitchGoal + step, -PITCH_LIMIT, PITCH_LIMIT);
+  /* Every axis the pointer can reach, the keyboard reaches too, and just as far:
+     hold an arrow and the piece comes all the way round. Q and E are the roll the
+     pointer gets from shift or a two-finger twist. */
+  if (e.code === 'ArrowLeft') turn(0, 1, 0, step);
+  else if (e.code === 'ArrowRight') turn(0, 1, 0, -step);
+  else if (e.code === 'ArrowUp') turn(1, 0, 0, step);
+  else if (e.code === 'ArrowDown') turn(1, 0, 0, -step);
+  else if (e.key === 'q' || e.key === 'Q') turn(0, 0, 1, step);
+  else if (e.key === 'e' || e.key === 'E') turn(0, 0, 1, -step);
   else if (e.key === '+' || e.key === '=') view.zoomGoal = clamp(view.zoomGoal * 0.88, ZOOM_MIN, ZOOM_MAX);
   else if (e.key === '-' || e.key === '_') view.zoomGoal = clamp(view.zoomGoal / 0.88, ZOOM_MIN, ZOOM_MAX);
   else if (e.key === 'r' || e.key === 'R') { resetView(); engage(); e.preventDefault(); return; }
@@ -910,27 +1004,28 @@ const off = new THREE.Vector3();
    viewer moving the view never flattens the scene's own tilt. */
 const sceneTwist = new THREE.Quaternion();
 const aimQ = new THREE.Quaternion();
+/* The scene's pure aim at the pivot from its own camera spot this frame, twist
+   removed. It is the frame the viewer's rotation is composed onto. */
+const baseAim = new THREE.Quaternion();
 let baseSet = false;
 
 function stepView(dt) {
-  if (reduceMotion) { view.vYaw = 0; view.vPitch = 0; }
-  else if (drag.id === -1) {
-    view.yawGoal += view.vYaw;
-    view.pitchGoal = clamp(view.pitchGoal + view.vPitch, -PITCH_LIMIT, PITCH_LIMIT);
-    const decay = Math.pow(0.9, dt * 60);
-    view.vYaw *= decay;
-    view.vPitch *= decay;
-    if (Math.abs(view.vYaw) < EPS) view.vYaw = 0;
-    if (Math.abs(view.vPitch) < EPS) view.vPitch = 0;
+  if (reduceMotion) view.spinAngle = 0;
+  else if (drag.id === -1 && view.spinAngle !== 0) {
+    turn(view.spinAxis.x, view.spinAxis.y, view.spinAxis.z, view.spinAngle);
+    view.spinAngle *= Math.pow(0.9, dt * 60);
+    if (Math.abs(view.spinAngle) < SPIN_EPS) view.spinAngle = 0;
   }
   const k = reduceMotion ? 1 : Math.min(1, dt * 9);
-  view.yaw += (view.yawGoal - view.yaw) * k;
-  view.pitch += (view.pitchGoal - view.pitch) * k;
+  /* slerp, not a lerp per axis: the eased view travels the short way round the one
+     arc between here and the goal, which is the same path however far round the
+     piece has been turned. */
+  if (k >= 1) view.qL.copy(view.qGoal);
+  else view.qL.slerp(view.qGoal, k);
   view.zoom += (view.zoomGoal - view.zoom) * k;
   /* Settle exactly on the identity view rather than asymptotically near it, so a
      reset gives the framing back to the scene instead of leaving it a hair off. */
-  if (Math.abs(view.yaw) < EPS) view.yaw = 0;
-  if (Math.abs(view.pitch) < EPS) view.pitch = 0;
+  if (isIdentity(view.qGoal) && isIdentity(view.qL)) view.qL.copy(QI);
   if (Math.abs(view.zoom - 1) < EPS) view.zoom = 1;
   syncViewUi();
 }
@@ -945,7 +1040,8 @@ function applyView(fresh) {
        scene actually left the camera, then put the scene's orientation back. */
     aimQ.copy(camera.quaternion);
     rawLookAt(sceneLook);
-    sceneTwist.copy(camera.quaternion).invert().multiply(aimQ);
+    baseAim.copy(camera.quaternion);
+    sceneTwist.copy(baseAim).invert().multiply(aimQ);
     camera.quaternion.copy(aimQ);
   } else if (baseSet) {
     camera.position.copy(baseCam);
@@ -954,30 +1050,28 @@ function applyView(fresh) {
   /* Nothing to add: give the scene's own framing straight back, so an untouched
      view and a reset view are the same view, down to the pixel. When the piece is
      paused the scene is not re-aiming the camera itself, so do it here. */
-  if (view.yaw === 0 && view.pitch === 0 && view.zoom === 1) {
+  if (view.zoom === 1 && isIdentity(view.qL)) {
     if (!fresh) { rawLookAt(sceneLook); camera.quaternion.multiply(sceneTwist); }
     return;
   }
   off.copy(baseCam).sub(sceneLook);
-  let r = off.length();
+  const r = off.length();
   if (r < 1e-5) return;
-  const theta = Math.atan2(off.x, off.z) + view.yaw;
-  const phi = clamp(Math.acos(clamp(off.y / r, -1, 1)) - view.pitch, 0.08, Math.PI - 0.08);
-  r = Math.max(0.05, r * view.zoom);
-  const flat = Math.sin(phi) * r;
-  camera.position.set(
-    sceneLook.x + flat * Math.sin(theta),
-    sceneLook.y + r * Math.cos(phi),
-    sceneLook.z + flat * Math.cos(theta)
-  );
-  rawLookAt(sceneLook);
+  /* Turn the whole rig, camera and aim together, rigidly about the pivot. Aiming
+     the camera at the pivot leaves its local +z pointing back along the offset, so
+     the offset is just that axis at length r: rotate the aim by the viewer's turn
+     and the new spot on the sphere falls out of the same quaternion that gives the
+     new orientation. No up vector is consulted anywhere, which is exactly why
+     there is no pole to flip over and nothing to clamp. */
+  camera.quaternion.copy(baseAim).multiply(view.qL);
+  off.set(0, 0, Math.max(0.05, r * view.zoom)).applyQuaternion(camera.quaternion);
+  camera.position.copy(sceneLook).add(off);
   camera.quaternion.multiply(sceneTwist);
 }
 
 function viewSettling() {
-  return drag.id !== -1 || view.vYaw !== 0 || view.vPitch !== 0 ||
-    Math.abs(view.yawGoal - view.yaw) > EPS ||
-    Math.abs(view.pitchGoal - view.pitch) > EPS ||
+  return drag.id !== -1 || view.spinAngle !== 0 ||
+    Math.abs(view.qL.dot(view.qGoal)) < 1 - EPS ||
     Math.abs(view.zoomGoal - view.zoom) > EPS;
 }
 

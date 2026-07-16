@@ -50,7 +50,7 @@
     "jobTitle": "AI & Full-Stack Engineer",
     "url": "https://salmanadnan.com/",
     "image": "https://salmanadnan.com/assets/portrait.webp",
-    "email": "mailto:salmanadnan2257@gmail.com",
+    "email": "mailto:salman@digitalise.agency",
     "sameAs": [
       "https://github.com/salmanadnan2257",
       "https://www.linkedin.com/in/salman-adnan/"
@@ -84,6 +84,7 @@
 </header>
 
 <main id="main">
+
 
   <!-- HERO -->
   <section class="hero" aria-labelledby="hero-title">
@@ -120,12 +121,8 @@
           </span>
         </h1>
         <p class="hero__lead">
-          Companies hire me to build the things their business depends on, and to keep them
-          working. Websites and web apps. Software that takes over slow, repetitive work.
-          AI tools that do a real job instead of a demo. I write the code, test it, put it
-          live, and fix it when it breaks. Everything here is real, working software, and every
-          project page starts by saying plainly what the thing does and who it is for, before
-          any of the technical detail.
+          Websites and web apps. Software that takes over slow, repetitive work. AI tools
+          that do a real job instead of a demo.
         </p>
         <div class="hero__actions">
           <a class="btn btn--primary" href="#work">See what I've built</a>
@@ -134,7 +131,7 @@
         <ul class="hero__meta" aria-label="Links">
           <li><a data-repo="" class="hero__link" rel="noopener">GitHub</a></li>
           <li><a href="https://www.linkedin.com/in/salman-adnan/" rel="noopener">LinkedIn</a></li>
-          <li><a href="mailto:salmanadnan2257@gmail.com">Email</a></li>
+          <li><a href="mailto:salman@digitalise.agency">Email</a></li>
         </ul>
       </div>
       <div class="hero__photo">
@@ -148,119 +145,6 @@
         </div>
         <span class="photo-badge">Founder, Digitalise Agency</span>
       </div>
-    </div>
-  </section>
-
-  <!-- START HERE: the live, draggable 3D stage.
-       One WebGL context on the whole page, ever. The rail swaps which system is
-       running by tearing the old frame down before it builds the new one, so the
-       browser is never asked to hold two. See the viz stage block in script.js. -->
-  <section class="stage" id="start-here" aria-labelledby="stage-title">
-    <div class="wrap">
-      <div class="section__head stage__head">
-        <p class="eyebrow">Start here</p>
-        <h2 id="stage-title" class="section__title">Grab it. Turn it. This is how the system actually works.</h2>
-        <p class="section__intro">
-          Not a video, not a diagram. This is a live 3D model of one of the systems on this
-          site, running in your browser right now. Take hold of it and turn it. Then load a
-          different system into it and turn that one too.
-        </p>
-      </div>
-
-      <figure class="stage__figure">
-        <div class="stage__box">
-          <div class="stage__bar">
-            <span class="stage__live"><span class="stage__dot" aria-hidden="true"></span>Live 3D</span>
-            <span class="stage__grab" id="stage-grab">Drag it to orbit &middot; scroll or pinch to zoom &middot; double-click to reset</span>
-          </div>
-          <div class="stage__frame" id="stage-frame">
-            <img class="stage__poster" id="stage-poster"
-                 src="assets/screenshots/trade-intelligence-copilot.webp"
-                 alt="Evaluation results chart for Trade Intelligence Copilot"
-                 width="1200" height="733" decoding="async">
-          </div>
-        </div>
-        <figcaption class="stage__caption" id="stage-caption">
-          <strong>Trade Intelligence Copilot.</strong> Signal Routes: a question fans out in gold across the world's trade lanes, the answer streams home in coral, and a scoring pass checks every answer as it lands.
-        </figcaption>
-      </figure>
-
-      <!-- Revealed once a visitor has actually held and turned the model for a moment.
-           A hand already on the thing is the warmest moment on the page, so this is where
-           the invitation to open that exact project belongs. It sits BELOW the canvas and
-           never over it. Its text is rebuilt from the rail's own data, so it always names
-           whichever system is loaded. Collapsed, not absent: see script.js. -->
-      <div class="stage__convert" id="stage-convert">
-        <p class="stage__convert-copy" id="stage-convert-copy"></p>
-        <a class="btn btn--primary" id="stage-convert-cta" href="projects/trade-intelligence-copilot.html">Open it &rarr;</a>
-        <button class="stage__convert-x" id="stage-convert-x" type="button" aria-label="Dismiss this suggestion">&times;</button>
-      </div>
-
-      <!-- The rail is picked on two axes at once: the scene has to stop a stranger who
-           has just landed, and the project underneath it has to survive an interview.
-           Every number below is the one its own project page reports. -->
-      <div class="stage__rail" role="group" aria-label="Choose which system runs in 3D">
-        <button class="stage__pick is-on" type="button" aria-pressed="true"
-                data-viz="trade-intelligence-copilot"
-                data-title="Trade Intelligence Copilot"
-                data-shot="assets/screenshots/trade-intelligence-copilot.webp"
-                data-alt="Evaluation results chart for Trade Intelligence Copilot"
-                data-caption="Signal Routes: a question fans out in gold across the world's trade lanes, the answer streams home in coral, and a scoring pass checks every answer as it lands.">
-          <span class="stage__pick-name">Trade Intelligence Copilot</span>
-          <span class="stage__pick-num">15 / 15 SQL answers correct</span>
-        </button>
-
-        <button class="stage__pick" type="button" aria-pressed="false"
-                data-viz="raft-kv"
-                data-title="Raft Consensus KV Store"
-                data-shot="assets/screenshots/raft-kv.webp"
-                data-alt="Terminal output from a real Raft chaos test run"
-                data-caption="Consensus Ring: the machines check in on each other, copy every change, get cut off by a broken network, vote in a new leader, and heal.">
-          <span class="stage__pick-name">Raft Consensus KV Store</span>
-          <span class="stage__pick-num">564,170 reads and writes, 0 contradictions</span>
-        </button>
-
-        <button class="stage__pick" type="button" aria-pressed="false"
-                data-viz="agent-runtime"
-                data-title="Agent Runtime"
-                data-shot="assets/screenshots/agent-runtime.webp"
-                data-alt="Terminal output from a real Agent Runtime scenario replay"
-                data-caption="Event Helix: a run is written down once, bead by bead, then replayed into a perfectly identical ghost.">
-          <span class="stage__pick-name">Agent Runtime</span>
-          <span class="stage__pick-num">93 tests, 0 live API calls</span>
-        </button>
-
-        <button class="stage__pick" type="button" aria-pressed="false"
-                data-viz="zarailink"
-                data-title="ZaraiLink"
-                data-shot="assets/screenshots/zarailink.webp"
-                data-alt="Screenshot of the ZaraiLink Trade Directory"
-                data-caption="Field of Trade: a team project, led by Salman. The wheat is the crop being traded, the arcs are deals crossing the sky, and every deal that lands stirs the field below it.">
-          <span class="stage__pick-name">ZaraiLink (team project)</span>
-          <span class="stage__pick-num">112 tests passing</span>
-        </button>
-
-        <button class="stage__pick" type="button" aria-pressed="false"
-                data-viz="sqlmill"
-                data-title="SQL Database Engine"
-                data-shot="assets/screenshots/sqlmill.webp"
-                data-alt="Benchmark charts for the SQL Database Engine"
-                data-caption="B+tree Pulse: a search dives down the index to one row, a scan sweeps sideways across many, and every change goes into a safety journal first, so a crash loses nothing.">
-          <span class="stage__pick-name">SQL Database Engine</span>
-          <span class="stage__pick-num">300 / 300 crash rounds</span>
-        </button>
-
-        <button class="stage__pick" type="button" aria-pressed="false"
-                data-viz="urdu-slm"
-                data-title="Urdu Language Model"
-                data-shot="assets/screenshots/urdu-slm.webp"
-                data-alt="Training loss curve for the Urdu Language Model"
-                data-caption="Attention Loom: the model reads right to left, the way Urdu does, and every word weighs every other word as it goes.">
-          <span class="stage__pick-name">Urdu Language Model</span>
-          <span class="stage__pick-num">5.23x fewer chunks than GPT-2</span>
-        </button>
-      </div>
-
     </div>
   </section>
 
@@ -299,38 +183,73 @@
       </div>
       <div class="pain-grid">
         <div class="pain-card">
-          <div class="pain-card__icon" aria-hidden="true">&#9203;</div>
+          <div class="pain-card__icon" aria-hidden="true"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 22h14" /><path d="M5 2h14" /><path d="M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22" /><path d="M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l4.414-4.414A2 2 0 0 0 17 6.172V2" /></svg></div>
           <h3>Manual work eating your week</h3>
-          <p>Someone still copies data between spreadsheets, publishes posts by hand, or checks stock by eye, work a script could do unattended.</p>
+          <p>Someone still copies data by hand, work a script could do unattended.</p>
         </div>
         <div class="pain-card">
-          <div class="pain-card__icon" aria-hidden="true">&#128038;</div>
+          <div class="pain-card__icon" aria-hidden="true"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m12 14 4-4" /><path d="M3.34 19a10 10 0 1 1 17.32 0" /></svg></div>
           <h3>Slow, clunky software</h3>
-          <p>The app is fine with one user and buckles the moment real traffic arrives, or two people save at the same time.</p>
+          <p>Fine with one user, buckles the moment real traffic arrives.</p>
         </div>
         <div class="pain-card">
-          <div class="pain-card__icon" aria-hidden="true">&#10060;</div>
+          <div class="pain-card__icon" aria-hidden="true"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" /><path d="m14.5 9.5-5 5" /><path d="m9.5 9.5 5 5" /></svg></div>
           <h3>No tests, no confidence</h3>
-          <p>Every deploy is a gamble because nothing verifies the code still works before it ships.</p>
+          <p>Every release is a gamble, because nothing checks it first.</p>
         </div>
         <div class="pain-card">
-          <div class="pain-card__icon" aria-hidden="true">&#128190;</div>
+          <div class="pain-card__icon" aria-hidden="true"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><ellipse cx="12" cy="5" rx="9" ry="3" /><path d="M3 5V19A9 3 0 0 0 21 19V5" /><path d="M3 12A9 3 0 0 0 21 12" /></svg></div>
           <h3>Data you can't trust</h3>
-          <p>A crash, a power blip, or a bad write can quietly corrupt or lose the data your business runs on.</p>
+          <p>A crash or a power blip can quietly corrupt the data you run on.</p>
         </div>
         <div class="pain-card">
-          <div class="pain-card__icon" aria-hidden="true">&#129521;</div>
+          <div class="pain-card__icon" aria-hidden="true"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M10 22V7a1 1 0 0 0-1-1H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-5a1 1 0 0 0-1-1H2" /><rect x="14" y="2" width="8" height="8" rx="1" /></svg></div>
           <h3>A fragile MVP you outgrew</h3>
-          <p>It shipped fast to prove the idea, and now every new feature risks breaking the ones already live.</p>
+          <p>It shipped fast to prove the idea. Now every new feature breaks an old one.</p>
         </div>
         <div class="pain-card">
-          <div class="pain-card__icon" aria-hidden="true">&#129302;</div>
+          <div class="pain-card__icon" aria-hidden="true"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 8V4H8" /><rect width="16" height="12" x="4" y="8" rx="2" /><path d="M2 14h2" /><path d="M20 14h2" /><path d="M15 13v2" /><path d="M9 13v2" /></svg></div>
           <h3>AI features you can't audit</h3>
-          <p>An AI feature does something and nobody can replay the decision or explain why it happened.</p>
+          <p>Your AI does something and nobody can explain why.</p>
         </div>
       </div>
       <div class="pain-cta">
         <a class="btn btn--primary btn--big" href="#book-a-call">Sound familiar? Let's fix it &rarr; Book a free call</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="process" aria-labelledby="process-title">
+    <div class="wrap">
+      <div class="section__head">
+        <p class="eyebrow">My Approach</p>
+        <h2 id="process-title" class="section__title">How I work.</h2>
+        <p class="section__intro">
+          The same four steps on every job, from the first call to launch, so you always know what is being built and what state it is in.
+        </p>
+      </div>
+
+      <div class="process-grid">
+        <div class="process-step">
+          <div class="step-num">01</div>
+          <h3>Understand the Problem</h3>
+          <p>I start with what you actually need, what you cannot change, and what success would look like. Not every project is solved the same way, and assumptions are the enemy of good software.</p>
+        </div>
+        <div class="process-step">
+          <div class="step-num">02</div>
+          <h3>Plan & Design</h3>
+          <p>Design first. I map out how the pieces fit, how the data is stored, and how the pieces talk to each other, before writing the real code. A problem caught on paper is cheap. The same problem caught after launch is not.</p>
+        </div>
+        <div class="process-step">
+          <div class="step-num">03</div>
+          <h3>Implement with Tests</h3>
+          <p>I write the checks before the code. Every feature gets automatic tests: on each small piece, on the pieces working together, and on the whole thing as a person would actually use it. Tests are documentation that never lies.</p>
+        </div>
+        <div class="process-step">
+          <div class="step-num">04</div>
+          <h3>Verify & Deploy</h3>
+          <p>Before it goes live I push it under heavy traffic, review it for security holes, and run it on a copy of the real setup. Going live is one command, and so is undoing it. No surprises on launch day.</p>
+        </div>
       </div>
     </div>
   </section>
@@ -348,28 +267,33 @@
     <div class="wrap">
       <div class="section__head">
         <p class="eyebrow">Start with three</p>
-        <h2 id="flag-title" class="section__title">If you read three things here, read these.</h2>
+        <h2 id="flag-title" class="section__title">Three projects worth your time.</h2>
         <p class="section__intro">
-          Thirty-eight projects is a wall, and nobody reads a wall. So here are three to judge me on. Everything else is one click away, underneath.
+          If you read three things here, read these. Two production systems, seven core systems, four full applications, and twenty-five more.
         </p>
       </div>
 
       <div class="featured-grid">
 
-        <a class="pcard pcard--feature span-6 acc-yellow" href="projects/agency-blog-saas.html" aria-label="Agency Blog SaaS: read the audit">
+        <a class="pcard pcard--feature span-6 acc-yellow" href="projects/agency-blog-saas.html" aria-label="Agency Blog SaaS: how it works">
           <div class="pcard__media"><img src="assets/screenshots/agency-blog-saas.webp" alt="The davonex.com homepage, a Digitalise Agency client site" loading="lazy" decoding="async"></div>
-          <div class="pcard__head">
-            <span class="pcard__idx">01</span>
-            <span class="pcard__metric">132 / 132 tests pass</span>
+          <!-- Everything that is not the picture is wrapped, so the card can set the two
+               side by side on a wide screen. Stacked, this one card ran 851px tall and
+               pushed the other two of the three clean off the bottom of the screen. -->
+          <div class="pcard__body">
+            <div class="pcard__head">
+              <span class="pcard__idx">01</span>
+              <span class="pcard__metric">132 / 132 tests pass</span>
+            </div>
+            <h3 class="pcard__title">Agency Blog SaaS</h3>
+            <code class="pcard__repo">agency-blog-saas</code>
+            <p class="pcard__what"><strong>Problem:</strong> An agency selling blog writing needs one place for clients to order it. <strong>Solution:</strong> The web app that runs Salman's own agency: a client signs in, asks for a post, and the system writes, stores, and publishes it; the credits are refunded automatically if the writing fails. <strong>Results:</strong> Seven live clients on the agency's own servers; 132 of 132 tests pass. The code is private, so the linked demo is a scripted tour on made-up data.</p>
+            <ul class="pcard__tags"><li>Django</li><li>Postgres</li><li>Production</li></ul>
+            <span class="pcard__go">How it works <span aria-hidden="true">&rarr;</span></span>
           </div>
-          <h3 class="pcard__title">Agency Blog SaaS</h3>
-          <code class="pcard__repo">agency-blog-saas</code>
-          <p class="pcard__what"><strong>Problem:</strong> An agency selling blog writing needs one place for clients to order it. <strong>Solution:</strong> The web app that runs Salman's own agency: a client signs in, asks for a post, and the system writes, stores, and publishes it; the credits are refunded automatically if the writing fails. <strong>Results:</strong> Seven live clients on the agency's own servers; 132 of 132 tests pass. The code is private, so the linked demo is a scripted tour on made-up data.</p>
-          <ul class="pcard__tags"><li>Django</li><li>Postgres</li><li>Production</li></ul>
-          <span class="pcard__go">Read the audit <span aria-hidden="true">&rarr;</span></span>
         </a>
 
-        <a class="pcard span-3 acc-purple" href="projects/inference-engine.html" aria-label="LLM Inference Engine: see the benchmarks">
+        <a class="pcard span-3 acc-purple" href="projects/inference-engine.html" aria-label="LLM Inference Engine: the speed gain">
           <div class="pcard__media"><img src="assets/screenshots/inference-engine.webp" alt="Benchmark chart for the LLM Inference Engine" loading="lazy" decoding="async"></div>
           <div class="pcard__head">
             <span class="pcard__idx">02</span>
@@ -379,10 +303,10 @@
           <code class="pcard__repo">inference-engine</code>
           <p class="pcard__what"><strong>Problem:</strong> A machine running an AI model sits idle between requests, so a queue of users crawls. <strong>Solution:</strong> Careful memory housekeeping, and serving eight requests at once instead of one at a time. <strong>Result:</strong> 2.8x more words per second on the same plain CPU, with no graphics card involved.</p>
           <ul class="pcard__tags"><li>Python</li><li>Performance</li></ul>
-          <span class="pcard__go">See the benchmarks <span aria-hidden="true">&rarr;</span></span>
+          <span class="pcard__go">The speed gain <span aria-hidden="true">&rarr;</span></span>
         </a>
 
-        <a class="pcard span-3 acc-coral" href="projects/raft-kv.html" aria-label="Raft Consensus KV Store: the chaos tests">
+        <a class="pcard span-3 acc-coral" href="projects/raft-kv.html" aria-label="Raft Consensus KV Store: surviving crashes">
           <div class="pcard__media"><img src="assets/screenshots/raft-kv.webp" alt="Terminal output from a real Raft chaos test run" loading="lazy" decoding="async"></div>
           <div class="pcard__head">
             <span class="pcard__idx">03</span>
@@ -392,14 +316,13 @@
           <code class="pcard__repo">raft-kv</code>
           <p class="pcard__what"><strong>Problem:</strong> Keep a copy of your data on several machines so no crash loses it, and they can drift into two versions that both look right. <strong>Solution:</strong> An agreement protocol: the machines must vote before anything counts as written. <strong>Result:</strong> 5,000 randomly generated disasters, and the data never once contradicted itself.</p>
           <ul class="pcard__tags"><li>Python</li><li>Distributed</li></ul>
-          <span class="pcard__go">The chaos tests <span aria-hidden="true">&rarr;</span></span>
+          <span class="pcard__go">Surviving crashes <span aria-hidden="true">&rarr;</span></span>
         </a>
 
       </div>
 
       <div class="flagship__more">
         <button class="btn btn--ghost btn--big" id="all-toggle" type="button" aria-expanded="false" aria-controls="all-projects">See all 38 projects</button>
-        <p class="flagship__hint">Two production systems, seven core systems, four full applications, and twenty-five more.</p>
       </div>
     </div>
   </section>
@@ -419,7 +342,7 @@
 
       <div class="featured-grid">
 
-        <a class="pcard span-3 acc-yellow" href="projects/agency-blog-saas.html" aria-label="Agency Blog SaaS: read the audit">
+        <a class="pcard span-3 acc-yellow" href="projects/agency-blog-saas.html" aria-label="Agency Blog SaaS: how it works">
           <div class="pcard__media"><img src="assets/screenshots/agency-blog-saas.webp" alt="The davonex.com homepage, a Digitalise Agency client site" loading="lazy" decoding="async"></div>
           <div class="pcard__head">
             <span class="pcard__idx">01</span>
@@ -429,7 +352,7 @@
           <code class="pcard__repo">agency-blog-saas</code>
           <p class="pcard__what"><strong>Problem:</strong> An agency selling blog writing needs one place for clients to order it. <strong>Solution:</strong> The web app that runs Salman's own agency: a client signs in, asks for a post, and the system writes, stores, and publishes it; the credits are refunded automatically if the writing fails. <strong>Results:</strong> Seven live clients on the agency's own servers; 132 of 132 tests pass. The code is private, so the linked demo is a scripted tour on made-up data.</p>
           <ul class="pcard__tags"><li>Django</li><li>Postgres</li><li>Production</li></ul>
-          <span class="pcard__go">Read the audit <span aria-hidden="true">&rarr;</span></span>
+          <span class="pcard__go">How it works <span aria-hidden="true">&rarr;</span></span>
         </a>
 
         <a class="pcard span-3 acc-coral" href="projects/blog-posting-pipeline.html" aria-label="Blog Posting Pipeline: the live posts">
@@ -462,7 +385,7 @@
 
       <div class="featured-grid">
 
-        <a class="pcard span-2 acc-coral" href="projects/urdu-slm.html" aria-label="Urdu Language Model: the training curve">
+        <a class="pcard span-2 acc-coral" href="projects/urdu-slm.html" aria-label="Urdu Language Model: how it learned">
           <div class="pcard__media"><img src="assets/screenshots/urdu-slm.webp" alt="Training loss curve for the Urdu Language Model" loading="lazy" decoding="async"></div>
           <div class="pcard__head">
             <span class="pcard__idx">01</span>
@@ -472,10 +395,10 @@
           <code class="pcard__repo">urdu-slm</code>
           <p class="pcard__what"><strong>Problem:</strong> AI text models are built for English. They chop Urdu into far more pieces than it needs, so every word costs more to read. <strong>Solution:</strong> One built from scratch on cleaned Urdu text, with a splitter taught to cut Urdu sensibly. <strong>Result:</strong> Reads the same Urdu in 5.23x fewer pieces than GPT-2. It writes fluent Urdu, but it is small and still gets facts wrong.</p>
           <ul class="pcard__tags"><li>Python</li><li>Language</li></ul>
-          <span class="pcard__go">The training curve <span aria-hidden="true">&rarr;</span></span>
+          <span class="pcard__go">How it learned <span aria-hidden="true">&rarr;</span></span>
         </a>
 
-        <a class="pcard span-2 acc-yellow" href="projects/inference-engine.html" aria-label="LLM Inference Engine: see the benchmarks">
+        <a class="pcard span-2 acc-yellow" href="projects/inference-engine.html" aria-label="LLM Inference Engine: the speed gain">
           <div class="pcard__media"><img src="assets/screenshots/inference-engine.webp" alt="Benchmark chart for the LLM Inference Engine" loading="lazy" decoding="async"></div>
           <div class="pcard__head">
             <span class="pcard__idx">02</span>
@@ -485,10 +408,10 @@
           <code class="pcard__repo">inference-engine</code>
           <p class="pcard__what"><strong>Problem:</strong> A machine running an AI model sits idle between requests, so a queue of users crawls. <strong>Solution:</strong> Careful memory housekeeping, and serving eight requests at once instead of one at a time. <strong>Result:</strong> 2.8x more words per second on the same plain CPU, with no graphics card involved.</p>
           <ul class="pcard__tags"><li>Python</li><li>Performance</li></ul>
-          <span class="pcard__go">See the benchmarks <span aria-hidden="true">&rarr;</span></span>
+          <span class="pcard__go">The speed gain <span aria-hidden="true">&rarr;</span></span>
         </a>
 
-        <a class="pcard span-2 acc-purple" href="projects/sqlmill.html" aria-label="SQL Database Engine: the crash tests">
+        <a class="pcard span-2 acc-purple" href="projects/sqlmill.html" aria-label="SQL Database Engine: surviving power cuts">
           <div class="pcard__media"><img src="assets/screenshots/sqlmill.webp" alt="Benchmark chart for the SQL Database Engine" loading="lazy" decoding="async"></div>
           <div class="pcard__head">
             <span class="pcard__idx">03</span>
@@ -498,10 +421,10 @@
           <code class="pcard__repo">sqlmill</code>
           <p class="pcard__what"><strong>Problem:</strong> If the power cuts out mid-write, the data must not come back scrambled, and several people must be able to write at once. <strong>Solution:</strong> A database built from scratch, with a safety journal written before every change. <strong>Result:</strong> Killed at random 300 times; all 300 times the data came back intact.</p>
           <ul class="pcard__tags"><li>Python</li><li>Systems</li></ul>
-          <span class="pcard__go">The crash tests <span aria-hidden="true">&rarr;</span></span>
+          <span class="pcard__go">Surviving power cuts <span aria-hidden="true">&rarr;</span></span>
         </a>
 
-        <a class="pcard span-2 acc-coral" href="projects/raft-kv.html" aria-label="Raft Consensus KV Store: the chaos tests">
+        <a class="pcard span-2 acc-coral" href="projects/raft-kv.html" aria-label="Raft Consensus KV Store: surviving crashes">
           <div class="pcard__media"><img src="assets/screenshots/raft-kv.webp" alt="Terminal output from a real Raft chaos test run" loading="lazy" decoding="async"></div>
           <div class="pcard__head">
             <span class="pcard__idx">04</span>
@@ -511,10 +434,10 @@
           <code class="pcard__repo">raft-kv</code>
           <p class="pcard__what"><strong>Problem:</strong> Keep a copy of your data on several machines so no crash loses it, and they can drift into two versions that both look right. <strong>Solution:</strong> An agreement protocol: the machines must vote before anything counts as written. <strong>Result:</strong> 5,000 randomly generated disasters, and the data never once contradicted itself.</p>
           <ul class="pcard__tags"><li>Python</li><li>Distributed</li></ul>
-          <span class="pcard__go">The chaos tests <span aria-hidden="true">&rarr;</span></span>
+          <span class="pcard__go">Surviving crashes <span aria-hidden="true">&rarr;</span></span>
         </a>
 
-        <a class="pcard span-2 acc-yellow" href="projects/agent-runtime.html" aria-label="Agent Runtime: how replay works">
+        <a class="pcard span-2 acc-yellow" href="projects/agent-runtime.html" aria-label="Agent Runtime: recording decisions">
           <div class="pcard__media"><img src="assets/screenshots/agent-runtime.webp" alt="Terminal output from a real Agent Runtime scenario replay" loading="lazy" decoding="async"></div>
           <div class="pcard__head">
             <span class="pcard__idx">05</span>
@@ -524,10 +447,10 @@
           <code class="pcard__repo">agent-runtime</code>
           <p class="pcard__what"><strong>Problem:</strong> AI agents are unpredictable. You can't audit what they did or test if they broke. <strong>Solution:</strong> Record every action so you can replay it exactly the same way. <strong>Result:</strong> Test changes, audit decisions, debug problems with perfect records.</p>
           <ul class="pcard__tags"><li>Python</li><li>AI</li></ul>
-          <span class="pcard__go">How replay works <span aria-hidden="true">&rarr;</span></span>
+          <span class="pcard__go">Recording decisions <span aria-hidden="true">&rarr;</span></span>
         </a>
 
-        <a class="pcard span-2 acc-purple" href="projects/vector-db.html" aria-label="Vector Database Engine: the recall results">
+        <a class="pcard span-2 acc-purple" href="projects/vector-db.html" aria-label="Vector Database Engine: search accuracy">
           <div class="pcard__media"><img src="assets/screenshots/vector-db.webp" alt="Recall vs throughput chart for the Vector Database Engine" loading="lazy" decoding="async"></div>
           <div class="pcard__head">
             <span class="pcard__idx">06</span>
@@ -537,7 +460,7 @@
           <code class="pcard__repo">vector-db</code>
           <p class="pcard__what"><strong>Problem:</strong> Searching a huge pile of text by meaning, not exact words, is slow if you check every item. <strong>Solution:</strong> A search index built from the original research paper, not from a ready-made library. <strong>Result:</strong> At least as accurate as FAISS, the library the industry uses, though FAISS answers each search 10 to 13x faster.</p>
           <ul class="pcard__tags"><li>Python</li><li>Search</li></ul>
-          <span class="pcard__go">The recall results <span aria-hidden="true">&rarr;</span></span>
+          <span class="pcard__go">Search accuracy <span aria-hidden="true">&rarr;</span></span>
         </a>
 
         <a class="pcard span-2 acc-yellow" href="projects/cpp-ray-tracer.html" aria-label="C++ Ray Tracer Team: the shading layer">
@@ -570,7 +493,7 @@
 
       <div class="featured-grid">
 
-        <a class="pcard span-2 acc-coral" href="projects/trade-intelligence-copilot.html" aria-label="Trade Intelligence Copilot: the eval results">
+        <a class="pcard span-2 acc-coral" href="projects/trade-intelligence-copilot.html" aria-label="Trade Intelligence Copilot: answer accuracy">
           <div class="pcard__media"><img src="assets/screenshots/trade-intelligence-copilot.webp" alt="Evaluation results chart for Trade Intelligence Copilot" loading="lazy" decoding="async"></div>
           <div class="pcard__head">
             <span class="pcard__idx">01</span>
@@ -580,7 +503,7 @@
           <code class="pcard__repo">trade-intelligence-copilot</code>
           <p class="pcard__what"><strong>Problem:</strong> Answering a question about Pakistan's sugar import records means digging through the records yourself. <strong>Solution:</strong> Ask in plain English; it looks the answer up and shows you the exact rows it used. <strong>Results:</strong> 15 of 15 database answers correct, and it refuses to answer rather than invent one when the records cannot support it. Its misses on the rest of the 28-question test are published too.</p>
           <ul class="pcard__tags"><li>Python</li><li>Agents</li><li>Evaluation</li></ul>
-          <span class="pcard__go">The eval results <span aria-hidden="true">&rarr;</span></span>
+          <span class="pcard__go">Answer accuracy <span aria-hidden="true">&rarr;</span></span>
         </a>
 
         <a class="pcard span-2 acc-yellow" href="projects/zarailink.html" aria-label="ZaraiLink Team: the trade directory">
@@ -662,25 +585,25 @@
           <span class="mini__repo">postgres-scaling-lab</span>
           <h3>Postgres Scaling Lab</h3>
           <p>How far an ordinary database goes before you replace it: add an index, split a table by date, copy it to a second machine. Course work; the numbers come from the original course runs.</p>
-          <span class="mini__go">The 70% regression <span aria-hidden="true">&rarr;</span></span>
+          <span class="mini__go">70% slower <span aria-hidden="true">&rarr;</span></span>
         </a>
 
-        <a class="mini" href="projects/webgl-terrain-explorer.html" aria-label="WebGL Terrain Explorer: every matrix written by hand">
+        <a class="mini" href="projects/webgl-terrain-explorer.html" aria-label="WebGL Terrain Explorer: no libraries">
           <div class="mini__media"><img src="assets/screenshots/webgl-terrain-explorer.webp" alt="Screenshot of the WebGL Terrain Explorer" loading="lazy" decoding="async"></div>
           <span class="mini__metric">0 outside libraries</span>
           <span class="mini__repo">webgl-terrain-explorer</span>
           <h3>WebGL Terrain Explorer</h3>
           <p>Fly over a 3D landscape in the browser. Nothing is a downloaded model: the hills, the sky, and the rippling water are worked out by the code. A university graphics course project, deliberately with no ready-made 3D toolkit.</p>
-          <span class="mini__go">Matrices by hand <span aria-hidden="true">&rarr;</span></span>
+          <span class="mini__go">No libraries <span aria-hidden="true">&rarr;</span></span>
         </a>
 
-        <a class="mini" href="projects/reelflow-studio.html" aria-label="ReelFlow Studio: six retries, or it never happened">
+        <a class="mini" href="projects/reelflow-studio.html" aria-label="ReelFlow Studio: handling failures">
           <div class="mini__media"><img src="assets/screenshots/reelflow-studio.webp" alt="Screenshot of the ReelFlow Studio UI" loading="lazy" decoding="async"></div>
           <span class="mini__metric">33 automation hooks</span>
           <span class="mini__repo">reelflow-studio</span>
           <h3>ReelFlow Studio</h3>
           <p>A client's video publishing was fully automated with no screen a person could use. This is that screen: one button per decision, approve, caption, publish. The demo runs on a made-up queue, not the client's live system.</p>
-          <span class="mini__go">Retries or nothing <span aria-hidden="true">&rarr;</span></span>
+          <span class="mini__go">Handling failures <span aria-hidden="true">&rarr;</span></span>
         </a>
 
         <a class="mini" href="projects/university-enrollment-system.html" aria-label="University Enrollment System, team project: clashes and full sections blocked">
@@ -692,13 +615,13 @@
           <span class="mini__go">Clashes get blocked <span aria-hidden="true">&rarr;</span></span>
         </a>
 
-        <a class="mini" href="projects/hitec-shopify-automation.html" aria-label="Hi-Tec Shopify Automation: two spreadsheets, no shared key">
+        <a class="mini" href="projects/hitec-shopify-automation.html" aria-label="Hi-Tec Shopify Automation: matching two spreadsheets">
           <div class="mini__media"><img src="assets/screenshots/hitec-shopify-automation.webp" alt="Screenshot of the Hi-Tec Shopify Automation GUI" loading="lazy" decoding="async"></div>
           <span class="mini__metric">11,000-line Shopify export</span>
           <span class="mini__repo">hitec-shopify-automation</span>
           <h3>Hi-Tec Shopify Automation</h3>
           <p>A client's stock counts and costs lived in one spreadsheet and its shop's product list in another, so matching them took hours. Three tools do it instead. A person reviews the result; the tools never touch the live store.</p>
-          <span class="mini__go">No shared key <span aria-hidden="true">&rarr;</span></span>
+          <span class="mini__go">Matching two spreadsheets <span aria-hidden="true">&rarr;</span></span>
         </a>
 
         <a class="mini" href="projects/codeforces-mashup-generator.html" aria-label="Codeforces Mashup Generator: only problems nobody has solved">
@@ -782,13 +705,13 @@
           <span class="mini__go">One page crashed <span aria-hidden="true">&rarr;</span></span>
         </a>
 
-        <a class="mini" href="projects/color-palette-generator.html" aria-label="Color Palette Generator: a silent numpy 2.x breakage">
+        <a class="mini" href="projects/color-palette-generator.html" aria-label="Color Palette Generator: what broke it">
           <div class="mini__media"><img src="assets/screenshots/color-palette-generator.webp" alt="A real extracted palette from the Color Palette Generator" loading="lazy" decoding="async"></div>
           <span class="mini__metric">10 colors per image</span>
           <span class="mini__repo">color-palette-generator</span>
           <h3>Color Palette Generator</h3>
           <p>Drop in a picture and it shows the ten colors that cover most of it, with the exact code for each so you can paste it into a design. Nothing is sent anywhere and nothing is stored.</p>
-          <span class="mini__go">A numpy breakage <span aria-hidden="true">&rarr;</span></span>
+          <span class="mini__go">What broke it <span aria-hidden="true">&rarr;</span></span>
         </a>
 
         <a class="mini" href="projects/custom-web-scraper.html" aria-label="Web Element Inspector: point, click, highlight in Chrome">
@@ -818,31 +741,31 @@
           <span class="mini__go">The win-check bug <span aria-hidden="true">&rarr;</span></span>
         </a>
 
-        <a class="mini" href="projects/image-watermarking-tool.html" aria-label="Image Watermarking Tool: why paste() never actually blended">
+        <a class="mini" href="projects/image-watermarking-tool.html" aria-label="Image Watermarking Tool: the stamp bug">
           <div class="mini__media"><img src="assets/screenshots/image-watermarking-tool.webp" alt="Screenshot of the Image Watermarking Tool" loading="lazy" decoding="async"></div>
           <span class="mini__metric">9 stamp positions</span>
           <span class="mini__repo">image-watermarking-tool</span>
           <h3>Image Watermarking Tool</h3>
           <p>Stamps a logo onto a whole batch of photos at once: size it, fade it, drop it in one of nine spots, preview it, then one click does every photo, leaving the originals untouched.</p>
-          <span class="mini__go">Why paste() failed <span aria-hidden="true">&rarr;</span></span>
+          <span class="mini__go">The stamp bug <span aria-hidden="true">&rarr;</span></span>
         </a>
 
         <a class="mini" href="projects/typing-master-gui.html" aria-label="Typing Master: mistakes you can actually see">
           <div class="mini__media"><img src="assets/screenshots/typing-master-gui.webp" alt="Screenshot of the Typing Master GUI" loading="lazy" decoding="async"></div>
-          <span class="mini__metric">65,000+ word list</span>
+          <span class="mini__metric">10,000-word list</span>
           <span class="mini__repo">typing-master-gui</span>
           <h3>Typing Master</h3>
           <p>Retype a block of text against the clock. Each letter turns green when it is right and red when it is wrong, so you see the mistake as it happens, and it charts your last ten attempts. A small learning exercise.</p>
           <span class="mini__go">See your mistakes <span aria-hidden="true">&rarr;</span></span>
         </a>
 
-        <a class="mini" href="projects/breakout-game.html" aria-label="Breakout: a crude collision check, admitted">
+        <a class="mini" href="projects/breakout-game.html" aria-label="Breakout: cutting corners">
           <div class="mini__media"><img src="assets/screenshots/breakout-game.webp" alt="Screenshot of the Breakout game running" loading="lazy" decoding="async"></div>
           <span class="mini__metric">52 blocks, verified run</span>
           <span class="mini__repo">breakout-game</span>
           <h3>Breakout</h3>
           <p>The arcade game: slide the paddle, bounce the ball, knock out the wall of blocks. Built from scratch with no game engine, so the lives, the speed-up, and spotting a hit are all hand-made.</p>
-          <span class="mini__go">Crude collision check <span aria-hidden="true">&rarr;</span></span>
+          <span class="mini__go">Cutting corners <span aria-hidden="true">&rarr;</span></span>
         </a>
 
         <a class="mini" href="projects/disappearing-text-app.html" aria-label="Disappearing Text: making an invisible timer visible">
@@ -869,36 +792,190 @@
 
   </div><!-- /#all-projects -->
 
-  <section class="section" id="process" aria-labelledby="process-title">
+  <!-- SEE IT RUNNING: the live, draggable 3D stage.
+       One WebGL context on the whole page, ever. The rail swaps which system is
+       running by tearing the old frame down before it builds the new one, so the
+       browser is never asked to hold two. See the viz stage block in script.js.
+       The id stays "start-here" though the label no longer says so: nothing links
+       to it, but tests/test-stage.mjs and two probes drive the section by that id. -->
+  <section class="stage" id="start-here" aria-labelledby="stage-title">
     <div class="wrap">
-      <div class="section__head">
-        <p class="eyebrow">My Approach</p>
-        <h2 id="process-title" class="section__title">How I work.</h2>
+      <div class="section__head stage__head">
+        <p class="eyebrow">See it running</p>
+        <h2 id="stage-title" class="section__title">Grab it, turn it, see how it actually works.</h2>
         <p class="section__intro">
-          The same four steps on every job, from the first call to launch, so you always know what is being built and what state it is in.
+          Not a video, not a diagram. This is a live 3D model of one of the systems on this
+          site, running in your browser right now. Take hold of it and turn it. Then load a
+          different system into it and turn that one too.
         </p>
       </div>
 
-      <div class="process-grid">
-        <div class="process-step">
-          <div class="step-num">01</div>
-          <h3>Understand the Problem</h3>
-          <p>I start with what you actually need, what you cannot change, and what success would look like. Not every project is solved the same way, and assumptions are the enemy of good software.</p>
+      <figure class="stage__figure">
+        <div class="stage__box">
+          <div class="stage__bar">
+            <span class="stage__live"><span class="stage__dot" aria-hidden="true"></span>Live 3D</span>
+            <span class="stage__grab" id="stage-grab">Drag it to orbit &middot; scroll or pinch to zoom &middot; double-click to reset</span>
+          </div>
+          <div class="stage__frame" id="stage-frame">
+            <img class="stage__poster" id="stage-poster"
+                 src="assets/screenshots/trade-intelligence-copilot.webp"
+                 alt="Evaluation results chart for Trade Intelligence Copilot"
+                 width="1200" height="733" decoding="async">
+          </div>
         </div>
-        <div class="process-step">
-          <div class="step-num">02</div>
-          <h3>Plan & Design</h3>
-          <p>Design first. I map out how the pieces fit, how the data is stored, and how the pieces talk to each other, before writing the real code. A problem caught on paper is cheap. The same problem caught after launch is not.</p>
+        <figcaption class="stage__caption" id="stage-caption">
+          <strong>Trade Intelligence Copilot.</strong> Signal Routes: a question fans out in gold across the world's trade lanes, the answer streams home in coral, and a scoring pass checks every answer as it lands.
+        </figcaption>
+      </figure>
+
+      <!-- The rail is picked on two axes at once: the scene has to stop a stranger who
+           has just landed, and the project underneath it has to survive an interview.
+           Every number below is the one its own project page reports. -->
+      <div class="stage__rail" role="group" aria-label="Choose which system runs in 3D">
+        <button class="stage__pick is-on" type="button" aria-pressed="true"
+                data-viz="trade-intelligence-copilot"
+                data-title="Trade Intelligence Copilot"
+                data-shot="assets/screenshots/trade-intelligence-copilot.webp"
+                data-alt="Evaluation results chart for Trade Intelligence Copilot"
+                data-caption="Signal Routes: a question fans out in gold across the world's trade lanes, the answer streams home in coral, and a scoring pass checks every answer as it lands.">
+          <span class="stage__pick-name">Trade Intelligence Copilot</span>
+          <span class="stage__pick-num">15 / 15 SQL answers correct</span>
+        </button>
+
+        <button class="stage__pick" type="button" aria-pressed="false"
+                data-viz="raft-kv"
+                data-title="Raft Consensus KV Store"
+                data-shot="assets/screenshots/raft-kv.webp"
+                data-alt="Terminal output from a real Raft chaos test run"
+                data-caption="Consensus Ring: the machines check in on each other, copy every change, get cut off by a broken network, vote in a new leader, and heal.">
+          <span class="stage__pick-name">Raft Consensus KV Store</span>
+          <span class="stage__pick-num">564,170 reads and writes, 0 contradictions</span>
+        </button>
+
+        <button class="stage__pick" type="button" aria-pressed="false"
+                data-viz="agent-runtime"
+                data-title="Agent Runtime"
+                data-shot="assets/screenshots/agent-runtime.webp"
+                data-alt="Terminal output from a real Agent Runtime scenario replay"
+                data-caption="Event Helix: a run is written down once, bead by bead, then replayed into a perfectly identical ghost.">
+          <span class="stage__pick-name">Agent Runtime</span>
+          <span class="stage__pick-num">93 tests, 0 live API calls</span>
+        </button>
+
+        <button class="stage__pick" type="button" aria-pressed="false"
+                data-viz="zarailink"
+                data-title="ZaraiLink"
+                data-shot="assets/screenshots/zarailink.webp"
+                data-alt="Screenshot of the ZaraiLink Trade Directory"
+                data-caption="Field of Trade: a team project, led by Salman. The wheat is the crop being traded, the arcs are deals crossing the sky, and every deal that lands stirs the field below it.">
+          <span class="stage__pick-name">ZaraiLink (team project)</span>
+          <span class="stage__pick-num">112 tests passing</span>
+        </button>
+
+        <button class="stage__pick" type="button" aria-pressed="false"
+                data-viz="sqlmill"
+                data-title="SQL Database Engine"
+                data-shot="assets/screenshots/sqlmill.webp"
+                data-alt="Benchmark charts for the SQL Database Engine"
+                data-caption="B+tree Pulse: a search dives down the index to one row, a scan sweeps sideways across many, and every change goes into a safety journal first, so a crash loses nothing.">
+          <span class="stage__pick-name">SQL Database Engine</span>
+          <span class="stage__pick-num">300 / 300 crash rounds</span>
+        </button>
+
+        <button class="stage__pick" type="button" aria-pressed="false"
+                data-viz="urdu-slm"
+                data-title="Urdu Language Model"
+                data-shot="assets/screenshots/urdu-slm.webp"
+                data-alt="Training loss curve for the Urdu Language Model"
+                data-caption="Attention Loom: the model reads right to left, the way Urdu does, and every word weighs every other word as it goes.">
+          <span class="stage__pick-name">Urdu Language Model</span>
+          <span class="stage__pick-num">5.23x fewer chunks than GPT-2</span>
+        </button>
+      </div>
+
+      <!-- The way into whichever system is loaded, under the model and under the rail,
+           so it is the last thing in the section and never covers the scene. Its text
+           and href are rebuilt from the rail's own data, so it cannot name the wrong
+           system. It used to be revealed only after a dwell-and-drag on the canvas;
+           that gate is gone, because it could not see a touch inside a cross-origin
+           frame and so could leave a phone visitor with no way through at all. -->
+      <div class="stage__convert" id="stage-convert">
+        <p class="stage__convert-copy" id="stage-convert-copy"></p>
+        <a class="btn btn--primary" id="stage-convert-cta" href="projects/trade-intelligence-copilot.html">Open it &rarr;</a>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- NOTABLE ACHIEVEMENTS -->
+  <section class="section" id="achievements" aria-labelledby="achievements-title">
+    <div class="wrap">
+      <div class="section__head">
+        <p class="eyebrow">Recognition</p>
+        <h2 id="achievements-title" class="section__title">Notable achievements.</h2>
+        <p class="section__intro">
+          Measured results from real work. No vanity metrics, only outcomes that matter.
+        </p>
+      </div>
+
+      <div class="achievements-grid">
+        <div class="achievement">
+          <div class="achievement-stat">703</div>
+          <div class="achievement-label">Automated tests<br>across 14 systems</div>
         </div>
-        <div class="process-step">
-          <div class="step-num">03</div>
-          <h3>Implement with Tests</h3>
-          <p>I write the checks before the code. Every feature gets automatic tests: on each small piece, on the pieces working together, and on the whole thing as a person would actually use it. Tests are documentation that never lies.</p>
+        <div class="achievement">
+          <div class="achievement-stat">5+</div>
+          <div class="achievement-label">Years shipping<br>production software</div>
         </div>
-        <div class="process-step">
-          <div class="step-num">04</div>
-          <h3>Verify & Deploy</h3>
-          <p>Before it goes live I push it under heavy traffic, review it for security holes, and run it on a copy of the real setup. Going live is one command, and so is undoing it. No surprises on launch day.</p>
+        <div class="achievement">
+          <div class="achievement-stat">300 / 300</div>
+          <div class="achievement-label">Sudden-kill crash rounds survived,<br>zero data loss</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- WHAT YOU'LL GET -->
+  <section class="section section--tint" id="deliverables" aria-labelledby="deliverables-title">
+    <div class="wrap">
+      <div class="section__head">
+        <p class="eyebrow">Value Delivered</p>
+        <h2 id="deliverables-title" class="section__title">What you'll get.</h2>
+        <p class="section__intro">
+          Every project ships with more than just code. You get systems that are tested, documented, deployable, and maintainable.
+        </p>
+      </div>
+
+      <div class="deliverables-grid">
+        <div class="deliverable">
+          <div class="deliverable-icon" aria-hidden="true"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m16 18 6-6-6-6" /><path d="m8 6-6 6 6 6" /></svg></div>
+          <h3>Working Code</h3>
+          <p>Code written for the next person to read, not to show off. It follows the ordinary conventions of its language, so any competent developer can pick it up. Boring and maintainable beats clever.</p>
+        </div>
+        <div class="deliverable">
+          <div class="deliverable-icon" aria-hidden="true"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M14 2v6a2 2 0 0 0 .245.96l5.51 10.08A2 2 0 0 1 18 22H6a2 2 0 0 1-1.755-2.96l5.51-10.08A2 2 0 0 0 10 8V2" /><path d="M6.453 15h11.094" /><path d="M8.5 2h7" /></svg></div>
+          <h3>Full Test Suite</h3>
+          <p>Automatic checks at every level: on each small piece, on the pieces working together, and on the whole thing as a person would use it. The paths that matter most are covered heaviest, and the tests double as documentation: read them and you know what the system does.</p>
+        </div>
+        <div class="deliverable">
+          <div class="deliverable-icon" aria-hidden="true"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 7v14" /><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z" /></svg></div>
+          <h3>Documentation</h3>
+          <p>A plain-English guide, diagrams of how the pieces fit, a reference for anything another program plugs into, and step-by-step instructions for putting it live. Enough to understand, maintain, or extend it without having to ask me.</p>
+        </div>
+        <div class="deliverable">
+          <div class="deliverable-icon" aria-hidden="true"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5" /><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09" /><path d="M9 12a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.4 22.4 0 0 1-4 2z" /><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 .05 5 .05" /></svg></div>
+          <h3>Deploy Ready</h3>
+          <p>One command puts it live: the build and release steps run themselves, the app is packaged so it behaves the same on any machine, and there is a written way to undo the release if something goes wrong.</p>
+        </div>
+        <div class="deliverable">
+          <div class="deliverable-icon" aria-hidden="true"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect width="18" height="11" x="3" y="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg></div>
+          <h3>Security Verified</h3>
+          <p>A security review before launch: everything a user types is checked before it is trusted, passwords and keys are kept out of the code, and sign-in and permissions are enforced on the server. Reviewed against the OWASP Top Ten, the industry's standard list of the most common web weaknesses.</p>
+        </div>
+        <div class="deliverable">
+          <div class="deliverable-icon" aria-hidden="true"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2" /></svg></div>
+          <h3>Performance Audited</h3>
+          <p>I push the system under heavy traffic until something gives, fix what gave, and hand you the number: how many people it can serve at once, and what breaks first when it cannot.</p>
         </div>
       </div>
     </div>
@@ -958,80 +1035,6 @@
     </div>
   </section>
 
-  <!-- NOTABLE ACHIEVEMENTS -->
-  <section class="section" id="achievements" aria-labelledby="achievements-title">
-    <div class="wrap">
-      <div class="section__head">
-        <p class="eyebrow">Recognition</p>
-        <h2 id="achievements-title" class="section__title">Notable achievements.</h2>
-        <p class="section__intro">
-          Measured results from real work. No vanity metrics, only outcomes that matter.
-        </p>
-      </div>
-
-      <div class="achievements-grid">
-        <div class="achievement">
-          <div class="achievement-stat">703</div>
-          <div class="achievement-label">Automated tests<br>across 14 systems</div>
-        </div>
-        <div class="achievement">
-          <div class="achievement-stat">5+</div>
-          <div class="achievement-label">Years shipping<br>production software</div>
-        </div>
-        <div class="achievement">
-          <div class="achievement-stat">300 / 300</div>
-          <div class="achievement-label">Sudden-kill crash rounds survived,<br>zero data loss</div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- WHAT YOU'LL GET -->
-  <section class="section section--tint" id="deliverables" aria-labelledby="deliverables-title">
-    <div class="wrap">
-      <div class="section__head">
-        <p class="eyebrow">Value Delivered</p>
-        <h2 id="deliverables-title" class="section__title">What you'll get.</h2>
-        <p class="section__intro">
-          Every project ships with more than just code. You get systems that are tested, documented, deployable, and maintainable.
-        </p>
-      </div>
-
-      <div class="deliverables-grid">
-        <div class="deliverable">
-          <div class="deliverable-icon">⚙️</div>
-          <h3>Working Code</h3>
-          <p>Code written for the next person to read, not to show off. It follows the ordinary conventions of its language, so any competent developer can pick it up. Boring and maintainable beats clever.</p>
-        </div>
-        <div class="deliverable">
-          <div class="deliverable-icon">🧪</div>
-          <h3>Full Test Suite</h3>
-          <p>Automatic checks at every level: on each small piece, on the pieces working together, and on the whole thing as a person would use it. The paths that matter most are covered heaviest, and the tests double as documentation: read them and you know what the system does.</p>
-        </div>
-        <div class="deliverable">
-          <div class="deliverable-icon">📖</div>
-          <h3>Documentation</h3>
-          <p>A plain-English guide, diagrams of how the pieces fit, a reference for anything another program plugs into, and step-by-step instructions for putting it live. Enough to understand, maintain, or extend it without having to ask me.</p>
-        </div>
-        <div class="deliverable">
-          <div class="deliverable-icon">🚀</div>
-          <h3>Deploy Ready</h3>
-          <p>One command puts it live: the build and release steps run themselves, the app is packaged so it behaves the same on any machine, and there is a written way to undo the release if something goes wrong.</p>
-        </div>
-        <div class="deliverable">
-          <div class="deliverable-icon">🔐</div>
-          <h3>Security Verified</h3>
-          <p>A security review before launch: everything a user types is checked before it is trusted, passwords and keys are kept out of the code, and sign-in and permissions are enforced on the server. Reviewed against the OWASP Top Ten, the industry's standard list of the most common web weaknesses.</p>
-        </div>
-        <div class="deliverable">
-          <div class="deliverable-icon">📊</div>
-          <h3>Performance Audited</h3>
-          <p>I push the system under heavy traffic until something gives, fix what gave, and hand you the number: how many people it can serve at once, and what breaks first when it cannot.</p>
-        </div>
-      </div>
-    </div>
-  </section>
-
   <section class="contact" id="contact" aria-labelledby="contact-title">
     <div class="wrap contact__inner">
       <p class="eyebrow eyebrow--light">Contact</p>
@@ -1041,7 +1044,7 @@
       </p>
       <div class="contact__actions">
         <a class="btn btn--primary btn--big" href="#book-a-call">Book a free call &rarr;</a>
-        <a class="btn btn--ghost btn--big" href="mailto:salmanadnan2257@gmail.com">salmanadnan2257@gmail.com</a>
+        <a class="btn btn--ghost btn--big" href="mailto:salman@digitalise.agency">salman@digitalise.agency</a>
         <a class="btn btn--ghost btn--big" href="https://www.linkedin.com/in/salman-adnan/" rel="noopener">LinkedIn</a>
         <a class="btn btn--ghost btn--big" data-repo="" rel="noopener">GitHub</a>
       </div>
@@ -1065,6 +1068,10 @@
 <footer class="footer">
   <div class="wrap footer__inner">
     <span>Salman Adnan</span>
+    <nav class="footer__nav" aria-label="Site policies">
+      <a href="terms.html">Terms</a>
+      <a href="privacy.html">Privacy</a>
+    </nav>
     <span>Built from scratch. &copy; <span id="year">2026</span></span>
   </div>
 </footer>

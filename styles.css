@@ -13,7 +13,7 @@
   --cream-2: #FBF6E6;
   --ink: #000000;
   --ink-soft: #4b463d;
-  --coral: #FF6B6B;
+  --coral: #F03E3E;
   --yellow: #FFD93D;
   --purple: #C4B5FD;
   --line: #000000;
@@ -565,10 +565,33 @@ a { color: inherit; text-decoration: none; }
 .pcard--feature .pcard__title { font-size: clamp(1.5rem, 2.4vw, 1.9rem); }
 .pcard--feature .pcard__what { font-size: 1.02rem; max-width: 60ch; }
 .pcard--feature .pcard__metric { font-size: 0.88rem; }
-/* A full-width feature card is roughly twice as wide as the ones under it, and 16/9
-   at that width is a screenshot taller than the copy beside it. Letterbox it instead,
-   so the card leads with its picture without burying its own text below the fold. */
 .pcard--feature .pcard__media { aspect-ratio: 2.6 / 1; }
+
+/* Wide screens: picture beside the case, not above it. Stacked, the picture and the
+   copy add up, and this card ran 851px tall on its own, so the two projects beside it
+   started below the fold and the section stopped reading as a set of three. Side by
+   side the card is as tall as its taller column instead of the sum of both. */
+@media (min-width: 981px) {
+  .pcard--feature {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    align-items: stretch;
+    padding: 0;
+    padding-top: 8px;              /* clears the accent rule .pcard::before draws */
+  }
+  .pcard--feature .pcard__media {
+    margin: 0;
+    aspect-ratio: auto;            /* let it match the height of the copy beside it */
+    border-bottom: 0;
+    border-right: 4px solid var(--ink);
+  }
+  .pcard--feature .pcard__body {
+    display: flex;
+    flex-direction: column;
+    padding: 26px 30px 28px;
+  }
+  .pcard--feature .pcard__what { max-width: none; }
+}
 @media (max-width: 980px) {
   .pcard--feature .pcard__media { aspect-ratio: 16 / 9; }
 }
@@ -805,6 +828,34 @@ a { color: inherit; text-decoration: none; }
   font-weight: 500;
 }
 @media (max-width: 480px) { .footer__inner { flex-direction: column; text-align: center; } }
+.footer__nav { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px 18px; }
+.footer__nav a { border-bottom: 2px solid transparent; padding-bottom: 2px; font-weight: 600; }
+.footer__nav a:hover { border-bottom-color: var(--coral); }
+.footer__nav a[aria-current="page"] { color: var(--ink); border-bottom-color: var(--ink); }
+
+/* ---------- Legal pages (terms, privacy) ---------- */
+.legal__wrap { max-width: 760px; }
+.legal h1 { margin: 0 0 18px; }
+.legal h2 {
+  margin: 38px 0 12px;
+  font-size: 1.15rem;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+}
+.legal p { margin: 0 0 14px; color: var(--ink); }
+.legal a { border-bottom: 2px solid var(--coral); }
+.legal a:hover { background: var(--yellow); }
+.legal__meta { font-size: 0.9rem; color: var(--ink-soft); font-weight: 600; }
+.legal__list { margin: 0 0 14px; padding-left: 22px; }
+.legal__list li { margin-bottom: 10px; }
+.legal code {
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  font-size: 0.9em;
+  background: var(--cream-2);
+  border: 2px solid var(--ink);
+  padding: 1px 6px;
+}
 
 /* ---------- Section head row variant ---------- */
 .section__head--row {
@@ -1215,11 +1266,22 @@ a { color: inherit; text-decoration: none; }
   box-shadow: var(--shadow);
 }
 
+/* Same drawn-in-the-page line art as the pain cards, on the same tile, but yellow:
+   these are what you get, not what is going wrong, and the palette already reads
+   coral as the alarm. Ink on yellow, so the shape stays legible on the tile. */
 .deliverable-icon {
-  display: block;
-  font-size: 2.4rem;
+  display: inline-grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  color: var(--ink);
+  background: var(--yellow);
+  border: 3px solid var(--ink);
+  border-radius: 0;
+  box-shadow: var(--shadow-sm);
   margin-bottom: 16px;
 }
+.deliverable-icon .ico { width: 28px; height: 28px; display: block; }
 
 .deliverable h3 {
   font-size: 1.1rem;
@@ -1284,18 +1346,22 @@ a { color: inherit; text-decoration: none; }
 }
 .pain-card:hover { transform: translate(0, -4px); box-shadow: var(--shadow); }
 @media (prefers-reduced-motion: reduce) { .pain-card:hover { transform: none; } }
+/* Line-art icons, drawn in the page rather than loaded, so they cost no request and
+   inherit their colour. Cream on coral: the emoji these replaced carried their own
+   colours and sank into the tile behind them, which no amount of sizing would fix. */
 .pain-card__icon {
   display: inline-grid;
   place-items: center;
   width: 56px;
   height: 56px;
-  font-size: 1.5rem;
+  color: var(--cream);
   background: var(--coral);
   border: 3px solid var(--ink);
   border-radius: 0;
   box-shadow: var(--shadow-sm);
   margin-bottom: 18px;
 }
+.pain-card__icon .ico { width: 28px; height: 28px; display: block; }
 .pain-card h3 { margin: 0 0 10px; font-size: 0.95rem; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; }
 .pain-card p { margin: 0; color: var(--ink); font-size: 0.95rem; font-weight: 700; }
 
@@ -1514,7 +1580,10 @@ a { color: inherit; text-decoration: none; }
   display: inline-block;
   white-space: nowrap;
   opacity: 1;
-  transition: opacity .35s ease, transform .35s ease;
+  /* Kept in step with the swap wait and the interval in script.js: the word is
+     hidden for exactly one of these, so a slower fade here would show the old
+     word still going as the new one is set. */
+  transition: opacity .18s ease, transform .18s ease;
 }
 .word-rotator__word.is-swapping { opacity: 0; transform: translateY(6px); }
 @media (prefers-reduced-motion: reduce) {
@@ -1654,6 +1723,8 @@ a { color: inherit; text-decoration: none; }
    markup is injected, so nothing can jump. It grows in below the canvas, so it never
    covers the scene the visitor is dragging, and it can be dismissed for the session.
    ============================================================ */
+/* The way into the loaded project. Always here, under the rail: it is the section's
+   last word, so it needs no reveal and no dismiss. */
 .stage__convert {
   display: flex;
   flex-wrap: wrap;
@@ -1661,25 +1732,10 @@ a { color: inherit; text-decoration: none; }
   gap: 12px 18px;
   background: var(--yellow);
   color: var(--ink);
-  border: 0 solid var(--ink);
+  border: 4px solid var(--ink);
   border-radius: 0;
-  overflow: hidden;
-  visibility: hidden;        /* collapsed: not visible, not focusable, not a tab stop */
-  opacity: 0;
-  max-height: 0;
-  padding: 0 20px;
-  margin: 0;
-  box-shadow: none;
-  transition: max-height .45s ease-out, opacity .35s ease-out,
-              padding .45s ease-out, margin .45s ease-out, border-width .45s ease-out;
-}
-.stage__convert.is-on {
-  visibility: visible;
-  opacity: 1;
-  max-height: 260px;
   padding: 16px 20px;
   margin: 18px 0 0;
-  border-width: 4px;
   box-shadow: var(--shadow-sm);
 }
 .stage__convert-copy {
@@ -1692,26 +1748,6 @@ a { color: inherit; text-decoration: none; }
 }
 .stage__convert-copy strong { font-weight: 800; }
 .stage__convert .btn { flex: 0 0 auto; }
-.stage__convert-x {
-  flex: 0 0 auto;
-  width: 34px;
-  height: 34px;
-  display: inline-grid;
-  place-items: center;
-  font-family: inherit;
-  font-size: 1.2rem;
-  line-height: 1;
-  font-weight: 700;
-  color: var(--ink);
-  background: var(--cream);
-  border: 3px solid var(--ink);
-  border-radius: 0;
-  cursor: pointer;
-}
-.stage__convert-x:hover { background: var(--coral); }
-@media (prefers-reduced-motion: reduce) {
-  .stage__convert { transition: none; }
-}
 
 /* ============================================================
    THE FLAGSHIP, AND THE FOLDED WALL
@@ -1724,15 +1760,14 @@ a { color: inherit; text-decoration: none; }
 .js .allproj { display: none; }
 .js .allproj.is-open { display: block; }
 
+/* Hidden without JS on purpose: with no script the wall ships open, so a button that
+   toggles nothing would be a dead control. */
 .flagship__more { display: none; }
 .js .flagship__more {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 12px 20px;
+  justify-content: center;
   margin-top: 34px;
 }
-.flagship__hint { margin: 0; font-size: 0.95rem; color: var(--ink-soft); font-weight: 500; }
 
 /* The one card that leads. Media on the left, the case on the right, and the same
    hover 3D preview every other card gets. */

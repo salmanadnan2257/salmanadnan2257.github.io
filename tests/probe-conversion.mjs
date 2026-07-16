@@ -115,13 +115,20 @@ console.log('\n===== Item 9: reduced-motion / still path =====');
   await page.goto(URLROOT + '/index.html', { waitUntil: 'networkidle2' });
   await page.evaluate(() => document.getElementById('start-here').scrollIntoView({ block: 'center' }));
   await sleep(1500);
-  const r = await page.evaluate(() => ({
-    panelOn: document.getElementById('stage-convert').classList.contains('is-on'),
-    grab: document.getElementById('stage-grab')?.textContent.trim(),
-    iframes: document.querySelectorAll('#start-here iframe, .stage iframe').length,
-    posterShown: !!document.getElementById('stage-poster')?.getAttribute('src'),
-  }));
-  check('9 reduced-motion reveals conversion panel with no drag', r.panelOn, `panelOn=${r.panelOn}`);
+  /* The panel used to be revealed by an "is-on" class once a drag had earned it, and
+     under reduced motion it was granted outright. There is no gate now: the button is
+     simply always in the section, so what is checked is that it is actually visible. */
+  const r = await page.evaluate(() => {
+    const c = document.getElementById('stage-convert');
+    const cs = getComputedStyle(c);
+    return {
+      panelOn: cs.visibility === 'visible' && cs.opacity === '1' && c.getBoundingClientRect().height > 10,
+      grab: document.getElementById('stage-grab')?.textContent.trim(),
+      iframes: document.querySelectorAll('#start-here iframe, .stage iframe').length,
+      posterShown: !!document.getElementById('stage-poster')?.getAttribute('src'),
+    };
+  });
+  check('9 reduced-motion shows the project button with no drag', r.panelOn, `panelOn=${r.panelOn}`);
   check('9 grab hint reworded for reduced motion', /reduced motion/i.test(r.grab || ''), `"${r.grab}"`);
   check('9 no live iframe / poster shown under still', r.iframes === 0 && r.posterShown, `iframes=${r.iframes} poster=${r.posterShown}`);
   await ctx.close();
