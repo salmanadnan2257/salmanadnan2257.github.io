@@ -10,7 +10,15 @@ if [[ "$LAST_MSG" != *"[deploy]"* ]]; then
   exit 0
 fi
 
-echo "🚀 Deploying portfolio to salmanadnan.com..."
+echo "🚀 Deploying portfolio to salmanadnan.com and ai.digitalise.agency..."
+
+# Build the agency variant FIRST, before anything ships anywhere. Its guard exits
+# non-zero if the personal identity leaked into agency chrome, if first-person copy
+# survived, or if an unclassified "Salman" appeared; set -e then aborts the whole
+# deploy. Building first is deliberate: if the guard fails, neither site ships,
+# rather than salmanadnan.com going out and the agency build failing behind it.
+echo "🏗  Building ai.digitalise.agency variant..."
+python3 build-agency.py
 
 # Push to GitHub
 echo "📤 Pushing to GitHub..."
@@ -23,5 +31,13 @@ git push origin main || echo "⚠️  Already up to date"
 echo "📤 Syncing to VPS..."
 rsync -az --exclude='.git' --exclude='tests/node_modules' --exclude='tests/out' -e ssh ./ da:/root/salmanadnan.com/
 
+# The agency web root is a generated mirror, so --delete IS correct here: a file
+# that build-agency.py stops emitting (portrait.webp, say) must not linger on the
+# server. That is the opposite of the personal root above, which is hand-authored
+# and where --delete is deliberately absent (see README).
+echo "📤 Syncing agency build to VPS..."
+rsync -az --delete -e ssh /tmp/ai-digitalise-build/ da:/root/ai.digitalise.agency/
+
 echo "✅ Deployment complete!"
 echo "   Live at: https://salmanadnan.com"
+echo "   Live at: https://ai.digitalise.agency"
