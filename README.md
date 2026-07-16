@@ -57,6 +57,9 @@ node test-viz.mjs           # all 38 viz: drag orbits, reset restores exactly, w
 | `test-home.mjs` | Opens the folded project wall via the real toggle, then checks 41 card anchors (38 distinct projects plus the three "Start with three" flagship cards, each a deliberate second link to its own wall card), each with a distinct curiosity hook and a metric badge; a card click navigates to its project page. |
 | `test-hooks.mjs` | Opens the folded wall, then at 1280x800, 390x844 and 360x740: no card CTA or badge spills its card, and the page never scrolls horizontally (39 cards). |
 | `test-mobile.mjs` | Opens the folded wall for the homepage layout checks (tap targets, no horizontal pan). Then, on a project page, the scroll-trap check: a vertical swipe starting on a visualization must still scroll the page, before and after the viz is engaged. |
+| `probe-autoplay.mjs` | Card previews play with nothing touching them: the header stage mounts on load, all three "Start with three" cards are live once the section is on screen, the three sit in two rows (01 full width, 02 and 03 half), and the desktop cap of 4 holds across a full scroll of the open wall. |
+| `probe-phone-thrash.mjs` | The same at 390x844 and 1280x800, counting mounts and unmounts: the cap holds (2 phone, 4 desktop) and a slow scroll does not tear contexts up and down. |
+| `probe-cap-cost.mjs` | Idle frame rate against the number of live card previews, one arm per cap. Software-rasterizer numbers in this sandbox: use it to compare caps, never as a real visitor's frame rate. See "Still not verified". |
 | `test-stage.mjs` | The "Start here" stage: one live WebGL context at a time (counted as DOM-connected, non-context-lost canvases, so the homepage's `webglOK()` capability probe is not miscounted), no scroll trap, no layout shift, reduced-motion path. |
 | `test-cta-tap.mjs` | Opens the folded wall, then at 390x844 and 360x740 hit-tests each card CTA's centre (the corners are reported but not failed, since the cards' intentional ±1deg rotation moves the axis-aligned bounding box off the visual button). |
 | `test-domain.mjs` | Index and three project pages render with zero JS errors and zero failed local requests; canonical/og/twitter tags all carry the real domain, and no old host remains. |
@@ -127,6 +130,24 @@ now fixed (see below). Every fix is in the harness, not the site.
 
 **Still not verified (need the owner, or an environment this sandbox does not have):**
 
+- **The frame-rate cost of cards that play unasked (2026-07-16), and it is the biggest
+  open risk on the page.** Cards now mount their 3D preview when they scroll into view
+  instead of when they are hovered, so a visitor who touches nothing still has up to 4
+  scenes running (2 on a phone). The cost per playing scene was measured on the homepage
+  with the wall open, sitting still: 0 scenes 60.6 fps, 1 scene 31.9, 2 scenes 17.8, 3
+  scenes 12.8. **Those are software-rasterizer numbers and must not be quoted as any
+  visitor's frame rate.** This sandbox has no hardware GL in headless Chrome, so WebGL
+  only comes up under SwiftShader, which renders on the CPU: it exaggerates the cost by
+  an unknown factor, and there is no way to measure the real one from here. What the
+  numbers do establish is that the cost is per playing scene and close to linear, which
+  makes `DESKTOP_CAP` / `TOUCH_CAP` in `script.js` the whole performance policy.
+  **The owner should scroll the homepage on a real phone and a real laptop before
+  trusting this**; if it stutters, lower the two caps, which is a one-line change and
+  needs nothing else touched. Re-run the cap comparison with `node tests/probe-cap-cost.mjs`
+  (it prints the table above; on real hardware the numbers should be far better).
+  What IS verified here: the caps hold (peak 4 desktop, 2 phone across a full scroll of
+  the open wall), nothing thrashes (11 mounts desktop / 4 phone over a 26-step scroll),
+  contexts are handed back on scroll-away, and there are no JS errors.
 - **Legibility of every scene at card size (item 5).** A visual judgment, not automatable. 20 of 38
   were checked and read clearly; two are marginal, `space-race-analysis` (fine dust) and `vector-db`
   (blue on navy, low contrast). `disappearing-text-app` is excluded from live preview by design and

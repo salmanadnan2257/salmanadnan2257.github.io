@@ -393,13 +393,20 @@ const GITHUB_HANDLE = "salmanadnan2257";
 })();
 
 // ============================================================================
-// CARD PREVIEW: the live 3D that wakes up under the pointer
+// CARD PREVIEW: the live 3D that is already playing when the card arrives
 //
-// The earlier attempt at this mounted every card's viz on scroll and it cost half
-// the frame rate, because a fresh three.js realm and a scene build is per-frame
-// JavaScript that no graphics card takes off you. Nothing here loads until a
-// visitor actually points at a card, so a scroll past a grid of cards costs exactly
-// what it costs today: nothing.
+// A card plays because it is on the screen. There is no hover to find and no tap to
+// spend: a visitor who never touches anything still sees the work moving, which is
+// the whole point of having built it in 3D.
+//
+// The cost is real and the cap is the answer to it. An earlier attempt mounted every
+// card's viz on scroll behind a cap of six and took scroll from 57.7 fps to 29.7 fps,
+// because a fresh three.js realm and a scene build is per-frame JavaScript that no
+// graphics card takes off you. So the budget here is deliberately small (4 contexts
+// with a mouse, 2 with a finger), the LRU is enforced rather than assumed, and a card
+// that leaves the screen hands its context straight back. THIS IS THE WHOLE POLICY;
+// the frame-rate cost above was measured at a cap of six, so raising these past it is
+// how this section becomes the problem it used to be. Re-measure if you touch them.
 //
 // The other half of the old problem was legibility, and the viz files now solve it
 // themselves: ?compact=1 hides the title panel, the legend and the control HUD, so
@@ -411,17 +418,37 @@ const GITHUB_HANDLE = "salmanadnan2257";
 // that starts on a card scrolls the page exactly as if the card were a picture, and
 // a tap anywhere on the card, including on the live canvas, still opens the project.
 // Dragging a scene with your hands lives on the stage above and on the project pages.
+// That rule is why a preview can play unasked without ever costing a visitor a scroll.
 // ============================================================================
 (function () {
   "use strict";
 
   if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;  // the still is the whole experience
 
-  var DESKTOP_CAP = 2;      // WebGL contexts the cards may hold at once, with a mouse
-  var TOUCH_CAP = 1;        // ... and with a finger. The stage holds its own, separately.
-  var HOVER_DELAY = 160;    // sweeping the mouse across the grid must not mount a dozen scenes
-  var TAP_MS = 400;         // lift faster than this, having barely moved, and it is a tap
-  var TAP_SLOP = 10;        // px of travel still counted as a tap and not a drag
+  // A card plays because it is on the screen, not because it was pointed at: a
+  // visitor should never have to discover that a still is secretly alive. The cap is
+  // what keeps that affordable: a hard budget of WebGL contexts, so a scroll down the
+  // 38-card wall runs the few cards actually in front of the visitor and hands every
+  // other context straight back.
+  // WHAT THE CAP IS WORTH, MEASURED. On the homepage with the wall open, sitting still,
+  // under a software rasterizer (this machine has no hardware GL in headless Chrome, so
+  // these are NOT real-GPU numbers and must not be quoted as any visitor's frame rate):
+  //
+  //     live scenes:   0      1      2      3
+  //     idle fps:      60.6   31.9   17.8   12.8
+  //
+  // The cost is per playing scene and close to linear, so the cap IS the performance
+  // policy: every point of it is paid for on the weakest device that loads this page.
+  // Raise these numbers only against a measurement on real hardware.
+  var DESKTOP_CAP = 4;      // WebGL contexts the cards may hold at once, with a mouse
+  var TOUCH_CAP = 2;        // ... and with a finger. The stage holds its own, separately.
+  // ASK WHETHER IT IS A PHONE, NOT WHETHER IT IS A DESKTOP. A real touch screen always
+  // reports pointer: coarse, but plenty of engines report neither hover: hover nor
+  // pointer: fine when they have no opinion (headless Chrome says exactly that at every
+  // viewport), and asking the question the other way round quietly demotes those to the
+  // phone budget. Unknown means desktop, because only a phone says coarse.
+  var coarse = window.matchMedia("(pointer: coarse)").matches;
+  var CAP = coarse ? TOUCH_CAP : DESKTOP_CAP;
 
   // ONE CARD IS EXCLUDED. disappearing-text-app renders as a mostly empty frame with one
   // small word and a countdown ring in it: at card size that is a blank box with a
@@ -432,28 +459,16 @@ const GITHUB_HANDLE = "salmanadnan2257";
   var cards = document.querySelectorAll(".pcard, .mini");
   if (!cards.length) return;
 
-  // Everything currently holding a context, oldest first: evicting the front is a
-  // plain LRU. Enforced, never assumed. Nothing mounts without paying for a slot.
+  // Everything currently holding a context.
   var live = [];
-  var hoverTimer = null;
-  var touching = null;      // the in-flight touch, if any
-  var swallowClick = false; // a long press or a scroll must NOT navigate
+  // Every card currently within the bands below: the candidates, cap or no cap.
+  var near = [];
 
   function vizOf(card) {
     var href = card.getAttribute("href") || "";
     var m = href.match(/projects\/([a-z0-9-]+)\.html$/);
     if (!m || NO_PREVIEW[m[1]]) return null;   // no name, no listeners, no preview
     return m[1];
-  }
-
-  function evictTo(n) {
-    while (live.length > n) {
-      var e = live.shift();
-      // about:blank first, so the old document is torn down and its WebGL context
-      // released now, rather than whenever garbage collection gets round to it.
-      e.f.src = "about:blank";
-      if (e.f.parentNode) e.f.parentNode.removeChild(e.f);
-    }
   }
 
   function indexOfCard(card) {
@@ -465,16 +480,17 @@ const GITHUB_HANDLE = "salmanadnan2257";
     var i = indexOfCard(card);
     if (i < 0) return;
     var e = live.splice(i, 1)[0];
+    // about:blank first, so the old document is torn down and its WebGL context
+    // released now, rather than whenever garbage collection gets round to it.
     e.f.src = "about:blank";
     if (e.f.parentNode) e.f.parentNode.removeChild(e.f);
   }
 
-  function mount(card, cap) {
+  function mount(card) {
     if (indexOfCard(card) >= 0) return;              // already running
     var name = vizOf(card);
     var media = card.querySelector(".pcard__media, .mini__media");
     if (!name || !media) return;
-    evictTo(cap - 1);
     var f = document.createElement("iframe");
     f.className = "card-viz";
     f.src = "viz/" + name + ".html?compact=1";       // compact: no panels over the scene
@@ -486,68 +502,94 @@ const GITHUB_HANDLE = "salmanadnan2257";
     live.push({ card: card, f: f });
   }
 
+  // WHY NOT AN LRU. The obvious budget is "evict whatever mounted longest ago", and it
+  // is wrong here: three cards arriving together mount in DOM order, so the oldest is
+  // the TOP one, which on a scroll down is the one the visitor is looking at. It would
+  // be killed to make room for a card entering from the bottom edge, and because it is
+  // still on screen no observer would ever fire for it again, so it would stay a still
+  // for good. So the budget is spent on position instead: whatever is closest to the
+  // middle of the screen plays, and the cap falls on the cards nearest the edges. That
+  // is also self-healing. Every pass rebuilds the whole set from where things ARE, so a
+  // card can never be left wrongly dead.
+  function middle(card) {
+    var r = card.getBoundingClientRect();
+    return Math.abs((r.top + r.bottom) / 2 - window.innerHeight / 2);
+  }
+
+  // A card already playing is worth this many pixels of head start. Without it, the two
+  // cards either side of the cap line swap places on the smallest scroll, and each swap
+  // is a WebGL context torn down and a three.js scene rebuilt: the ranking has to be
+  // sticky, or a slow scroll costs more than no cap at all. A challenger has to be
+  // clearly closer to the middle, not a hair closer, before it takes a running slot.
+  var STICKY = 240;
+
+  function score(card) {
+    return middle(card) - (indexOfCard(card) >= 0 ? STICKY : 0);
+  }
+
+  function reconcile() {
+    var want = near.slice().sort(function (a, b) { return score(a) - score(b); }).slice(0, CAP);
+    for (var i = live.length - 1; i >= 0; i--) {
+      if (want.indexOf(live[i].card) < 0) unmount(live[i].card);   // out of view, or capped out
+    }
+    for (var j = 0; j < want.length; j++) mount(want[j]);
+  }
+
+  // NOTHING IS BUILT WHILE THE PAGE IS MOVING. Building a scene is a fresh three.js
+  // realm on the main thread, and a pass per scroll frame drops that build into the
+  // middle of the scroll it is meant not to spoil. Waiting for the scroll to settle
+  // costs nothing a visitor can perceive, since they were not reading a card they were
+  // flying past, and a card still on screen when they stop is playing SETTLE ms later.
+  //
+  // BE HONEST ABOUT WHAT THIS DID AND DID NOT BUY. Deferring the builds was measured at
+  // about +1.5 fps, well inside the noise: it is cheap insurance and good manners, not
+  // the fix. What actually costs is each scene that is playing at all, and the cap is
+  // the only real lever on that. See the note above CAP, and the frame-rate entry in
+  // the README's "not yet verified" list before trusting any of it on real hardware.
+  var SETTLE = 180;
+  var timer = 0;
+  function schedule() {
+    clearTimeout(timer);
+    timer = setTimeout(reconcile, SETTLE);
+  }
+
+  // No IntersectionObserver means no way to know what is on the screen, and mounting
+  // all 38 regardless is exactly the thing the cap exists to prevent. That visitor
+  // keeps the screenshots, which is what they were seeing before this ran anyway.
+  if (!("IntersectionObserver" in window)) return;
+
+  // ON is deliberately the smaller band and OFF the larger one, and they do not touch.
+  // A card mounts a little before it arrives, and holds its context until it is well
+  // clear of the screen, so a visitor parked at the edge of one cannot flap it on and
+  // off. Eviction stays the LRU's job: when more cards are on screen than the cap
+  // allows, the newest arrivals win and the oldest hands its context back.
+  var ON = "150px 0px";
+  var OFF = "900px 0px";
+
+  var on = new IntersectionObserver(function (es) {
+    for (var k = 0; k < es.length; k++) {
+      if (es[k].isIntersecting && near.indexOf(es[k].target) < 0) near.push(es[k].target);
+    }
+    schedule();
+  }, { rootMargin: ON, threshold: 0 });
+
+  var off = new IntersectionObserver(function (es) {
+    for (var k = 0; k < es.length; k++) {
+      if (es[k].isIntersecting) continue;
+      var i = near.indexOf(es[k].target);
+      if (i >= 0) near.splice(i, 1);
+    }
+    schedule();
+  }, { rootMargin: OFF, threshold: 0 });
+
   for (var i = 0; i < cards.length; i++) {
-    (function (card) {
-      if (!vizOf(card)) return;
-
-      // ---- mouse and pen: hover in, hover out
-      card.addEventListener("pointerenter", function (e) {
-        if (e.pointerType === "touch") return;       // touch has its own path below
-        clearTimeout(hoverTimer);
-        hoverTimer = setTimeout(function () { mount(card, DESKTOP_CAP); }, HOVER_DELAY);
-      });
-      card.addEventListener("pointerleave", function (e) {
-        if (e.pointerType === "touch") return;
-        clearTimeout(hoverTimer);
-        unmount(card);
-      });
-
-      // ---- finger: touching a card is the hover. It plays at once.
-      card.addEventListener("pointerdown", function (e) {
-        if (e.pointerType !== "touch") return;
-        swallowClick = false;
-        touching = { card: card, t: Date.now(), x: e.clientX, y: e.clientY };
-        mount(card, TOUCH_CAP);                      // cap 1: the LRU evicts whatever was playing
-      }, { passive: true });
-
-      card.addEventListener("pointerup", function (e) {
-        if (e.pointerType !== "touch" || !touching || touching.card !== card) return;
-        var quick = Date.now() - touching.t < TAP_MS;
-        var still = Math.abs(e.clientX - touching.x) < TAP_SLOP
-                 && Math.abs(e.clientY - touching.y) < TAP_SLOP;
-        // A tap is a tap: let the click through and open the project page.
-        // A long press is the touch equivalent of hovering: it keeps playing, and it
-        // must NOT navigate, so the click the browser is about to fire is swallowed.
-        swallowClick = !(quick && still);
-        touching = null;
-      }, { passive: true });
-
-      // The finger slid into a page scroll. The browser cancels the pointer and fires
-      // no click. Keep the scene playing; the visitor never asked to leave.
-      card.addEventListener("pointercancel", function (e) {
-        if (e.pointerType !== "touch") return;
-        swallowClick = true;
-        touching = null;
-      }, { passive: true });
-
-      card.addEventListener("click", function (e) {
-        if (!swallowClick) return;                   // ordinary click or clean tap: navigate
-        swallowClick = false;
-        e.preventDefault();                          // long press or scroll: stay put, keep playing
-      });
-    })(cards[i]);
+    if (!vizOf(cards[i])) continue;                  // no viz, no observer, no preview
+    on.observe(cards[i]);
+    off.observe(cards[i]);
   }
 
-  // A card that has been scrolled off the screen hands its context back, so a phone
-  // is never left running a scene nobody can see.
-  if ("IntersectionObserver" in window) {
-    var io = new IntersectionObserver(function (es) {
-      for (var k = 0; k < es.length; k++) {
-        if (!es[k].isIntersecting) unmount(es[k].target);
-      }
-    }, { rootMargin: "0px", threshold: 0 });
-    for (var j = 0; j < cards.length; j++) io.observe(cards[j]);
-  }
+  addEventListener("scroll", schedule, { passive: true });
+  addEventListener("resize", schedule, { passive: true });
 })();
 
 // ============================================================================

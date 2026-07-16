@@ -356,7 +356,7 @@
 
       <div class="featured-grid">
 
-        <a class="pcard span-2 acc-yellow" href="projects/agency-blog-saas.html" aria-label="Agency Blog SaaS: read the internal audit">
+        <a class="pcard pcard--feature span-6 acc-yellow" href="projects/agency-blog-saas.html" aria-label="Agency Blog SaaS: read the audit">
           <div class="pcard__media"><img src="assets/screenshots/agency-blog-saas.webp" alt="The davonex.com homepage, a Digitalise Agency client site" loading="lazy" decoding="async"></div>
           <div class="pcard__head">
             <span class="pcard__idx">01</span>
@@ -369,30 +369,30 @@
           <span class="pcard__go">Read the audit <span aria-hidden="true">&rarr;</span></span>
         </a>
 
-        <a class="pcard span-2 acc-purple" href="projects/inference-engine.html" aria-label="LLM Inference Engine: the trick that made it slower">
+        <a class="pcard span-3 acc-purple" href="projects/inference-engine.html" aria-label="LLM Inference Engine: see the benchmarks">
           <div class="pcard__media"><img src="assets/screenshots/inference-engine.webp" alt="Benchmark chart for the LLM Inference Engine" loading="lazy" decoding="async"></div>
           <div class="pcard__head">
             <span class="pcard__idx">02</span>
-            <span class="pcard__metric">113.5 tokens a second, no GPU</span>
+            <span class="pcard__metric">113.5 tokens a second</span>
           </div>
           <h3 class="pcard__title">LLM Inference Engine</h3>
           <code class="pcard__repo">inference-engine</code>
           <p class="pcard__what"><strong>Problem:</strong> A machine running an AI model sits idle between requests, so a queue of users crawls. <strong>Solution:</strong> Careful memory housekeeping, and serving eight requests at once instead of one at a time. <strong>Result:</strong> 2.8x more words per second on the same plain CPU, with no graphics card involved.</p>
           <ul class="pcard__tags"><li>Python</li><li>Performance</li></ul>
-          <span class="pcard__go">Made it slower <span aria-hidden="true">&rarr;</span></span>
+          <span class="pcard__go">See the benchmarks <span aria-hidden="true">&rarr;</span></span>
         </a>
 
-        <a class="pcard span-2 acc-coral" href="projects/raft-kv.html" aria-label="Raft Consensus KV Store: break the voting rule on purpose">
+        <a class="pcard span-3 acc-coral" href="projects/raft-kv.html" aria-label="Raft Consensus KV Store: the chaos tests">
           <div class="pcard__media"><img src="assets/screenshots/raft-kv.webp" alt="Terminal output from a real Raft chaos test run" loading="lazy" decoding="async"></div>
           <div class="pcard__head">
             <span class="pcard__idx">03</span>
-            <span class="pcard__metric">564,170 reads and writes, 0 contradictions</span>
+            <span class="pcard__metric">5,000 disasters, 0 contradictions</span>
           </div>
           <h3 class="pcard__title">Raft Consensus KV Store</h3>
           <code class="pcard__repo">raft-kv</code>
           <p class="pcard__what"><strong>Problem:</strong> Keep a copy of your data on several machines so no crash loses it, and they can drift into two versions that both look right. <strong>Solution:</strong> An agreement protocol: the machines must vote before anything counts as written. <strong>Result:</strong> 5,000 randomly generated disasters, and the data never once contradicted itself.</p>
           <ul class="pcard__tags"><li>Python</li><li>Distributed</li></ul>
-          <span class="pcard__go">Break the vote <span aria-hidden="true">&rarr;</span></span>
+          <span class="pcard__go">The chaos tests <span aria-hidden="true">&rarr;</span></span>
         </a>
 
       </div>
@@ -419,7 +419,7 @@
 
       <div class="featured-grid">
 
-        <a class="pcard span-3 acc-yellow" href="projects/agency-blog-saas.html" aria-label="Agency Blog SaaS: read the 53-issue internal audit">
+        <a class="pcard span-3 acc-yellow" href="projects/agency-blog-saas.html" aria-label="Agency Blog SaaS: read the audit">
           <div class="pcard__media"><img src="assets/screenshots/agency-blog-saas.webp" alt="The davonex.com homepage, a Digitalise Agency client site" loading="lazy" decoding="async"></div>
           <div class="pcard__head">
             <span class="pcard__idx">01</span>
@@ -429,20 +429,20 @@
           <code class="pcard__repo">agency-blog-saas</code>
           <p class="pcard__what"><strong>Problem:</strong> An agency selling blog writing needs one place for clients to order it. <strong>Solution:</strong> The web app that runs Salman's own agency: a client signs in, asks for a post, and the system writes, stores, and publishes it; the credits are refunded automatically if the writing fails. <strong>Results:</strong> Seven live clients on the agency's own servers; 132 of 132 tests pass. The code is private, so the linked demo is a scripted tour on made-up data.</p>
           <ul class="pcard__tags"><li>Django</li><li>Postgres</li><li>Production</li></ul>
-          <span class="pcard__go">The internal audit <span aria-hidden="true">&rarr;</span></span>
+          <span class="pcard__go">Read the audit <span aria-hidden="true">&rarr;</span></span>
         </a>
 
-        <a class="pcard span-3 acc-coral" href="projects/blog-posting-pipeline.html" aria-label="Blog Posting Pipeline: it cannot invent a link">
+        <a class="pcard span-3 acc-coral" href="projects/blog-posting-pipeline.html" aria-label="Blog Posting Pipeline: the live posts">
           <div class="pcard__media"><img src="assets/screenshots/blog-posting-pipeline.webp" alt="A real live blog post published on davonex.com" loading="lazy" decoding="async"></div>
           <div class="pcard__head">
             <span class="pcard__idx">02</span>
-            <span class="pcard__metric">Runs unattended, real posts live</span>
+            <span class="pcard__metric">Runs unattended, posts live</span>
           </div>
           <h3 class="pcard__title">Blog Posting Pipeline</h3>
           <code class="pcard__repo">blog-posting-pipeline</code>
           <p class="pcard__what"><strong>Problem:</strong> Small businesses want a steady stream of articles and nobody has time to write them. <strong>Solution:</strong> One program does the whole job: researches, plans, writes, makes the picture, publishes. It cannot invent a source or a link, only use pages it genuinely found. <strong>Results:</strong> Runs unattended on a rented server for several agency clients, at a typical $0.37 to $0.40 per post, billed exactly per run. The linked demo is a made-up walkthrough.</p>
           <ul class="pcard__tags"><li>Python</li><li>AI</li><li>Production</li></ul>
-          <span class="pcard__go">Cannot invent links <span aria-hidden="true">&rarr;</span></span>
+          <span class="pcard__go">The live posts <span aria-hidden="true">&rarr;</span></span>
         </a>
 
       </div>
@@ -462,7 +462,7 @@
 
       <div class="featured-grid">
 
-        <a class="pcard span-2 acc-coral" href="projects/urdu-slm.html" aria-label="Urdu Language Model: fluent Urdu, still wrong on facts">
+        <a class="pcard span-2 acc-coral" href="projects/urdu-slm.html" aria-label="Urdu Language Model: the training curve">
           <div class="pcard__media"><img src="assets/screenshots/urdu-slm.webp" alt="Training loss curve for the Urdu Language Model" loading="lazy" decoding="async"></div>
           <div class="pcard__head">
             <span class="pcard__idx">01</span>
@@ -472,23 +472,23 @@
           <code class="pcard__repo">urdu-slm</code>
           <p class="pcard__what"><strong>Problem:</strong> AI text models are built for English. They chop Urdu into far more pieces than it needs, so every word costs more to read. <strong>Solution:</strong> One built from scratch on cleaned Urdu text, with a splitter taught to cut Urdu sensibly. <strong>Result:</strong> Reads the same Urdu in 5.23x fewer pieces than GPT-2. It writes fluent Urdu, but it is small and still gets facts wrong.</p>
           <ul class="pcard__tags"><li>Python</li><li>Language</li></ul>
-          <span class="pcard__go">Fluent, often wrong <span aria-hidden="true">&rarr;</span></span>
+          <span class="pcard__go">The training curve <span aria-hidden="true">&rarr;</span></span>
         </a>
 
-        <a class="pcard span-2 acc-yellow" href="projects/inference-engine.html" aria-label="LLM Inference Engine: the trick that made it slower">
+        <a class="pcard span-2 acc-yellow" href="projects/inference-engine.html" aria-label="LLM Inference Engine: see the benchmarks">
           <div class="pcard__media"><img src="assets/screenshots/inference-engine.webp" alt="Benchmark chart for the LLM Inference Engine" loading="lazy" decoding="async"></div>
           <div class="pcard__head">
             <span class="pcard__idx">02</span>
-            <span class="pcard__metric">113.5 tokens a second, no GPU</span>
+            <span class="pcard__metric">113.5 tokens a second</span>
           </div>
           <h3 class="pcard__title">LLM Inference Engine</h3>
           <code class="pcard__repo">inference-engine</code>
           <p class="pcard__what"><strong>Problem:</strong> A machine running an AI model sits idle between requests, so a queue of users crawls. <strong>Solution:</strong> Careful memory housekeeping, and serving eight requests at once instead of one at a time. <strong>Result:</strong> 2.8x more words per second on the same plain CPU, with no graphics card involved.</p>
           <ul class="pcard__tags"><li>Python</li><li>Performance</li></ul>
-          <span class="pcard__go">The slower trick <span aria-hidden="true">&rarr;</span></span>
+          <span class="pcard__go">See the benchmarks <span aria-hidden="true">&rarr;</span></span>
         </a>
 
-        <a class="pcard span-2 acc-purple" href="projects/sqlmill.html" aria-label="SQL Database Engine: the bug only a crash found">
+        <a class="pcard span-2 acc-purple" href="projects/sqlmill.html" aria-label="SQL Database Engine: the crash tests">
           <div class="pcard__media"><img src="assets/screenshots/sqlmill.webp" alt="Benchmark chart for the SQL Database Engine" loading="lazy" decoding="async"></div>
           <div class="pcard__head">
             <span class="pcard__idx">03</span>
@@ -498,23 +498,23 @@
           <code class="pcard__repo">sqlmill</code>
           <p class="pcard__what"><strong>Problem:</strong> If the power cuts out mid-write, the data must not come back scrambled, and several people must be able to write at once. <strong>Solution:</strong> A database built from scratch, with a safety journal written before every change. <strong>Result:</strong> Killed at random 300 times; all 300 times the data came back intact.</p>
           <ul class="pcard__tags"><li>Python</li><li>Systems</li></ul>
-          <span class="pcard__go">Found by crashing <span aria-hidden="true">&rarr;</span></span>
+          <span class="pcard__go">The crash tests <span aria-hidden="true">&rarr;</span></span>
         </a>
 
-        <a class="pcard span-2 acc-coral" href="projects/raft-kv.html" aria-label="Raft Consensus KV Store: break the voting rule on purpose">
+        <a class="pcard span-2 acc-coral" href="projects/raft-kv.html" aria-label="Raft Consensus KV Store: the chaos tests">
           <div class="pcard__media"><img src="assets/screenshots/raft-kv.webp" alt="Terminal output from a real Raft chaos test run" loading="lazy" decoding="async"></div>
           <div class="pcard__head">
             <span class="pcard__idx">04</span>
-            <span class="pcard__metric">564,170 reads and writes, 0 contradictions</span>
+            <span class="pcard__metric">5,000 disasters, 0 contradictions</span>
           </div>
           <h3 class="pcard__title">Raft Consensus KV Store</h3>
           <code class="pcard__repo">raft-kv</code>
           <p class="pcard__what"><strong>Problem:</strong> Keep a copy of your data on several machines so no crash loses it, and they can drift into two versions that both look right. <strong>Solution:</strong> An agreement protocol: the machines must vote before anything counts as written. <strong>Result:</strong> 5,000 randomly generated disasters, and the data never once contradicted itself.</p>
           <ul class="pcard__tags"><li>Python</li><li>Distributed</li></ul>
-          <span class="pcard__go">Break voting rules <span aria-hidden="true">&rarr;</span></span>
+          <span class="pcard__go">The chaos tests <span aria-hidden="true">&rarr;</span></span>
         </a>
 
-        <a class="pcard span-2 acc-yellow" href="projects/agent-runtime.html" aria-label="Agent Runtime: replay a run byte for byte">
+        <a class="pcard span-2 acc-yellow" href="projects/agent-runtime.html" aria-label="Agent Runtime: how replay works">
           <div class="pcard__media"><img src="assets/screenshots/agent-runtime.webp" alt="Terminal output from a real Agent Runtime scenario replay" loading="lazy" decoding="async"></div>
           <div class="pcard__head">
             <span class="pcard__idx">05</span>
@@ -524,23 +524,23 @@
           <code class="pcard__repo">agent-runtime</code>
           <p class="pcard__what"><strong>Problem:</strong> AI agents are unpredictable. You can't audit what they did or test if they broke. <strong>Solution:</strong> Record every action so you can replay it exactly the same way. <strong>Result:</strong> Test changes, audit decisions, debug problems with perfect records.</p>
           <ul class="pcard__tags"><li>Python</li><li>AI</li></ul>
-          <span class="pcard__go">Replay it exactly <span aria-hidden="true">&rarr;</span></span>
+          <span class="pcard__go">How replay works <span aria-hidden="true">&rarr;</span></span>
         </a>
 
-        <a class="pcard span-2 acc-purple" href="projects/vector-db.html" aria-label="Vector Database Engine: built from the paper, matches FAISS">
+        <a class="pcard span-2 acc-purple" href="projects/vector-db.html" aria-label="Vector Database Engine: the recall results">
           <div class="pcard__media"><img src="assets/screenshots/vector-db.webp" alt="Recall vs throughput chart for the Vector Database Engine" loading="lazy" decoding="async"></div>
           <div class="pcard__head">
             <span class="pcard__idx">06</span>
-            <span class="pcard__metric">99.97% of the right matches found</span>
+            <span class="pcard__metric">99.97% of matches found</span>
           </div>
           <h3 class="pcard__title">Vector Database Engine</h3>
           <code class="pcard__repo">vector-db</code>
           <p class="pcard__what"><strong>Problem:</strong> Searching a huge pile of text by meaning, not exact words, is slow if you check every item. <strong>Solution:</strong> A search index built from the original research paper, not from a ready-made library. <strong>Result:</strong> At least as accurate as FAISS, the library the industry uses, though FAISS answers each search 10 to 13x faster.</p>
           <ul class="pcard__tags"><li>Python</li><li>Search</li></ul>
-          <span class="pcard__go">It matches FAISS <span aria-hidden="true">&rarr;</span></span>
+          <span class="pcard__go">The recall results <span aria-hidden="true">&rarr;</span></span>
         </a>
 
-        <a class="pcard span-2 acc-yellow" href="projects/cpp-ray-tracer.html" aria-label="C++ Ray Tracer, team project: how a surface catches light">
+        <a class="pcard span-2 acc-yellow" href="projects/cpp-ray-tracer.html" aria-label="C++ Ray Tracer Team: the shading layer">
           <div class="pcard__media"><img src="assets/screenshots/cpp-ray-tracer.webp" alt="A rendered scene from the C++ Ray Tracer" loading="lazy" decoding="async"></div>
           <div class="pcard__head">
             <span class="pcard__idx">07</span>
@@ -550,7 +550,7 @@
           <code class="pcard__repo">cpp-ray-tracer</code>
           <p class="pcard__what"><strong>Problem:</strong> Drawing a scene by following each ray of light means testing that ray against 1.29 million triangles. <strong>Solution:</strong> A three-person course project. Salman wrote the shading layer: how each surface catches light, dull, glossy, or mirror-like. <strong>Result:</strong> Film-style shadows and reflections on a crystal-cave scene.</p>
           <ul class="pcard__tags"><li>C++</li><li>Graphics</li></ul>
-          <span class="pcard__go">How light lands <span aria-hidden="true">&rarr;</span></span>
+          <span class="pcard__go">The shading layer <span aria-hidden="true">&rarr;</span></span>
         </a>
 
       </div>
@@ -570,7 +570,7 @@
 
       <div class="featured-grid">
 
-        <a class="pcard span-2 acc-coral" href="projects/trade-intelligence-copilot.html" aria-label="Trade Intelligence Copilot: watch it refuse to answer">
+        <a class="pcard span-2 acc-coral" href="projects/trade-intelligence-copilot.html" aria-label="Trade Intelligence Copilot: the eval results">
           <div class="pcard__media"><img src="assets/screenshots/trade-intelligence-copilot.webp" alt="Evaluation results chart for Trade Intelligence Copilot" loading="lazy" decoding="async"></div>
           <div class="pcard__head">
             <span class="pcard__idx">01</span>
@@ -580,10 +580,10 @@
           <code class="pcard__repo">trade-intelligence-copilot</code>
           <p class="pcard__what"><strong>Problem:</strong> Answering a question about Pakistan's sugar import records means digging through the records yourself. <strong>Solution:</strong> Ask in plain English; it looks the answer up and shows you the exact rows it used. <strong>Results:</strong> 15 of 15 database answers correct, and it refuses to answer rather than invent one when the records cannot support it. Its misses on the rest of the 28-question test are published too.</p>
           <ul class="pcard__tags"><li>Python</li><li>Agents</li><li>Evaluation</li></ul>
-          <span class="pcard__go">Watch it refuse <span aria-hidden="true">&rarr;</span></span>
+          <span class="pcard__go">The eval results <span aria-hidden="true">&rarr;</span></span>
         </a>
 
-        <a class="pcard span-2 acc-yellow" href="projects/zarailink.html" aria-label="ZaraiLink, team project: ask in plain English, typos included">
+        <a class="pcard span-2 acc-yellow" href="projects/zarailink.html" aria-label="ZaraiLink Team: the trade directory">
           <div class="pcard__media"><img src="assets/screenshots/zarailink.webp" alt="Screenshot of the ZaraiLink Trade Directory" loading="lazy" decoding="async"></div>
           <div class="pcard__head">
             <span class="pcard__idx">02</span>
@@ -593,10 +593,10 @@
           <code class="pcard__repo">zarailink</code>
           <p class="pcard__what"><strong>Problem:</strong> A trader looking for suppliers of one commodity, from one country, under a price, has nowhere to ask. <strong>Solution:</strong> A directory you search in plain words, typos included, over Pakistani customs records. <strong>Results:</strong> Final-year project, led by Salman, 112 tests passing. The demo runs on 14 made-up companies, not live customs data.</p>
           <ul class="pcard__tags"><li>Django</li><li>React</li><li>NLP</li></ul>
-          <span class="pcard__go">Ask in English <span aria-hidden="true">&rarr;</span></span>
+          <span class="pcard__go">The trade directory <span aria-hidden="true">&rarr;</span></span>
         </a>
 
-        <a class="pcard span-2 acc-purple" href="projects/balochi-poet-classifier.html" aria-label="Balochi Poet Classifier, team project: no accuracy claimed, and why">
+        <a class="pcard span-2 acc-purple" href="projects/balochi-poet-classifier.html" aria-label="Balochi Poet Classifier Team: the poetry dataset">
           <div class="pcard__media"><img src="assets/screenshots/balochi-poet-classifier.webp" alt="Dataset chart for the Balochi Poet Classifier" loading="lazy" decoding="async"></div>
           <div class="pcard__head">
             <span class="pcard__idx">03</span>
@@ -606,10 +606,10 @@
           <code class="pcard__repo">balochi-poet-classifier</code>
           <p class="pcard__what"><strong>Problem:</strong> Balochi poetry exists, but almost no language technology has ever been built for it. <strong>Solution:</strong> Three students hand-checked 1,670 verses; Salman built the part that cleans them and teaches a computer to tell three poets apart. <strong>Results:</strong> Every step runs end to end on the real verses, but the full training needs a faster machine than he had, so no success rate is claimed.</p>
           <ul class="pcard__tags"><li>Python</li><li>NLP</li><li>Low-Resource</li></ul>
-          <span class="pcard__go">No accuracy claimed <span aria-hidden="true">&rarr;</span></span>
+          <span class="pcard__go">The poetry dataset <span aria-hidden="true">&rarr;</span></span>
         </a>
 
-        <a class="pcard span-2 acc-coral" href="projects/voice-agent.html" aria-label="Voice Appointment Agent: it booked over the real internet">
+        <a class="pcard span-2 acc-coral" href="projects/voice-agent.html" aria-label="Voice Appointment Agent: the booking flow">
           <div class="pcard__media"><img src="assets/screenshots/voice-agent.webp" alt="Terminal output from the Voice Appointment Agent's eval suite" loading="lazy" decoding="async"></div>
           <div class="pcard__head">
             <span class="pcard__idx">04</span>
@@ -619,7 +619,7 @@
           <code class="pcard__repo">voice-agent</code>
           <p class="pcard__what"><strong>Problem:</strong> Somebody has to pick up the phone to book, move, or cancel an appointment. <strong>Solution:</strong> A phone line that answers itself, asks for whatever detail is missing, and never gives away a slot that is taken. <strong>Results:</strong> 25 of 25 scripted calls pass, and one real booking was driven over the open internet into a real calendar entry. The live phone number was never used, so no human voice has tested it yet.</p>
           <ul class="pcard__tags"><li>Python</li><li>Voice</li><li>Agents</li></ul>
-          <span class="pcard__go">It booked online <span aria-hidden="true">&rarr;</span></span>
+          <span class="pcard__go">The booking flow <span aria-hidden="true">&rarr;</span></span>
         </a>
 
       </div>
