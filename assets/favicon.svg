@@ -1,10 +1,12 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" role="img" aria-label="Salman Adnan monogram">
-  <!-- offset shadow tile, echoing the site's bold-outline offset-shadow style -->
-  <rect x="12" y="12" width="46" height="46" rx="12" fill="#F03E3E"/>
-  <!-- main tile -->
-  <rect x="5" y="5" width="46" height="46" rx="12" fill="#16130E" stroke="#16130E" stroke-width="2"/>
-  <!-- SA monogram: coral S, cream A -->
-  <text x="28" y="39" font-family="'Space Grotesk','Segoe UI',system-ui,sans-serif" font-size="27" font-weight="700" letter-spacing="-1" text-anchor="middle">
-    <tspan fill="#FFD93D">S</tspan><tspan fill="#FFFDF5">A</tspan>
-  </text>
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" role="img" aria-label="Salman Adnan">
+  <!-- A shell prompt, abstracted: chevron and cursor bar. Drawn as paths, never
+       as <text>, because a favicon is rendered in places that have none of the
+       site's fonts (the browser tab, and ImageMagick when build-agency.py
+       re-renders the PNGs), and a substituted font is a different mark.
+       Square corners and the site palette, so the tab matches the pages:
+       ink #16130E, cream #FFFDF5, coral #F03E3E, and the same zero radius. -->
+  <rect width="64" height="64" fill="#16130E"/>
+  <path d="M14 18 L24 32 L14 46" fill="none" stroke="#FFFDF5" stroke-width="7"
+        stroke-linecap="square" stroke-linejoin="miter"/>
+  <rect x="32" y="40" width="20" height="7" fill="#F03E3E"/>
 </svg>

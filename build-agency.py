@@ -45,6 +45,12 @@ AGENCY_HOST = "https://ai.digitalise.agency"
 PERSONAL_HOST = "https://salmanadnan.com"
 AGENCY_LINKEDIN = "https://www.linkedin.com/company/digitalise-agency/"
 PERSONAL_LINKEDIN = "https://www.linkedin.com/in/salman-adnan/"
+# The booking calendar. These were the same link until 2026-07-22, when the owner
+# moved the agency to its own event type; the personal site still books the
+# founder's own 15-minute slot. Only the handle and the event differ: the embed
+# parameters are identical on both sites, so the frame behaves the same way.
+AGENCY_CAL = "https://cal.com/davonex/30min"
+PERSONAL_CAL = "https://cal.com/salman-adnan/meeting"
 
 # --------------------------------------------------------------------------
 # 1. CREDITS. Applied first, and sentinel-protected so the global brand swap
@@ -269,7 +275,6 @@ ALLOWED_SALMAN = [
     r"isn't Salman's call to make alone",
     r"Mr\. Salman LinkedIn",
     r"github\.com/salmanadnan2257",          # repos live there; kept by decision
-    r"cal\.com/salman-adnan",                # booking link unchanged by decision
     r"salmanadnan\.com",                     # canonical / og:url / author url
     r'"name": "Salman Adnan"',               # project JSON-LD author (accurate)
     r'"founder": \{ "@type": "Person", "name": "Salman Adnan" \}',
@@ -337,6 +342,7 @@ def transform_html(text, relpath):
     text = re.sub(r'\s*<span class="photo-badge">Founder, Digitalise Agency</span>', "", text)
 
     text = text.replace(PERSONAL_LINKEDIN, AGENCY_LINKEDIN)
+    text = text.replace(PERSONAL_CAL, AGENCY_CAL)
 
     # og:image / twitter:image MUST move to the agency host. Canonical and og:url
     # deliberately stay on salmanadnan.com, but an image URL is not a canonical
@@ -390,8 +396,12 @@ def main():
     OUT.mkdir(parents=True)
 
     subprocess.run(
+        # partials/ is the source copy of the blocks that repeat across the pages
+        # (see tools/sync-partials.py). The pages already carry their real markup,
+        # so shipping the sources too would put an unreferenced, uncrawled copy of
+        # the booking section in the web root.
         ["rsync", "-a", "--exclude=.git", "--exclude=tests", "--exclude=build-agency.py",
-         "--exclude=deploy.sh", "--exclude=tools", f"{SRC}/", f"{OUT}/"],
+         "--exclude=deploy.sh", "--exclude=tools", "--exclude=partials", f"{SRC}/", f"{OUT}/"],
         check=True)
 
     for path in sorted(OUT.rglob("*.html")):
@@ -405,18 +415,33 @@ def main():
         if p.exists():
             p.write_text(p.read_text().replace(PERSONAL_HOST, AGENCY_HOST))
 
-    # favicon.svg is text, so the SA monogram is transformable. The raster icons
-    # are then re-rendered from it rather than hand-edited.
+    # Favicon. The agency does not get a recoloured version of the personal mark,
+    # it gets its own: assets/favicon-agency.svg is the Digitalise Agency mark, the
+    # same artwork the brand folder holds and digitalise.agency itself serves. So
+    # this is a file swap, not a text edit, and the agency-only source is dropped
+    # from the build afterwards rather than left sitting in the web root.
+    #
+    # It used to be a text edit: the personal favicon draws an "SA" with an SVG
+    # <text> element, and three string replacements turned the S into a D. Two
+    # things were wrong with that. A <text> favicon renders in whatever font the
+    # renderer happens to have, and neither a browser tab nor an image converter
+    # has the site's, so the shipped mark was never the drawn one. And it made the
+    # agency's identity a derivative of the founder's rather than its own.
     fav = OUT / "assets" / "favicon.svg"
-    if fav.exists():
-        s = fav.read_text()
-        s = s.replace('aria-label="Salman Adnan monogram"', 'aria-label="Digitalise Agency monogram"')
-        s = s.replace("<!-- SA monogram: coral S, cream A -->", "<!-- DA monogram: yellow D, cream A -->")
-        s = s.replace('<tspan fill="#FFD93D">S</tspan>', '<tspan fill="#FFD93D">D</tspan>')
-        fav.write_text(s)
+    agency_fav = OUT / "assets" / "favicon-agency.svg"
+    if agency_fav.exists():
+        shutil.copyfile(agency_fav, fav)
+        agency_fav.unlink()
+        # check=True, and Chrome rather than ImageMagick, both deliberately.
+        # ImageMagick drops a fill="url(#id)" gradient without saying so, which
+        # renders this mark as a black shape on a near-black tile, and the old
+        # call passed check=False, so that silent failure left the previous PNGs
+        # in place and the build still reported success. See tools/rasterize-icon.mjs.
         for name, size in (("favicon.png", 64), ("apple-touch-icon.png", 180)):
-            subprocess.run(["convert", "-background", "none", "-resize", f"{size}x{size}",
-                            str(fav), str(OUT / "assets" / name)], check=False)
+            subprocess.run(["node", str(SRC / "tools" / "rasterize-icon.mjs"),
+                            str(fav), str(OUT / "assets" / name), str(size)], check=True)
+    else:
+        sys.exit("refusing to build: assets/favicon-agency.svg is missing")
 
     css = OUT / "styles.css"
     css.write_text(css.read_text() + CSS_OVERRIDE)
