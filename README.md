@@ -8,9 +8,43 @@ index.html          the homepage
 projects/*.html     38 project detail pages
 viz/*.html          38 self-contained Three.js visualizations
 assets/             screenshots, Open Graph cards, favicons
+partials/           the one copy of each block that repeats across the pages
 tests/              headless-Chrome checks (see below)
+tools/              build and maintenance scripts (see below)
 deploy.sh           rsync to the VPS, gated on [deploy] in the latest commit message
 ```
+
+## Editing something that appears on every page
+
+Three blocks are the same on nearly every page: the booking section (39 pages), the icon links
+(41) and the project header (38). They are not templated at runtime, because the pages are what
+ships and a crawler has to see them. Instead each one sits between a pair of marker comments and
+has a single source copy in `partials/`.
+
+```bash
+# edit partials/book-a-call.html, then:
+tools/sync-partials.py            # what would change
+tools/sync-partials.py --apply    # write it to all 39
+tools/sync-partials.py --check    # exit 1 if any page has drifted; deploy.sh runs this
+```
+
+`--check` runs in `deploy.sh` before anything is built or pushed, so a block edited in one page
+and not the rest fails the deploy instead of shipping.
+
+For a change to the 38 `viz/*.html` files, which are 38 copies of one shell, use the anchored
+all-or-nothing patcher rather than a bare `sed`. It refuses to write anything unless the anchor
+matches exactly once in every file, so the set cannot half-apply and fork:
+
+```bash
+tools/patch-set.py --glob 'viz/*.html' --patch tools/edits/<edit>.py --expect 38
+tools/patch-set.py --glob 'viz/*.html' --patch tools/edits/<edit>.py --expect 38 --apply
+```
+
+Past edits are kept in `tools/edits/` as a record of what was changed and why.
+
+`tools/rasterize-icon.mjs` renders an SVG icon to PNG through Chrome. `build-agency.py` uses it
+for the agency favicon because ImageMagick silently drops `fill="url(#gradient)"`, which turned
+that mark into a black shape on a near-black tile.
 
 ## Deploying
 
@@ -77,6 +111,16 @@ Probe scripts (added 2026-07-15 to verify the folded-wall and 2026-07-14 convers
 Chrome path is hardcoded to `/usr/bin/google-chrome`. On a machine without a GPU, Chrome falls back
 to software rendering, so absolute frame rates from these runs are not representative of real
 hardware; treat them as relative only.
+
+## Known open issue
+
+`test-cpu-leak` reports `webgl-terrain-explorer` requesting 5 to 8 animation frames after it has
+been paused and settled. It is NOT new: checked out at the previous commit, the unmodified file
+leaks in 4 runs out of 4, and the single clean run recorded earlier was the lucky one. The scene
+is by far the heaviest here and manages about 2 ticks per second under the software rasterizer, so
+the most likely reading is that the harness's settle window is shorter than one of its frames and
+counts frames already queued. That has not been proven, and until it is, treat it as unresolved
+rather than benign.
 
 ## Verification status
 
@@ -162,6 +206,51 @@ now fixed (see below). Every fix is in the harness, not the site.
   Inspection tool is a post-deploy step for the owner. The disclosure's keyboard focus order into
   the revealed grid was not re-run under `test-a11y`.
 - **The cursor motif in Firefox / Safari (item 13).** Only Chromium is available in this sandbox.
+
+## test-drift fails morse-code-converter, and the camera is fine
+
+Recorded 2026-07-22 after trying and failing to fix it properly.
+
+`test-drift` fails `morse-code-converter` on its `saturated` signature: the
+dragged arm peaks around 45 to 99 percent coverage against a natural peak near
+10. The camera is not running away. Its churn is 0.02 to 0.07 against a 0.25
+limit, which is the "never settles" signature a real runaway always trips, and
+screenshots after the drag show a stable, readable, correctly framed scene.
+
+What the number is actually measuring is the beacon's large soft halo swinging
+into view, which is what turning the piece is supposed to do. The file's own
+header already warned that this scene "pulses hard on its own" and built a
+control arm for it; the control arm is not enough, because it never drags, so it
+cannot know how much coverage the new angle legitimately adds.
+
+Two corrections were tried and both reverted. Comparing against a paused arm
+that makes the same gesture, to divide out the framing effect, gave a factor
+that swung between 1.3 and 9.2 between runs, because freezing a hard-pulsing
+scene samples one arbitrary instant. Stepping the paused arm through the cycle
+narrowed that but did not fix it, because the post-drag framing is itself
+non-deterministic: the release momentum decays over a variable number of frames,
+so the camera lands somewhere different each run, and against content this
+anisotropic that moves peak coverage from 45 to 99 percent.
+
+The honest conclusion is that pixel coverage cannot separate "ran away" from
+"legitimately turned" for this scene. Reaching for the camera position directly
+would settle it, but the runtime exposes no hook and adding one changes the
+byte-identical block in all 38 files. Until then this failure is expected, and
+the three other scenes in the harness still pass and are still meaningful.
+
+## One harness correction, 2026-07-22
+
+It was failing healthy code, and was fixed by making the measurement match what the check claims to
+be about, not by loosening a threshold. It was validated by deliberately re-breaking a file and
+confirming the corrected check still fails it.
+
+`test-viz` asserted that a drag moves at least 0.4% of the cropped frame. `disappearing-text-app`
+lights 0.4% of its frame in total, one dim line of serif text on near-black, so no working orbit
+could ever reach that floor and it failed at 0.001. The floor is now the same 0.4% for any scene
+that fills at least 5% of the crop, and 8% of the scene's own lit pixels for one that does not.
+That is stricter for every dense scene (at 30% ink it asks for 2.4%). Validated: with the viewer's
+rotation disabled, the sparse scene fails at 0.0000 against its 0.0008 floor and a dense scene
+fails against the unchanged 0.0040.
 
 ## Open questions for the owner
 

@@ -163,8 +163,15 @@ for (const f of files) {
   }
   if (errs.length) bad.push(errs.length + ' js errors: ' + errs[0].slice(0, 80));
 
-  /* the control must be untouched */
-  for (const k of ['lbl', 'legend', 'hud', 'hint']) {
+  /* The control must be untouched: without ?compact=1 the panels are still there.
+     #legend is exempt, and only #legend. A card is about 380px wide, and the
+     responsive rules hide the legend below 400px in ANY frame, compact or not,
+     because at that width it cannot sit beside the title without landing on top
+     of it. So its absence from the control says nothing about compact mode. The
+     other three would still be a real regression, and are still checked, which
+     is what keeps this control worth running: compact mode is what must remove
+     them, not a stylesheet accident. */
+  for (const k of ['lbl', 'hud', 'hint']) {
     if (!ctlPanels[k]) bad.push(`no-parameter control lost #${k}`);
   }
   await page.close();

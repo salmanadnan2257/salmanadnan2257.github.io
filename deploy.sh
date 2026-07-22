@@ -12,6 +12,13 @@ fi
 
 echo "🚀 Deploying portfolio to salmanadnan.com and ai.digitalise.agency..."
 
+# The blocks that repeat across the pages (booking section, icon links, project
+# header) must match their single copy in partials/. A page edited in isolation
+# is exactly the drift this catches, and it is cheap, so it runs before anything
+# is built or pushed. set -e stops the deploy if it fails.
+echo "🔎 Checking shared page blocks are in sync..."
+python3 tools/sync-partials.py --check
+
 # Build the agency variant FIRST, before anything ships anywhere. Its guard exits
 # non-zero if the personal identity leaked into agency chrome, if first-person copy
 # survived, or if an unclassified "Salman" appeared; set -e then aborts the whole

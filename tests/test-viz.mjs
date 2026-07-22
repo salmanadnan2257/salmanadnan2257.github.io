@@ -35,6 +35,25 @@ function ratio(a, b) {
   return n / (A.width * A.height);
 }
 
+/* How much of the crop the scene actually draws on: the fraction of pixels that
+   are not the page background. Needed because the thresholds below are absolute
+   fractions of the whole crop, and that only means something for a scene that
+   fills it. disappearing-text-app lights 0.4% of its frame, one dim line of
+   serif text on near-black, so even rearranging every lit pixel it owns cannot
+   move 0.4% of the crop, and a working drag scored 0.001 against a 0.004 floor.
+   Measured against the top-left pixel, which every one of these scenes leaves
+   as its own background. */
+function ink(buf) {
+  const A = crop(buf);
+  const [r0, g0, b0] = [A.data[0], A.data[1], A.data[2]];
+  let lit = 0;
+  for (let i = 0; i < A.data.length; i += 4) {
+    if (Math.abs(A.data[i] - r0) + Math.abs(A.data[i + 1] - g0) +
+        Math.abs(A.data[i + 2] - b0) > 24) lit++;
+  }
+  return lit / (A.width * A.height);
+}
+
 const browser = await puppeteer.launch({
   executablePath: '/usr/bin/google-chrome',
   headless: 'new',
@@ -108,6 +127,7 @@ for (const f of files) {
     res.drag = ratio(A, B);
     res.reset = ratio(A, C);
     res.zoom = ratio(C, D);
+    res.ink = ink(A);
   } catch (e) {
     res.fatal = e.message;
   }
@@ -123,9 +143,20 @@ for (const f of files) {
   if (res.grabbingCleared === false) bad.push('grab cursor stuck');
   if (res.touchAction !== 'none') bad.push('touch-action ' + res.touchAction);
   if (res.cursor !== 'grab') bad.push('cursor ' + res.cursor);
-  if (!(res.drag > 0.004)) bad.push('drag changed nothing (' + (res.drag ?? 0).toFixed(4) + ')');
+  /* The floor a gesture has to clear. Normally 0.004 of the crop. For a scene
+     that lights less than 5% of the crop, that floor is unreachable however well
+     the orbit works, so the same demand is made of the pixels the scene has:
+     the gesture must move at least 8% of them. That is a STRICTER test for every
+     dense scene (at 30% ink it asks for 2.4%, six times the absolute floor), so
+     it is only allowed to lower the bar where the absolute one is meaningless.
+     Both floors are reported, and which one applied, so a pass is never silent
+     about which rule it passed under. */
+  const inkFrac = res.ink ?? 1;
+  const floor = inkFrac < 0.05 ? Math.max(0.08 * inkFrac, 0.0002) : 0.004;
+  res.floor = floor;
+  if (!(res.drag > floor)) bad.push('drag changed nothing (' + (res.drag ?? 0).toFixed(4) + ' vs floor ' + floor.toFixed(4) + ')');
   if (!(res.reset < 0.004)) bad.push('reset did not restore (' + (res.reset ?? 1).toFixed(4) + ')');
-  if (!(res.zoom > 0.004)) bad.push('zoom changed nothing (' + (res.zoom ?? 0).toFixed(4) + ')');
+  if (!(res.zoom > floor)) bad.push('zoom changed nothing (' + (res.zoom ?? 0).toFixed(4) + ' vs floor ' + floor.toFixed(4) + ')');
 
   if (bad.length) failures++;
   rows.push({ f, bad, res });
@@ -134,6 +165,8 @@ for (const f of files) {
     ' drag=' + (res.drag ?? 0).toFixed(3) +
     ' reset=' + (res.reset ?? 1).toFixed(3) +
     ' zoom=' + (res.zoom ?? 0).toFixed(3) +
+    ' ink=' + ((res.ink ?? 0) * 100).toFixed(1) + '%' +
+    ' floor=' + (res.floor ?? 0.004).toFixed(4) +
     (bad.length ? '  <- ' + bad.join('; ') : '')
   );
   if (res.errs.length) res.errs.slice(0, 3).forEach((e) => console.log('        ' + e.slice(0, 140)));
