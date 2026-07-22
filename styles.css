@@ -1616,6 +1616,12 @@ a { color: inherit; text-decoration: none; }
   overflow: hidden;
   background: var(--cream);
 }
+/* Both heights below are a loading state, not the final size. Cal.com posts the
+   height of the calendar it has actually drawn, and the block at the end of
+   script.js applies it, so the frame ends up the size of its contents instead of
+   a guess with dead white above and below the calendar. These values are what
+   holds the section open until that message arrives, and what it stays at with
+   JavaScript off. */
 .book__embed iframe {
   width: 100%;
   height: 700px;

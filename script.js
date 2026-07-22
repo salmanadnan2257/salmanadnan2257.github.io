@@ -1178,3 +1178,39 @@ const GITHUB_HANDLE = "salmanadnan2257";
   if (document.readyState === "complete") defer();
   else window.addEventListener("load", defer);
 })();
+
+/* ==========================================================================
+   BOOK A CALL: size the Cal.com frame to the calendar inside it
+
+   The frame was a fixed 700px box. A cross-origin iframe cannot be measured
+   from out here, so that number was a guess, and it was wrong in both
+   directions at once: a band of dead white above the calendar and a wider one
+   below it, on all 39 pages the section appears on. Picking a slot then opens a
+   booking form taller than 700px, which the fixed box cut off.
+
+   Cal.com solves this without their embed script. A booker loaded with ?embed=
+   posts its own rendered height to the parent window, once on load and again
+   whenever the view inside it changes. Listening for that one message is the
+   whole fix.
+
+   Deliberately NOT their embed.js. That is a third-party script pulled in on
+   every page load, where the frame here is one lazy iframe that loads only if a
+   visitor scrolls to it. privacy.html promises exactly that, and names the
+   outside hosts this site contacts. This keeps both true.
+   ========================================================================== */
+(function () {
+  var frame = document.querySelector(".book__embed iframe");
+  if (!frame) return;
+
+  window.addEventListener("message", function (e) {
+    // Only Cal.com's own frame may resize anything on this page.
+    if (e.origin !== "https://cal.com" || e.source !== frame.contentWindow) return;
+    var m = e.data;
+    if (!m || m.originator !== "CAL" || m.type !== "__dimensionChanged") return;
+    var h = m.data && m.data.iframeHeight;
+    // A number well under the calendar's own minimum means the frame is
+    // mid-teardown; collapsing the section to it would be a visible jump.
+    if (typeof h !== "number" || !isFinite(h) || h < 200) return;
+    frame.style.height = Math.round(h) + "px";
+  });
+})();
