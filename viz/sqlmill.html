@@ -41,6 +41,15 @@
     @media (max-width: 700px), (pointer: coarse) {
       #hintMore { display: none; }
     }
+    /* The hint and the HUD share the bottom edge, one on each side, and below
+       this width they overlap: first the hint's tail crosses into the HUD, then,
+       once the tail is gone and the HUD has dropped its speed slider, the bare
+       "Drag to turn it any way" still lands on top of the Pause button. Give the
+       hint its own line above the HUD instead of shortening it, so the tail
+       survives everywhere it fits. */
+    @media (max-width: 1120px) {
+      #hint { bottom: 56px; }
+    }
     #hud {
       position: absolute; right: 12px; bottom: 12px;
       display: flex; align-items: center; gap: 10px;
@@ -107,6 +116,24 @@
       /* keep even the longest title on one line, clear of the legend */
       #lbl h1 { font-size: 10px; letter-spacing: 0.1em; }
       #lbl { max-width: 26ch; padding: 8px 11px; }
+    }
+    /* Below this the title cannot have 26ch AND clear the legend, so it takes
+       what is left and wraps. 212px is the widest legend here (191px) plus the
+       gap between them. */
+    @media (max-width: 440px) {
+      #lbl { max-width: calc(100% - 224px); }
+    }
+    /* And below this there is no room for the legend at all: what is left for
+       the title is narrower than one word. The legend goes, the title gets its
+       width back, and the live caption inside it carries the commentary. */
+    @media (max-width: 400px) {
+      #legend { display: none; }
+      #lbl { max-width: calc(100% - 24px); }
+      /* The HUD is one flex row of buttons about 272px wide. Narrower than that
+         and it runs off its own left edge, across the hint. Let it wrap, and
+         give the hint the room for the second row it may now grow. */
+      #hud { flex-wrap: wrap; justify-content: flex-end; }
+      #hint { bottom: 96px; }
     }
     /* Compact mode, opted into with ?compact=1 on the URL. The frame is then a
        card, roughly 380x260, and panels sized for a window cover the scene they
@@ -302,7 +329,13 @@ function createScene(THREE, ctx) {
       'void main(){',
       '  vGlow = aGlow;',
       '  vec4 mv = modelViewMatrix * vec4(position, 1.0);',
-      '  gl_PointSize = (7.0 + 26.0 * aGlow) * (150.0 / -mv.z);',
+      /* A pulse is one bead of light travelling the tree, so it has to stay
+         smaller than the slabs it is moving between. This was unclamped and
+         scaled from a base of 7, which works out near 300 device pixels at the
+         scene's own depth: three pulses in flight and the tree vanished behind
+         its own glow. Sized against the same reference the WAL dust uses, and
+         capped, because at a hard zoom the divisor runs away. */
+      '  gl_PointSize = min((1.0 + 2.2 * aGlow) * (150.0 / -mv.z), 42.0);',
       '  gl_Position = projectionMatrix * mv;',
       '}'
     ].join('\n'),
@@ -398,11 +431,19 @@ function createScene(THREE, ctx) {
   tagRoot.material.opacity = 0.9;
   group.add(tagRoot);
   var tagLeaves = ctx.makeTag('leaves', '#9FD8C9', 0.62);
-  tagLeaves.position.set(-TREE_WIDTH / 2 - 1.5, -1.35, zBow(-TREE_WIDTH / 2 - 1.5));
+  /* Under the row, not out beside it. The leaf row is already as wide as the
+     frame holds, so a tag set past its end sat outside the view and arrived
+     sliced in half against the edge, at every angle. */
+  tagLeaves.position.set(-TREE_WIDTH / 4, -3.0, zBow(-TREE_WIDTH / 4));
   tagLeaves.material.opacity = 0.9;
   group.add(tagLeaves);
   var tagWal = ctx.makeTag('wal', '#D95555', 0.5);
-  tagWal.position.set(7.45, 1.2, 0);
+  /* Beside the ribbon and clear of the tree, rather than level with the internal
+     nodes: tags are drawn with depth testing off, so anything sharing a band with
+     a slab is painted straight over it. Kept inboard of the ribbon and below the
+     top of the frame, so it survives a narrow one, where the legend panel is
+     above it and the frame edge is just past the ribbon. */
+  tagWal.position.set(7.7, 2.6, 0.4);
   tagWal.material.opacity = 0.95;
   group.add(tagWal);
 
@@ -571,8 +612,16 @@ function createScene(THREE, ctx) {
       // whole tree breathes very slightly
       group.position.y = 0.12 * Math.sin(t * 0.45);
 
-      // camera: slow orbit + pointer offset
-      var a = t * 0.05 + ctx.pointer.x * 0.35;
+      // camera: a bounded sway across the front, plus the pointer offset.
+      // This scene is a flat diagram, not a solid: the slabs are a wall, the
+      // tags are written for a front-on read, and the WAL ribbon is parked off
+      // to one side of it. Carried all the way round, as the unbounded orbit
+      // here used to, it spent most of its cycle edge-on or reversed, where the
+      // tree collapses to a line, the labels land on the wrong parts and drift
+      // out of frame, and the ribbon cuts through the middle. So the automatic
+      // motion stays inside the angle the composition was built for. Turning it
+      // further is the viewer's to do, by dragging it, which is unclamped.
+      var a = 0.38 * Math.sin(t * 0.085) + ctx.pointer.x * 0.35;
       ctx.camera.position.set(CAM_R * Math.sin(a), 1.4 + ctx.pointer.y * 1.6 + 0.35 * Math.sin(t * 0.13), CAM_R * Math.cos(a));
       ctx.camera.lookAt(0.6, 0.4, 0);
     }

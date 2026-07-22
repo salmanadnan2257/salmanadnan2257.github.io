@@ -41,6 +41,15 @@
     @media (max-width: 700px), (pointer: coarse) {
       #hintMore { display: none; }
     }
+    /* The hint and the HUD share the bottom edge, one on each side, and below
+       this width they overlap: first the hint's tail crosses into the HUD, then,
+       once the tail is gone and the HUD has dropped its speed slider, the bare
+       "Drag to turn it any way" still lands on top of the Pause button. Give the
+       hint its own line above the HUD instead of shortening it, so the tail
+       survives everywhere it fits. */
+    @media (max-width: 1120px) {
+      #hint { bottom: 56px; }
+    }
     #hud {
       position: absolute; right: 12px; bottom: 12px;
       display: flex; align-items: center; gap: 10px;
@@ -107,6 +116,24 @@
       /* keep even the longest title on one line, clear of the legend */
       #lbl h1 { font-size: 10px; letter-spacing: 0.1em; }
       #lbl { max-width: 26ch; padding: 8px 11px; }
+    }
+    /* Below this the title cannot have 26ch AND clear the legend, so it takes
+       what is left and wraps. 212px is the widest legend here (191px) plus the
+       gap between them. */
+    @media (max-width: 440px) {
+      #lbl { max-width: calc(100% - 224px); }
+    }
+    /* And below this there is no room for the legend at all: what is left for
+       the title is narrower than one word. The legend goes, the title gets its
+       width back, and the live caption inside it carries the commentary. */
+    @media (max-width: 400px) {
+      #legend { display: none; }
+      #lbl { max-width: calc(100% - 24px); }
+      /* The HUD is one flex row of buttons about 272px wide. Narrower than that
+         and it runs off its own left edge, across the hint. Let it wrap, and
+         give the hint the room for the second row it may now grow. */
+      #hud { flex-wrap: wrap; justify-content: flex-end; }
+      #hint { bottom: 96px; }
     }
     /* Compact mode, opted into with ?compact=1 on the URL. The frame is then a
        card, roughly 380x260, and panels sized for a window cover the scene they
