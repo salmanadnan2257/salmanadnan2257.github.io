@@ -113,7 +113,6 @@
       <section class="proj-section">
         <h2>Overview</h2>
         <p>A Django web app for tracking donations at a pet rescue, built for the Khidmat community-service program at Habib University. Staff log in, record donations against individual pets, filter and export the records, and see running totals on a dashboard.</p>
-        <p>There is no public-facing side; the whole app sits behind an admin login. It replaces the spreadsheet small rescues usually use, which lacks access control and consistent fields, with a single database and a login, while staying simple enough to run on a free hosting tier.</p>
       </section>
       <section class="proj-section">
         <h2>Key features</h2>
@@ -139,10 +138,6 @@
           <li>Gunicorn</li>
           <li>Bootstrap 5</li>
         </ul>
-      </section>
-      <section class="proj-section">
-        <h2>A challenge worth noting</h2>
-        <p>Production security settings broke the whole test suite: SECURE_SSL_REDIRECT turned every test-client request into a 301 to https and Whitenoise manifest storage raised errors because tests never run collectstatic. The fix gates the security block on an explicit TESTING flag, since manage.py test does not set DEBUG=True.</p>
       </section>
       </div>
     </div>

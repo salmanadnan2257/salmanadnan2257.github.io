@@ -113,8 +113,6 @@
       <section class="proj-section">
         <h2>Overview</h2>
         <p>A vector database engine written from scratch in Python, built around an HNSW index implemented directly from the paper rather than wrapping a library. Approximate nearest-neighbor search with configurable recall, exact brute-force ground truth, metadata-filtered kNN, crash-safe WAL persistence, and a small HTTP server.</p>
-        <p>The point is understanding, not beating C. The graph construction, greedy search, neighbor-selection heuristic, and level generation are all hand-written; numpy is used only for vectorized distance math, and FAISS appears in one place, the benchmark, purely as a reference.</p>
-        <p>HNSW is the interesting part: a layered small-world graph you navigate greedily in roughly O(log n) hops. Getting recall above 0.95 on real embeddings, making deletes and persistence correct, and measuring honestly against a C library is where the understanding lands.</p>
       </section>
       <section class="proj-section">
         <h2>Key features</h2>
@@ -156,24 +154,6 @@
           <li>HNSW from the paper</li>
           <li>faiss-cpu (benchmark only)</li>
           <li>pytest</li>
-        </ul>
-      </section>
-      <section class="proj-section">
-        <h2>Challenges</h2>
-        <ul class="proj-list">
-          <li>Neighbor heuristic vs plain top-M: the first graph kept the M nearest candidates and recall stalled around 0.7; implementing Algorithm 4 (keep a candidate only if it is closer to the base than to any already-selected neighbor) pushed recall past 0.95.</li>
-          <li>Crash recovery needed config separate from the snapshot: a WAL-only directory could not reconstruct the index, so config.json is persisted durably at collection creation.</li>
-          <li>Vertex token limits on real text blew the 20,000-token cap on one 36,610-token batch; token-budgeted batching kept every request under the cap.</li>
-          <li>Python insert speed is dominated by many tiny numpy calls; batching helped, but a from-scratch Python HNSW is still far slower to build than FAISS, and that is reported rather than hidden.</li>
-        </ul>
-      </section>
-      <section class="proj-section">
-        <h2>What I learned</h2>
-        <ul class="proj-list">
-          <li>The layer stack is a skip-list for geometry: sparse top layers give long-range hops, the dense bottom layer does local search, and the neighbor heuristic keeps links diverse enough to navigate.</li>
-          <li>Squared L2 and normalized-vector cosine share one distance code path, removing a sqrt and a division from the hot loop.</li>
-          <li>efSearch is a pure recall/latency dial you can turn after the index is built; efConstruction is a build-time quality dial you cannot.</li>
-          <li>Durability is about ordering: fsync the WAL record before applying the operation, and frame each record with a length and a CRC so a torn tail fails its check.</li>
         </ul>
       </section>
       </div>

@@ -118,7 +118,6 @@
       <section class="proj-section">
         <h2>Overview</h2>
         <p>A tiny desktop toy: type into a text box and watch it dissolve. A ring drains and the text color fades toward the background over a countdown that resets on every keystroke; stop typing and the box clears itself once the ring runs out.</p>
-        <p>A small tkinter exercise built to practice event binding and timed callbacks in a GUI event loop, specifically after()-driven animation loops tied to user input, and to turn an invisible timer into something the user can actually watch happen.</p>
       </section>
       <section class="proj-section">
         <h2>Key features</h2>
@@ -142,10 +141,6 @@
           <li>tkinter</li>
           <li>time</li>
         </ul>
-      </section>
-      <section class="proj-section">
-        <h2>A challenge worth noting</h2>
-        <p>The natural first instinct is a single fixed timer from when typing starts, but the needed behavior is a timer that resets on every keystroke, clearing only after N seconds of inactivity. Rather than cancel and reschedule a one-shot `after()` on every keypress, the app runs a continuous animation loop that reads `time.time() - last_activity` each tick; a keystroke just updates `last_activity`, with no cancellation bookkeeping needed. The original version also had a countdown ticking with nothing shown for it, so text vanished with no warning; tying the ring and the color fade to the same `remaining` fraction made the countdown visible before it fires.</p>
       </section>
       </div>
     </div>

@@ -119,7 +119,6 @@
       <section class="proj-section">
         <h2>Overview</h2>
         <p>A desktop GUI that converts text to International Morse Code and decodes Morse code back into text, live, as you type. Started as a practice exercise in dictionary lookups and string processing, extended into a two-tab tkinter app with a visual dot-dash playback of the current message.</p>
-        <p>This started as a practice exercise for dictionary lookups and basic string processing in Python, then got extended into a small tkinter application to practice building an actual interface around that logic instead of a bare input/print loop. It converts text to Morse and Morse back to text, both updating live as you type, with no submit button.</p>
       </section>
       <section class="proj-section">
         <h2>Key features</h2>
@@ -142,10 +141,6 @@
           <li>Python 3</li>
           <li>tkinter</li>
         </ul>
-      </section>
-      <section class="proj-section">
-        <h2>A challenge worth noting</h2>
-        <p>The source script was missing a mapping for the letter V, so any input containing it crashed with a <code>KeyError</code>. Beyond adding the missing entry, the original used a 7-dot string to represent a space between words, which isn't standard Morse notation, so it was replaced with <code>/</code>, the conventional separator. That created its own wrinkle: since <code>text_to_morse()</code> joins per-character codes with a single space and the space character itself maps to <code>/</code>, every word boundary in the output is literally the three characters <code>" / "</code>. Splitting on that exact string decodes cleanly; splitting naively on <code>/</code> alone would have left stray spaces around each word.</p>
       </section>
       </div>
     </div>

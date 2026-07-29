@@ -119,7 +119,6 @@
       <section class="proj-section">
         <h2>Overview</h2>
         <p>A small desktop tool that takes one or more PDFs, pulls out the text, and saves each one as an mp3 you can listen to instead of read. Text extraction runs through PyPDF2 and speech synthesis through gTTS, which calls Google Translate's public TTS endpoint over HTTPS, so it needs an internet connection and has no offline fallback.</p>
-        <p>Reading long PDFs on a screen gets tiring, so this tool turns a PDF into audio instead of a subscription reader or web app. Pick one or more PDFs through a native Tkinter file dialog (or add more to an existing selection), extract the text from every page, and get back an mp3 saved next to the source PDF inside a <code>tts_pdf</code> folder.</p>
       </section>
       <section class="proj-section">
         <h2>Key features</h2>
@@ -144,10 +143,6 @@
           <li>gTTS</li>
           <li>argparse</li>
         </ul>
-      </section>
-      <section class="proj-section">
-        <h2>A challenge worth noting</h2>
-        <p>PyPDF2 returns <code>None</code> instead of an empty string for pages it can't extract text from (common for scanned or image-only pages), and concatenating <code>None</code> with a string raises a <code>TypeError</code>. <code>converter.py</code> falls back to an empty string per page (<code>page.extract_text() or ""</code>) so one bad page doesn't crash a whole batch, and raises a clear <code>ValueError</code> if a PDF has no extractable text at all instead of silently writing an empty audio file. Path handling was also rewritten from manual <code>split('/')</code> calls to <code>os.path</code> functions, since the original only worked on POSIX paths and broke on Windows.</p>
       </section>
       </div>
     </div>

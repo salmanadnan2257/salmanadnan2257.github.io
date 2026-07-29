@@ -119,12 +119,6 @@
       <section class="proj-section">
         <h2>Overview</h2>
         <p>A phone agent that answers a real Twilio line and books, reschedules, or cancels appointments in natural conversation. Gemini handles the language, a SQLite calendar handles real conflict detection, and the whole multi-turn flow has been proven end to end over a real public tunnel with a genuine Twilio signature, not just unit-tested in isolation.</p>
-        <p>Most voice-agent demos show a scripted happy path. This one is built to survive the actual shape of a phone call: silence instead of speech, a caller who changes their mind mid-sentence, a time slot that conflicts with an existing booking, and a caller who never answers a question clearly. The conversation state machine handles all of it, backed by a real calendar with real conflict detection, not a mocked one.</p>
-        <p>The system prompt to production Gemini calls follow the same discipline as the rest of this portfolio: everything that can be tested offline is tested offline, and the small number of things that must touch a live, billed service are marked, minimal, and their real cost is reported honestly.</p>
-      </section>
-      <section class="proj-section">
-        <h2>Approach and architecture</h2>
-        <p>Twilio calls a FastAPI service for TwiML instructions on every turn. A conversation manager holds per-call state (slot filling for name, time, and phone; a confirmation step; retry and turn caps) and calls a Gemini-based intent engine to interpret free-form speech into a structured action: book, reschedule, cancel, or unclear. A SQLite calendar store enforces real half-open-interval conflict detection so two appointments can touch at a boundary without falsely conflicting, and a session store logs every turn with a timestamp and the eventual outcome.</p>
       </section>
       <section class="proj-section">
         <h2>Key features</h2>
@@ -163,24 +157,6 @@
           <li>gemini-2.5-flash</li>
           <li>SQLite</li>
           <li>pytest</li>
-        </ul>
-      </section>
-      <section class="proj-section">
-        <h2>Challenges</h2>
-        <ul class="proj-list">
-          <li>Twilio only calls the action URL on captured speech by default; on silence it just moves on, which would have made the unclear-speech and retry logic unreachable. Fixed by setting <code>actionOnEmptyResult="true"</code> on every Gather, so silence and speech both return through the same state machine.</li>
-          <li>Twenty-five multi-turn scripted scenarios would be well over a hundred real Gemini calls if run against the live model every time. Solved with an interface-based intent engine: a real Gemini implementation for production and a small number of marked tests, and a deterministic stand-in for the scenario harness.</li>
-          <li>Gemini's default thinking mode was measurably too slow for a phone turn (56 thinking tokens on a one-word answer). Disabling thinking and forcing a strict JSON response schema brought a real call down to 1.8 seconds.</li>
-          <li>Relative dates and business-hours checks silently broke test determinism until "now" was threaded through the conversation manager as an injectable function, letting every scenario pin to one fixed reference time instead of drifting with the real clock.</li>
-        </ul>
-      </section>
-      <section class="proj-section">
-        <h2>What I learned</h2>
-        <ul class="proj-list">
-          <li>Conflict-free interval overlap is a half-open interval check, which is what correctly allows two appointments to touch at a boundary without a false conflict.</li>
-          <li>A latency-sensitive product built on an LLM means actively turning features off: disabling thinking and forcing a response schema mattered more than any prompt wording.</li>
-          <li>A passing test is not proof of anything by itself; I had to actually break two safety-cap scenarios on purpose to confirm they would catch a real regression.</li>
-          <li>Simulating a correctly-signed request over a real public tunnel is a meaningfully stronger proof than a mocked unit test, and it is achievable without ever touching a live, already-configured production webhook.</li>
         </ul>
       </section>
       </div>

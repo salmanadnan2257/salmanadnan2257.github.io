@@ -118,7 +118,6 @@
       <section class="proj-section">
         <h2>Overview</h2>
         <p>A small multi-user TODO list web app built with Flask, SQLAlchemy, and Flask-Login. Each user registers an account, logs in, and keeps their own private list of tasks, managed through an AJAX interface that falls back cleanly to plain form posts.</p>
-        <p>This was built as a practice project for wiring together the core pieces of a server-rendered Flask app: a relational model with a foreign key relationship between user and tasks, session-based auth with Flask-Login, server-side form handling with flashed validation messages, and progressive-enhancement JavaScript that upgrades the same routes to AJAX without needing a separate API layer.</p>
       </section>
       <section class="proj-section">
         <h2>Key features</h2>
@@ -144,10 +143,6 @@
           <li>SQLite</li>
           <li>JavaScript (fetch/AJAX)</li>
         </ul>
-      </section>
-      <section class="proj-section">
-        <h2>A challenge worth noting</h2>
-        <p>Passwords used to be stored and compared in plain text: the <code>User.password</code> column held the raw string and login compared it directly. That's fixed now with scrypt hashing on register and verified hashing on login, confirmed directly by simulating a pre-fix account and watching it correctly fail to log in against the new check. Separately, the original delete route queried the database by <code>current_user.id</code> before even checking the request was a POST or that anyone was logged in, which would throw on Flask-Login's anonymous user object; adding <code>@login_required</code> and a null check on the fetched row closed that gap.</p>
       </section>
       </div>
     </div>

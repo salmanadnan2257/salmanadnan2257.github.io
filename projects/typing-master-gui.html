@@ -119,7 +119,6 @@
       <section class="proj-section">
         <h2>Overview</h2>
         <p>A desktop typing-speed test built with tkinter. It shows a random block of text, times how long you take to retype it, colors each character green or red as you go, and reports words per minute and accuracy with a small bar chart of recent attempts.</p>
-        <p>Built to practice interactive desktop GUI work in Python: live keyboard event handling, per-character diffing rendered in real time instead of only at the end, a results view drawn with plain tkinter Canvas calls rather than a plotting library, and a small JSON-backed history store.</p>
       </section>
       <section class="proj-section">
         <h2>Key features</h2>
@@ -143,10 +142,6 @@
           <li>json</li>
           <li>pathlib</li>
         </ul>
-      </section>
-      <section class="proj-section">
-        <h2>A challenge worth noting</h2>
-        <p>The original version diffed typed text against the target on every keystroke but only used that diff to force-delete wrong characters immediately, so a mistake was never actually visible, it just vanished. The rewrite keeps the same per-keystroke diff but applies `correct`/`incorrect` Text widget tags instead, and lets wrong characters stay in the entry box, turning the diff into something you can watch happen. That forced a second change: once mistakes are allowed to remain, "finished" can no longer mean an exact character match, so the finish condition became "typed as many characters as the passage contains," scored afterward.</p>
       </section>
       </div>
     </div>

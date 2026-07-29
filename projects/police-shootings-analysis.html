@@ -119,7 +119,6 @@
       <section class="proj-section">
         <h2>Overview</h2>
         <p>A data analysis of the Washington Post's dataset of fatal police shootings in the United States, cross-referenced against four US Census datasets (poverty rate, high school completion rate, median household income, and racial demographics by city) to look for socioeconomic patterns. It ships two ways to look at the results: a static script that writes 24 chart files, and an interactive Flask dashboard filterable by state, year, and armed status.</p>
-        <p>This started as a guided data-analysis exercise built to practice joining multiple real-world datasets, cleaning inconsistent data, and rendering the same chart in three different plotting libraries to compare their APIs. It loads the Washington Post's fatal police shooting records alongside four Census-derived city datasets, cleans both, and produces static charts plus a filterable dashboard on the fatality data alone.</p>
       </section>
       <section class="proj-section">
         <h2>Key features</h2>
@@ -145,10 +144,6 @@
           <li>Plotly</li>
           <li>Flask</li>
         </ul>
-      </section>
-      <section class="proj-section">
-        <h2>A challenge worth noting</h2>
-        <p>Most rows in the fatality data's date column are <code>M/D/YYYY</code>, but some are <code>DD/MM/YY</code>, so a plain <code>pd.to_datetime</code> call raised a format error; switching to <code>format='mixed', errors='coerce'</code> lets pandas infer the format per row and turn anything unparseable into a null instead of crashing. A second gotcha showed up converting state postal codes for the world-scope choropleth: <code>pycountry</code> only understands ISO country codes, not US state abbreviations, so it returned <code>None</code> for every state and crashed the next line until a fallback check was added to keep the original code unchanged when the lookup misses.</p>
       </section>
       </div>
     </div>

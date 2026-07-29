@@ -119,12 +119,6 @@
       <section class="proj-section">
         <h2>Overview</h2>
         <p>An agentic retrieval-augmented copilot over agricultural-trade data, with a real, published evaluation layer. Ask a plain-English question about Pakistani sugar-sector import data and get a grounded, cited answer, or an honest refusal when the data does not support one.</p>
-        <p>Most RAG demos answer confidently and are never measured. Two things make a trade copilot trustworthy: it must ground numeric answers in the actual database rather than guessing, and it must refuse when the data cannot support an answer.</p>
-        <p>This project measures exactly those properties end to end. It ships a 28-item test set with ground-truth gold answers, runs the whole system against the live Gemini API, and publishes the real metrics, including a check of the LLM judge against hand labels so the judge itself is validated.</p>
-      </section>
-      <section class="proj-section">
-        <h2>Approach and architecture</h2>
-        <p>An LLM planner (gemini-2.5-flash) reads a question and routes to tools: text-to-SQL over trade data, vector retrieval over a regulations corpus, an HS-code lookup, or several in one query. The final answer is synthesized only from the gathered evidence and cites its sources, or it refuses.</p>
       </section>
       <section class="proj-section">
         <h2>Key features</h2>
@@ -170,24 +164,6 @@
           <li>SQLite</li>
           <li>numpy</li>
           <li>pytest</li>
-        </ul>
-      </section>
-      <section class="proj-section">
-        <h2>Challenges</h2>
-        <ul class="proj-list">
-          <li>pgvector was unavailable (PostgreSQL 18 without the extension, no Docker), so a small exact cosine store over a normalized numpy matrix replaced it; the trade-off is documented.</li>
-          <li>The LLM judge was initially blind to the HS-lookup rows and flagged faithful answers as unfaithful; adding those rows to the citations fixed the harness and left only genuine misses.</li>
-          <li>Text-to-SQL matched names literally and returned zero rows; because gold answers come from the database, the eval caught it immediately.</li>
-          <li>Faithful is not the same as correct: a zero-row answer was judged faithful while being wrong, forcing a clear split between grounding and ground-truth correctness.</li>
-        </ul>
-      </section>
-      <section class="proj-section">
-        <h2>What I learned</h2>
-        <ul class="proj-list">
-          <li>Ground-truth gold answers computed from the database are what make an LLM eval trustworthy.</li>
-          <li>An LLM judge must be validated, and must see exactly what the answerer saw.</li>
-          <li>Enumeration is where grounded models leak; point-fact answers stayed grounded.</li>
-          <li>A cheap deterministic guard beats an expensive model call for refusal.</li>
         </ul>
       </section>
       </div>

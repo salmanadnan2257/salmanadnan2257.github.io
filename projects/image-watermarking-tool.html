@@ -119,7 +119,6 @@
       <section class="proj-section">
         <h2>Overview</h2>
         <p>A desktop GUI for stamping a logo or watermark image onto a batch of photos, built with tkinter and Pillow. Load a watermark once, size and fade it with sliders, and see the exact composited result in a live before/after preview before saving anything.</p>
-        <p>Batch-watermarking photos is a repetitive job most people either do by hand in an image editor or skip entirely. This tool does one job: take a watermark image, let the user size, fade, and position it, then apply it to a set of photos in one pass and save the results without touching the originals.</p>
       </section>
       <section class="proj-section">
         <h2>Key features</h2>
@@ -143,10 +142,6 @@
           <li>Pillow 10.1.0</li>
           <li>pathlib</li>
         </ul>
-      </section>
-      <section class="proj-section">
-        <h2>A challenge worth noting</h2>
-        <p>Pillow's `paste()` doesn't alpha-composite by default: calling it without a mask overwrites the destination pixels outright, alpha channel included, so the image still looked translucent in most viewers even though no real blending happened. The fix passes the watermark itself as the mask argument so Pillow uses its own alpha channel to blend. A second challenge was keeping the live preview fast regardless of source photo resolution: compositing at full size on every slider tick would lag, so the preview thumbnails the base photo down to a 300px box and scales the watermark's size and offsets by the same ratio, keeping preview cost constant while the final save still composites at full resolution.</p>
       </section>
       </div>
     </div>

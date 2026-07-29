@@ -119,7 +119,6 @@
       <section class="proj-section">
         <h2>Overview</h2>
         <p>A desktop GUI for pulling elements off a live web page without writing a scraping script for each new site. Type a URL, pick one of seven Selenium locator strategies, and the tool drives a real Chrome browser to find every matching element, landing results in a sortable table with a "Highlight in Browser" button to confirm the match visually.</p>
-        <p>Most small scraping jobs don't need a script, they need five minutes of poking at a page to see what's there. Writing a one-off Python script for each of these checks gets old, so this tool turns that workflow into a GUI: load a page once, then try locator after locator against it without touching code. It drives an actual Chrome instance through Selenium rather than parsing raw HTML, so it also works on pages that render content with JavaScript.</p>
       </section>
       <section class="proj-section">
         <h2>Key features</h2>
@@ -144,10 +143,6 @@
           <li>Selenium 4.x</li>
           <li>ttk.Treeview</li>
         </ul>
-      </section>
-      <section class="proj-section">
-        <h2>A challenge worth noting</h2>
-        <p>Switching from BeautifulSoup's CSS-selector scraping to Selenium's strict locators meant a nonexistent match no longer raises a parse error, it just times out. The fix was wrapping every lookup in <code>WebDriverWait(driver, 10).until(...)</code> and catching <code>TimeoutException</code> specifically, so a missing element surfaces a plain "please enter a valid X" message instead of the GUI hanging. A related fix: the original hardcoded a Windows-only <code>C:\Development\chromedriver.exe</code> path, which now resolves through Selenium Manager by default so the same code runs on Linux, macOS, or Windows without editing a path in source.</p>
       </section>
       </div>
     </div>

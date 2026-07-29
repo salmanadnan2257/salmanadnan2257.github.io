@@ -113,8 +113,6 @@
       <section class="proj-section">
         <h2>Overview</h2>
         <p>A distributed key-value store with Raft consensus implemented from scratch in Python, plus a deterministic simulation harness that runs thousands of seeded chaos schedules against the real consensus code, and a from-scratch linearizability checker that verifies the client histories those runs produce.</p>
-        <p>Consensus code is easy to write and nearly impossible to trust from example-based tests, because the bugs live in message interleavings you never hit on a laptop loopback.</p>
-        <p>This project takes the FoundationDB position: the same RaftNode class runs unmodified on a real TCP cluster and inside a simulator where time, delivery order, loss, partitions, crashes, and clock skew are all derived from one seeded RNG. A failing seed replays its exact schedule every time.</p>
       </section>
       <section class="proj-section">
         <h2>Key features</h2>
@@ -143,24 +141,6 @@
           <li>Zero runtime dependencies</li>
           <li>Deterministic simulation</li>
           <li>pytest</li>
-        </ul>
-      </section>
-      <section class="proj-section">
-        <h2>Challenges</h2>
-        <ul class="proj-list">
-          <li>Python 3.12 changed asyncio Server.wait_closed() to wait for in-flight handlers, deadlocking shutdown; the fix tracks and closes every accepted writer before awaiting it.</li>
-          <li>A fresh leader cannot serve ReadIndex reads before committing an entry in its own term, so pending reads register with no read index and get one when the leader's no-op commits.</li>
-          <li>The Figure 7 tests could not be set up through real elections, so leadership is installed directly and the follower's timer frozen, keeping the scenario exact without weakening the vote rule.</li>
-          <li>Bit-for-bit determinism required treating randomness as plumbing: one root seed fans out to per-node, network, nemesis, and client RNGs, and every event goes through a single (time, seq) heap.</li>
-        </ul>
-      </section>
-      <section class="proj-section">
-        <h2>What I learned</h2>
-        <ul class="proj-list">
-          <li>Sans-IO is the whole ballgame for testable distributed systems: once the core stopped owning sockets and clocks, running 5,000 chaos schedules in 90 seconds became an ordinary function call.</li>
-          <li>Exactly-once is a state machine feature, not a networking feature; the dedup table has to live inside the replicated state and its snapshots.</li>
-          <li>Crash safety falls out of one discipline: never acknowledge before fsync, and make every on-disk structure atomic-rename or scan-and-truncate recoverable.</li>
-          <li>Safety nets need their own tests; a checker that never fires is indistinguishable from one that cannot fire.</li>
         </ul>
       </section>
       </div>

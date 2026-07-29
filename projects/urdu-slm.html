@@ -119,8 +119,6 @@
       <section class="proj-section">
         <h2>Overview</h2>
         <p>A small Urdu language model trained from scratch: the full stack, from raw public text to a decoder-only transformer, built for a low-resource language that off-the-shelf tokenizers and models handle poorly.</p>
-        <p>Most projects that train a small GPT reach for English data and a pretrained tokenizer. Urdu (Perso-Arabic script, right-to-left, rich morphology) exposes the parts those projects skip: script normalization, a tokenizer that does not shred the language into bytes, script-aware language-ID filtering, and an honest token budget.</p>
-        <p>Everything here is written from scratch in PyTorch, with no modeling code from the transformers library.</p>
       </section>
       <section class="proj-section">
         <h2>Key features</h2>
@@ -160,23 +158,6 @@
           <li>numpy</li>
           <li>datasketch (MinHash LSH)</li>
           <li>pytest</li>
-        </ul>
-      </section>
-      <section class="proj-section">
-        <h2>Challenges</h2>
-        <ul class="proj-list">
-          <li>Near-dedup was two hours slow with per-shingle MinHash updates (about 250 docs/s); rewriting the signature into two vectorized numpy operations took it to about 2,400 docs/s, a roughly 10x speedup, with the same duplicates caught.</li>
-          <li>The tiny preset is embedding-bound: at a 32k vocabulary the tied embedding table alone is 8.2M parameters, so a genuinely tiny transformer still lands around 13M, reported honestly rather than shrinking the vocab.</li>
-          <li>Language ID without a heavyweight model: because Urdu shares its script only with other Perso-Arabic languages absent at volume here, a script-range ratio catches the real contaminant (embedded English) directly.</li>
-        </ul>
-      </section>
-      <section class="proj-section">
-        <h2>What I learned</h2>
-        <ul class="proj-list">
-          <li>Vectorizing the hot loop matters more than picking a fast library: the same LSH went from unusable to fine by moving per-element work into two numpy calls per document.</li>
-          <li>With a real 32k subword vocabulary, a 10M-parameter model is a fiction below a certain size because the embedding table dominates.</li>
-          <li>SwiGLU at an 8/3 hidden ratio matches a 4x GELU block's parameter count, so a SwiGLU model needs more depth to reach a target size.</li>
-          <li>A resumable, token-count-scheduled loop up front is the difference between the GPU run being one command and babysitting step counts.</li>
         </ul>
       </section>
       </div>

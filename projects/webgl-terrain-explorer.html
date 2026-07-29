@@ -119,7 +119,6 @@
       <section class="proj-section">
         <h2>Overview</h2>
         <p>A first-person explorable low-poly landscape written in raw WebGL 1.0, with no engine and no libraries. Procedural terrain, trees, houses, a gradient sky dome, distance fog, and an animated water plane, all generated in JavaScript at load time.</p>
-        <p>It runs by opening index.html in any WebGL-capable browser: no build step, no dependencies.</p>
       </section>
       <section class="proj-section">
         <h2>Key features</h2>
@@ -143,10 +142,6 @@
           <li>GLSL</li>
           <li>No libraries</li>
         </ul>
-      </section>
-      <section class="proj-section">
-        <h2>A challenge worth noting</h2>
-        <p>With no engine, every matrix is hand-written. The view matrix is assembled by hand from the camera's basis vectors, and getting the signs right (the -forward row and the translation column) took care. The takeaway: analytic normals from a height function are cheaper and cleaner than averaging face normals, as long as the surface comes from a function you can sample.</p>
       </section>
       </div>
     </div>

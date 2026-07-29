@@ -119,7 +119,6 @@
       <section class="proj-section">
         <h2>Overview</h2>
         <p>A genetic algorithm that evolves system-level instruction prompts for LLM code generation. Each candidate prompt is scored by an objective fitness function: how many real test cases the generated C++ passes.</p>
-        <p>Gemini generates a C++ solution per competitive-programming problem, g++ compiles it, the binary runs against real test cases, and fitness is the fraction of tests passed. Crossover and mutation are performed by a second, stronger LLM operating directly on the prompt text.</p>
       </section>
       <section class="proj-section">
         <h2>Key features</h2>
@@ -147,10 +146,6 @@
           <li>APPS benchmark subset</li>
           <li>matplotlib</li>
         </ul>
-      </section>
-      <section class="proj-section">
-        <h2>A challenge worth noting</h2>
-        <p>Making fitness objective at all: rather than asking a model whether output looks right, each candidate is scored by compiling and running the generated C++ against the problem's real test cases. That made the signal trustworthy but pinned the project to a working g++ toolchain, which is a system dependency that has nothing to do with genetic algorithms.</p>
       </section>
       </div>
     </div>

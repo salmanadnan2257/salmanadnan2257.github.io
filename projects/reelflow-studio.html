@@ -118,7 +118,6 @@
       <section class="proj-section">
         <h2>Overview</h2>
         <p>A single-file operator console for a set of n8n automation workflows: video approval and publishing, LinkedIn content generation, and a scripting agent. The browser talks directly to n8n webhooks, with retry logic so a flaky workflow run never silently drops an approval.</p>
-        <p>The client's content pipeline runs entirely in n8n against Google Sheets and Drive, which has no client-facing UI, so this app gives the client one page with a button per decision, each a webhook call with retry logic.</p>
       </section>
       <section class="proj-section">
         <h2>Key features</h2>
@@ -142,10 +141,6 @@
           <li>Netlify edge function</li>
           <li>Python (Pinecone loaders)</li>
         </ul>
-      </section>
-      <section class="proj-section">
-        <h2>A challenge worth noting</h2>
-        <p>n8n webhook runs can time out or drop partway, and a dropped approval is worse than a visible error. With no server-side status to poll, the contract became that a workflow answers with the literal string Completed and anything else counts as failure, wrapped in a retry loop. The other lesson: browsers block cross-origin media on the response headers, not just request CORS, so the actual fix is a same-origin proxy that forwards Range and preserves the 206 status to keep video seeking working.</p>
       </section>
       </div>
     </div>

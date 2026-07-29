@@ -119,7 +119,6 @@
       <section class="proj-section">
         <h2>Overview</h2>
         <p>A two-player Tic Tac Toe game with a real graphical interface built in tkinter. It started as a console script with a real bug (the win check only ever tested for X), and this rewrite fixes that properly, detects wins across all eight lines for both players, and tracks score across rounds without closing the window.</p>
-        <p>This began as a "Day 83" console-only practice script that just printed a numbered board and read <code>input()</code>, and it had a real bug: the win check only ever tested for player X, so O could complete a full line and the game would keep running as if nothing happened. This rewrite keeps the original goal, representing a 3x3 board and detecting a win across all eight lines without a library, but fixes the bug properly and replaces the terminal loop with an actual tkinter window.</p>
       </section>
       <section class="proj-section">
         <h2>Key features</h2>
@@ -142,10 +141,6 @@
           <li>Python 3.6+</li>
           <li>tkinter</li>
         </ul>
-      </section>
-      <section class="proj-section">
-        <h2>A challenge worth noting</h2>
-        <p>The console version hardcoded 8 <code>or</code>-chained comparisons, all checked only against X, which is exactly how the O-detection bug slipped in. Rather than duplicating that shape 8 more times for O, <code>check_winner</code> loops over a list of the 8 index triples (<code>WIN_LINES</code>) and checks whether all three cells match a non-empty mark, handling both players with one code path. A smaller fix worth noting: tkinter's default disabled state grays out button text, which would make X and O look the same shade of gray once placed, so <code>disabledforeground</code> is set explicitly to keep each mark's real color after the cell is disabled.</p>
       </section>
       </div>
     </div>
