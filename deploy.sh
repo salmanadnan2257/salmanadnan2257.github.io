@@ -35,8 +35,17 @@ git push origin main || echo "⚠️  Already up to date"
 # tests/node_modules and tests/out are dev-only artifacts (56M once deps are
 # installed and screenshots pile up); they are never part of the site, so keep them
 # off the production web root. --delete is still deliberately absent (see README).
+#
+# The build machinery is excluded too. It was being served: build-agency.py and
+# deploy.sh both answered 200 on salmanadnan.com until 2026-07-29. The repository is
+# public, so nothing secret was revealed and this is hygiene rather than a leak, but
+# a marketing web root has no business serving its own build scripts, and the whole
+# of tests/ and tools/ is dead weight on the server. README.md and LICENSE stay:
+# they are ordinary public repository files and this repo is a GitHub Pages repo.
 echo "📤 Syncing to VPS..."
-rsync -az --exclude='.git' --exclude='tests/node_modules' --exclude='tests/out' -e ssh ./ da:/root/salmanadnan.com/
+rsync -az --exclude='.git' --exclude='tests' --exclude='tools' \
+  --exclude='partials' --exclude='build-agency.py' --exclude='deploy.sh' \
+  -e ssh ./ da:/root/salmanadnan.com/
 
 # The agency web root is a generated mirror, so --delete IS correct here: a file
 # that build-agency.py stops emitting (portrait.webp, say) must not linger on the
