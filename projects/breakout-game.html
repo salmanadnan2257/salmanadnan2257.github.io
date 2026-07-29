@@ -119,7 +119,6 @@
       <section class="proj-section">
         <h2>Overview</h2>
         <p>A classic Breakout clone built with Python's turtle module: a paddle, a bouncing ball, a wall of blocks colored by row, a lives system, a start and end screen, an increasing difficulty ramp, and a persistent high score.</p>
-        <p>A game-loop exercise: object motion, collision detection against multiple kinds of surfaces (walls, paddle, blocks), a small state machine for start/playing/game-over/win, and score state that survives between runs, all without a game engine, just turtle and a manual while-loop.</p>
       </section>
       <section class="proj-section">
         <h2>Key features</h2>
@@ -143,10 +142,6 @@
           <li>turtle</li>
           <li>time</li>
         </ul>
-      </section>
-      <section class="proj-section">
-        <h2>A challenge worth noting</h2>
-        <p>Turtle gives no rectangle collision out of the box, so ball-to-block collision uses a fixed-radius distance check, an approximation that treats a wide block and a narrow block as the same size. Packing the block wall has a similar manual-geometry problem: `place_block()` tracks the previous block's position and width to decide whether the next one fits on the current row, wrapping to a new row or stopping entirely once vertical space runs out. `main.py` also runs the ball-to-block collision check twice per frame (once before moving the ball, once after) to catch a fast ball tunneling past a block between checks, which works but costs double the checks most frames need.</p>
       </section>
       </div>
     </div>

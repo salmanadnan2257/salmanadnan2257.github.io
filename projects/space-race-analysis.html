@@ -119,7 +119,6 @@
       <section class="proj-section">
         <h2>Overview</h2>
         <p>A data analysis script and interactive Flask dashboard covering every space mission launch on record from the start of the Space Race in 1957 through 2020: 4,324 launches by 56 organisations, cleaned and turned into 17 static charts plus a live-filterable dashboard covering launch counts, cost, geography, and the Cold War rivalry between the USA and the USSR.</p>
-        <p>Raw launch logs answer "what happened" one row at a time. This project turns those rows into answers to the questions people actually ask about spaceflight history: who launches the most, what does a launch cost, and how did the USA and USSR compare during the Cold War. What started as a one-shot static analysis script grew a second life as a live Flask dashboard sitting on top of the same cleaned data.</p>
       </section>
       <section class="proj-section">
         <h2>Key features</h2>
@@ -145,10 +144,6 @@
           <li>Plotly</li>
           <li>Flask</li>
         </ul>
-      </section>
-      <section class="proj-section">
-        <h2>A challenge worth noting</h2>
-        <p>An early version built a launch-count column with <code>value_counts().reset_index()['Organisation']</code>, which in current pandas pulls the organisation names, not the counts, into that column. It didn't fail until later, when dividing price by that column threw a type error. The fix was to map counts back onto each row explicitly by key instead of relying on how <code>reset_index()</code> happens to name its output in a given pandas version. On the dashboard side, sending a filtered chart to the browser without a full reload needed <code>json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)</code> rather than <code>fig.to_html()</code>, since the page calls <code>Plotly.react</code> on the existing chart with that JSON instead of replacing the whole document.</p>
       </section>
       </div>
     </div>

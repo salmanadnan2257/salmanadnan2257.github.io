@@ -119,7 +119,6 @@
       <section class="proj-section">
         <h2>Overview</h2>
         <p>Authorship attribution for Balochi poetry: given a single couplet, predict which of three poets wrote it, by fine-tuning xlm-roberta-base for 3-way sequence classification. Balochi is a low-resource language with almost no prior computational work, which is the point.</p>
-        <p>The approach shows that a multilingual transformer can be fine-tuned for author attribution with under 2,000 labeled verses. Built as a university Deep Learning course project by a team of three; this repository is Salman's part, the classification pipeline. Dataset collection was a team effort.</p>
       </section>
       <section class="proj-section">
         <h2>Dataset</h2>
@@ -149,23 +148,6 @@
           <li>Hugging Face Transformers</li>
           <li>xlm-roberta-base</li>
           <li>scikit-learn</li>
-        </ul>
-      </section>
-      <section class="proj-section">
-        <h2>Challenges</h2>
-        <ul class="proj-list">
-          <li>CPU training is not viable for this model: each optimizer step took roughly 28 seconds, about 6 hours per epoch, so the repo stays CPU-runnable for preprocessing and quick checks and points training at Colab.</li>
-          <li>Heavy class imbalance: a model on raw cross-entropy would ignore the 8.4% class and still look fine on plain accuracy, so weighted loss and weighted-F1 monitoring were used.</li>
-          <li>A transformers API deprecation broke the trainer (a renamed argument, a deprecated tokenizer parameter, and an extra compute_loss argument); the fix was verified by running a few real steps against a tiny random model.</li>
-        </ul>
-      </section>
-      <section class="proj-section">
-        <h2>What I learned</h2>
-        <ul class="proj-list">
-          <li>Wall-clock cost per step is the number that decides whether a plan is real; measuring one step early (28s) would have saved the whole first attempt.</li>
-          <li>Class weights change what the loss optimizes, not what accuracy reports, so the metric you monitor matters as much as the loss.</li>
-          <li>Pinned dependency ranges do not protect you from library API drift; the only way to catch it was to actually execute the trainer.</li>
-          <li>Stratified splitting keeps class ratios stable but does nothing about leakage between couplets from the same poem.</li>
         </ul>
       </section>
       </div>

@@ -113,8 +113,6 @@
       <section class="proj-section">
         <h2>Overview</h2>
         <p>A relational database engine written from scratch in Python: a hand-written SQL parser, a cost-based planner, B+tree storage on slotted 4KB pages, a write-ahead log with real crash recovery, and MVCC snapshot-isolation transactions. The core uses only the standard library.</p>
-        <p>Databases are the best systems-programming curriculum there is: parsing, query optimization, on-disk data structures, caching, logging protocols, and concurrency control, all forced to cooperate.</p>
-        <p>sqlmill owns each layer end to end, including the parts tutorials usually skip: crash recovery that survives a SIGKILL mid-page-write, and transaction semantics precise enough to state which anomalies are and are not possible.</p>
       </section>
       <section class="proj-section">
         <h2>Key features</h2>
@@ -144,24 +142,6 @@
           <li>Write-ahead log</li>
           <li>MVCC</li>
           <li>pytest</li>
-        </ul>
-      </section>
-      <section class="proj-section">
-        <h2>Challenges</h2>
-        <ul class="proj-list">
-          <li>Torn multi-page operations in the WAL: the first crash campaign failed around round 200 because page images were logged individually and a SIGKILL left exactly one of a heap-chain append's images in the replayable prefix. Logging the whole dirty set of each safe point as a single length-and-CRC-framed batch record fixed it.</li>
-          <li>Unique indexes vs MVCC versions: an UPDATE that keeps the key creates a second version with the same key, so the RID is appended to every index key and UNIQUE is enforced logically at insert time.</li>
-          <li>Rebalancing with variable-length keys: count-based split and merge rules break for keys from 9 to 400 bytes, so the tree uses serialized-size thresholds throughout.</li>
-          <li>Negative integers broke the order-preserving key encoding on Python's arbitrary-precision ints, caught by a property test over the full 64-bit range.</li>
-        </ul>
-      </section>
-      <section class="proj-section">
-        <h2>What I learned</h2>
-        <ul class="proj-list">
-          <li>Full-page-image redo plus MVCC-as-undo is a legitimately simple recovery scheme, but only if checkpoints quiesce transactions and rollback physically undoes before the durable horizon advances.</li>
-          <li>Atomicity boundaries have to match at every layer; the batch-record bug was invisible to every deterministic test and appeared only under randomized SIGKILL timing.</li>
-          <li>Appending the RID to secondary-index keys makes non-unique indexes, version chains, and range scans fall out of one unique-key B+tree.</li>
-          <li>Build the crash harness first: it found the only serious correctness bug in the project within 200 rounds.</li>
         </ul>
       </section>
       </div>

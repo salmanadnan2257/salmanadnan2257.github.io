@@ -119,7 +119,6 @@
       <section class="proj-section">
         <h2>Overview</h2>
         <p>A single-script tool that builds fair mashup contests for a study group by querying the public Codeforces API, filtering the problemset by rating band, tags, and solver history, then writing candidate problems to an Excel sheet.</p>
-        <p>When the study group ran mashup contests, someone always got a problem they had already solved, which ruins the point. This script only picks problems that no listed group member has an accepted submission on, and optionally requires that a trusted strong user has solved it as a rough quality signal.</p>
       </section>
       <section class="proj-section">
         <h2>Key features</h2>
@@ -143,10 +142,6 @@
           <li>argparse</li>
           <li>pandas + openpyxl</li>
         </ul>
-      </section>
-      <section class="proj-section">
-        <h2>A challenge worth noting</h2>
-        <p>The API splits the needed data across two differently shaped endpoints: problemset.problems returns flat objects while user.status wraps the problem under a key, so both had to be reduced to the same (contestId, index) identity for the filters to line up. A related gotcha: raise_for_status() only covers transport-level failures, and Codeforces returns HTTP 200 with a FAILED JSON body for an unknown handle, so a second check on the payload's own status field is needed.</p>
       </section>
       </div>
     </div>

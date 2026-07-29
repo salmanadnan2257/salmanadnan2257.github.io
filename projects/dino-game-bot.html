@@ -118,7 +118,6 @@
       <section class="proj-section">
         <h2>Overview</h2>
         <p>A script that plays Chrome's offline Dino game by watching the screen and pressing space at the right moment, using screen capture and pixel inspection rather than reading any game state or the DOM.</p>
-        <p>The Dino game has one input (jump) and a simple visual language: obstacles approach from the right, and hitting one ends the run. That makes it a small, self-contained target for practicing screen-based automation, no game API to call and no memory to read, just pixels on screen and a keyboard event, exercising Selenium (to drive Chrome) alongside raw screen capture and pixel inspection (to "see" the game).</p>
       </section>
       <section class="proj-section">
         <h2>Key features</h2>
@@ -143,10 +142,6 @@
           <li>keyboard</li>
           <li>tkinter</li>
         </ul>
-      </section>
-      <section class="proj-section">
-        <h2>A challenge worth noting</h2>
-        <p>The obstacle and game-area regions are absolute pixel boxes tuned for one specific screen resolution and window layout, with no logic to derive them from the actual browser window geometry, so the bot is only correct on the exact setup it was measured on. A related challenge is the day/night color inversion: the game periodically swaps its palette, so a single fixed color check for "obstacle present" would break every time the mode flipped. `check_day` runs first on every check to pick the right target color, at the cost of a second screen grab per loop iteration.</p>
       </section>
       </div>
     </div>

@@ -119,7 +119,6 @@
       <section class="proj-section">
         <h2>Overview</h2>
         <p>A multivariable linear regression that predicts hourly earnings from years of schooling and years of work experience, using a 2,000-row subset of the NLSY97 (National Longitudinal Survey of Youth 1997-2011), served through an interactive Plotly/Flask dashboard as well as a plain headless script.</p>
-        <p>This is a compact, end-to-end regression exercise: load survey data, clean it, explore it, fit a simple model then a multivariable model, check the residuals, and use the model to make a concrete prediction. The dashboard on top turns the static output into something you can actually interact with: move a slider, see a real prediction, and look at the whole schooling/experience plane at once instead of a single point estimate.</p>
       </section>
       <section class="proj-section">
         <h2>Key features</h2>
@@ -145,10 +144,6 @@
           <li>Flask</li>
           <li>matplotlib / seaborn</li>
         </ul>
-      </section>
-      <section class="proj-section">
-        <h2>A challenge worth noting</h2>
-        <p>The source script's comments claimed to fit a model on schooling alone, but the code actually fit schooling and experience together in one step, skipping the simple model entirely. Fixing that meant actually implementing both: a simple model on schooling alone and a multivariable model on both features, so the comparison the comments describe exists in the real output. Keeping two entry points (a headless script and the Flask dashboard) from silently drifting apart was solved by pulling all fitting logic into one shared <code>model.py</code>, so both call the same <code>fit_models()</code> and are structurally guaranteed to use the same split and coefficients rather than two copies that happen to agree.</p>
       </section>
       </div>
     </div>

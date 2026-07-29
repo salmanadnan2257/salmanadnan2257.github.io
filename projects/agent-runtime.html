@@ -119,8 +119,6 @@
       <section class="proj-section">
         <h2>Overview</h2>
         <p>An event-sourced runtime for tool-using LLM agents, with the operations layer that agent demos usually skip: deterministic replay, crash-safe resume, an approval gate for side effects, config-driven failure injection, and a YAML scenario suite that regression-tests agent behavior between model versions.</p>
-        <p>The agent loop itself (plan, call a tool, observe, continue) is a weekend's work. What makes agents deployable is everything around it: what exactly happened in a given run, can I reproduce it, did the agent email a customer before anyone approved it, and does the new model version still pass the flows that worked last week.</p>
-        <p>This project treats those as the core problem. Every run is an append-only event log, and every feature (replay, resume, approvals, cost accounting, regression diffs) is a function of that log.</p>
       </section>
       <section class="proj-section">
         <h2>Key features</h2>
@@ -150,23 +148,6 @@
           <li>FastAPI</li>
           <li>YAML scenarios</li>
           <li>pytest</li>
-        </ul>
-      </section>
-      <section class="proj-section">
-        <h2>Challenges</h2>
-        <ul class="proj-list">
-          <li>Byte-identical replay fought every source of nondeterminism: the store takes an injectable clock, sleeps are injectable no-ops, and model_requested records a digest rather than anything time-dependent.</li>
-          <li>The mock adapter's script index and call counter had to be different numbers; splitting them fixed fault plans and turned out to be exactly what resume needed.</li>
-          <li>Closing the duplicate-side-effect window took ordering, not locks: the executor writes the result to an INSERT OR IGNORE ledger before the runtime appends the event.</li>
-        </ul>
-      </section>
-      <section class="proj-section">
-        <h2>What I learned</h2>
-        <ul class="proj-list">
-          <li>Deriving all state from a projection collapses feature count: resume after crash, continue after approval, and a plain next iteration became the same function.</li>
-          <li>Determinism is a budget you spend field by field; any payload value not a pure function of the log is a future replay divergence.</li>
-          <li>Separating expected tool failures from unexpected ones buys a retry policy for free.</li>
-          <li>A per-event type-and-detail signature is enough for useful regression diffs with no diffing library.</li>
         </ul>
       </section>
       </div>

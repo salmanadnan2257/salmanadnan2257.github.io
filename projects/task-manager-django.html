@@ -119,7 +119,6 @@
       <section class="proj-section">
         <h2>Overview</h2>
         <p>A web-based task manager built with Django where users register, manage and share tasks, and receive real-time WebSocket notifications when tasks are assigned or updated.</p>
-        <p>The brief was to go beyond a basic CRUD app: add multi-user collaboration, real-time updates, and a small analytics view. It covers that ground with Django Channels for the WebSocket layer, Redis as the channel backend, and matplotlib for server-rendered charts.</p>
       </section>
       <section class="proj-section">
         <h2>Key features</h2>
@@ -146,10 +145,6 @@
           <li>Bootstrap</li>
           <li>SQLite</li>
         </ul>
-      </section>
-      <section class="proj-section">
-        <h2>A challenge worth noting</h2>
-        <p>The status endpoint was wide open: update_task_status had no auth check and fetched the task by id alone, so any request guessing a task id could change anyone's status without logging in. The fix required authentication, then returned 403 unless the requester owns or shares the task. Object-level permission is separate from requiring login.</p>
       </section>
       </div>
     </div>

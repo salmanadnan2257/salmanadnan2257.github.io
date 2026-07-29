@@ -119,7 +119,6 @@
       <section class="proj-section">
         <h2>Overview</h2>
         <p>A desktop course-registration app built with PyQt6 and SQLAlchemy over SQLite. A student logs in, confirms an emailed code, then enrolls in sections, adds, drops, and swaps courses with clash and capacity checks, and exports a weekly schedule to Excel.</p>
-        <p>Built as the semester project for the Databases course at Habib University.</p>
       </section>
       <section class="proj-section">
         <h2>Key features</h2>
@@ -146,10 +145,6 @@
           <li>pandas / openpyxl</li>
           <li>Docker</li>
         </ul>
-      </section>
-      <section class="proj-section">
-        <h2>A challenge worth noting</h2>
-        <p>The login MFA and attendance confirmations go out over Gmail SMTP, but a fresh clone has no app password. The fix reads sender credentials from the environment and branches before touching smtplib, printing the code to the terminal when they are missing. A Qt app also turned out to be testable without a display: an offscreen platform plus monkeypatched dialog methods make a click-through app a scriptable smoke test.</p>
       </section>
       </div>
     </div>

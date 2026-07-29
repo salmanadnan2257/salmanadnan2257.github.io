@@ -72,13 +72,8 @@ CREDITS = {
 
     "Salman built the part that cleans the verses and teaches the computer to tell the poets apart;":
         "Our founder, Salman Adnan, built the part that cleans the verses and teaches the computer to tell the poets apart;",
-    # Lower-case here on purpose: this one follows a semicolon, not a full stop.
-    "Salman built the part that cleans them and teaches a computer to tell three poets apart.":
-        "our founder, Salman Adnan, built the part that cleans them and teaches a computer to tell three poets apart.",
     "Salman's part of a three-person course project:":
         "Our founder's part of a three-person course project:",
-    "this repository is Salman's part, the classification pipeline.":
-        "this repository is our founder's part, the classification pipeline.",
 
     "Three students built it as their final-year project, led by Salman;":
         "Three students built it as their final-year project, led by our founder, Salman Adnan;",
@@ -113,12 +108,8 @@ CREDITS = {
         "Built and operated by our founder, Salman Adnan; it runs unattended on a VPS and serves several agency clients.",
 
     # "his own agency" reads wrong on the agency's own site.
-    "The web app that runs Salman's own agency:":
-        "The web app that runs our own agency:",
     "This is the software that runs Salman's own agency.":
         "This is the software that runs our own agency.",
-    "Who it serves: this is the live software of Salman's own agency, Digitalise Agency, and it runs that agency's real client work.":
-        "Who it serves: this is our own live software, and it runs our real client work.",
     "Codeforces is a site full of programming puzzles, and Salman's study group ran practice contests on them.":
         "Codeforces is a site full of programming puzzles, and our founder's study group ran practice contests on them.",
 

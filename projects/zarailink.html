@@ -118,7 +118,6 @@
       <section class="proj-section">
         <h2>Overview</h2>
         <p>An agricultural trade-intelligence platform built as a final-year project at Habib University. It sits on Pakistani customs trade data and answers plain-language supplier queries through an NLU pipeline, a hybrid retrieval layer, and a learning-to-rank model.</p>
-        <p>The platform answers queries like find dextrose suppliers from Brazil under $800 per MT: the query passes through intent classification, entity extraction, and country and price parsing, a hybrid retrieval layer, and a learning-to-rank model, and comes back as ranked companies with trade history, partners, and gated contact details.</p>
       </section>
       <section class="proj-section">
         <h2>Key features</h2>
@@ -159,23 +158,6 @@
           <li>node2vec</li>
           <li>React 19</li>
           <li>Tailwind</li>
-        </ul>
-      </section>
-      <section class="proj-section">
-        <h2>Challenges</h2>
-        <ul class="proj-list">
-          <li>Serving transformer models on CPU without crashing at import time: torch's meta-tensor init path raced with sentence-transformers' .to('cpu'), so the fix patches is_accelerate_available at the cached call sites and swaps init_empty_weights for a no-op.</li>
-          <li>A requirements file that did not install: gliner required a newer transformers than the rest of the stack pinned, and pycountry was missing entirely; both are fixed here.</li>
-          <li>Tests that outlived the code they tested: four tests targeted deleted models and pytest.ini's testpaths pointed at uninstalled apps, so the suite was rebuilt to a trustworthy 63 passing.</li>
-        </ul>
-      </section>
-      <section class="proj-section">
-        <h2>What I learned</h2>
-        <ul class="proj-list">
-          <li>Pin dependencies from a clean-room install, not from whatever the dev machine happens to have.</li>
-          <li>testpaths in pytest.ini is a silent filter: tests outside it neither run nor fail.</li>
-          <li>When monkeypatching library internals, patch where the symbol is used, not where it is defined.</li>
-          <li>Anything with monetary meaning must be enforced in the API layer and verified by tests that hit the endpoints.</li>
         </ul>
       </section>
       </div>

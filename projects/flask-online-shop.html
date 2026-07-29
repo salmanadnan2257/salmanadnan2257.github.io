@@ -118,7 +118,6 @@
       <section class="proj-section">
         <h2>Overview</h2>
         <p>A small e-commerce demo built with Flask: browse a nine-planet product catalog, create an account, log in, and pay through Stripe Checkout in test mode.</p>
-        <p>This is a self-contained exercise in wiring up the parts a real online store needs: session-based auth with hashed passwords, a SQLite-backed user table, and a hosted payment flow, without pulling in a framework that hides how any of it works.</p>
       </section>
       <section class="proj-section">
         <h2>Key features</h2>
@@ -145,10 +144,6 @@
           <li>Stripe SDK</li>
           <li>SQLite</li>
         </ul>
-      </section>
-      <section class="proj-section">
-        <h2>A challenge worth noting</h2>
-        <p>The original login check found the submitted email, then always compared the password against user id 1's hash regardless of who was logging in. With exactly one seeded user this happens to work; with a second account it lets any password through as long as it matches user 1's hash. Fixed by looking up the row for the submitted email and checking against that row's own hash. A separate bug hid in plain sight in the catalog itself: the template hardcoded Uranus at $69,420, but the dict actually sent to Stripe priced it at $42,069. Every other planet's hardcoded price happened to agree with its Stripe amount, so this only surfaced by cross-checking each one by hand; the fix derives the displayed price from the same dict the checkout session uses, so the two figures can't diverge again.</p>
       </section>
       </div>
     </div>

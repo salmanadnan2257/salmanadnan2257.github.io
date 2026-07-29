@@ -144,7 +144,6 @@
       <section class="proj-section">
         <h2>Overview</h2>
         <p>A curated collection of n8n visual-workflow automations covering lead generation and scraping, AI content and video pipelines, SEO and outreach systems, CRM and booking utilities. n8n builds automations as node graphs instead of text, but the engineering is the same, chaining triggers, API calls, LLM steps, and data transforms into a working system.</p>
-        <p>The source was a live n8n instance with well over a hundred workflows built up over time: some production systems, some demos, some abandoned tests. This project is the curation pass over that instance: survey every workflow, decide what is genuinely worth showing, pull its real definition, strip anything sensitive and account-specific, standardize as an importable template, and document it to the same standard as the rest of this portfolio, including the parts that do not work as advertised.</p>
       </section>
       <section class="proj-section">
         <h2>Six of the 59, as node graphs</h2>
@@ -182,10 +181,6 @@
           <li>HeyGen</li>
           <li>Stripe</li>
         </ul>
-      </section>
-      <section class="proj-section">
-        <h2>A challenge worth noting</h2>
-        <p>n8n's workflow export strips credential bindings but not the hardcoded values some nodes had accumulated over time: real API keys sitting in HTTP Request node parameters, real Google Sheet IDs cached in node configuration, and once, a personal email address baked into pinned test data. There is no single grep pattern that catches all of that; it took reading each workflow's actual node graph rather than trusting an automated scan alone, since a URL query parameter or a credential-store `name` field can carry a real secret in a shape no generic pattern anticipates.</p>
       </section>
       </div>
     </div>

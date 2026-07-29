@@ -118,7 +118,6 @@
       <section class="proj-section">
         <h2>Overview</h2>
         <p>A production pipeline that researches, writes, illustrates, and publishes SEO blog posts for agency client sites. One CLI run produces one complete, optimized post with citations and internal links.</p>
-        <p>Two packages live here: simple_blog (the live system) and blog_generator (the retired first generation). Every LLM step in the live pipeline uses one fixed, client-agnostic system prompt; all client-specific data travels in the user message.</p>
       </section>
       <section class="proj-section">
         <h2>Key features</h2>
@@ -151,10 +150,6 @@
           <li>Docker + systemd timers</li>
           <li>Playwright crawler</li>
         </ul>
-      </section>
-      <section class="proj-section">
-        <h2>A challenge worth noting</h2>
-        <p>Generation and context caching for the Gemini 3.x previews are served only from the global endpoint while embeddings are served from a region, and re-pointing the shared location mid-run breaks in-flight models. The fix is a separate region-pinned client for embeddings. The design lesson: fixed prompt with variable data beats fixed data with a variable prompt, which turned client onboarding from a code change into a data change.</p>
       </section>
       </div>
     </div>

@@ -119,7 +119,6 @@
       <section class="proj-section">
         <h2>Overview</h2>
         <p>A three-part study of scaling a single PostgreSQL node before reaching for NoSQL: find slow queries and index them, partition a time-series table, then add streaming read replicas with read and write routing in the application.</p>
-        <p>The premise: a CTO wants to migrate to NoSQL because of slow queries, and this project shows how far plain PostgreSQL goes with the standard toolbox. It keeps an honest negative result too.</p>
       </section>
       <section class="proj-section">
         <h2>Key features</h2>
@@ -147,10 +146,6 @@
           <li>Python with psycopg</li>
           <li>pytest</li>
         </ul>
-      </section>
-      <section class="proj-section">
-        <h2>A challenge worth noting</h2>
-        <p>The user-activity query got slower after partitioning, and the result was kept. Range-partitioning on event_time speeds time-filtered queries, but get_user_activity filters by user_id, so the planner has nothing to prune on and probes every partition's local index. Partition pruning only helps queries that filter on the partition key, so the key choice is really a choice about which queries you are willing to make slower.</p>
       </section>
       </div>
     </div>

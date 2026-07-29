@@ -119,7 +119,6 @@
       <section class="proj-section">
         <h2>Overview</h2>
         <p>A CPU ray tracer in C++17 whose showcase scene, Crystal Cavern, is a procedurally generated cave of 1.29 million triangles rendered at 1920x1080 with Whitted recursive tracing, a reflective floor, Phong crystals, and multiple shadow-casting lights.</p>
-        <p>Roughly 3,000 lines of C++ with no external dependencies beyond a C++17 compiler. The class hierarchy derives from Kevin Suffern's Ray Tracing from the Ground Up scaffold.</p>
       </section>
       <section class="proj-section">
         <h2>Key features</h2>
@@ -147,10 +146,6 @@
           <li>bundled stb_image_write</li>
           <li>No external dependencies</li>
         </ul>
-      </section>
-      <section class="proj-section">
-        <h2>A challenge worth noting</h2>
-        <p>Brute-force intersection was unusable at cavern scale, because every primary ray tested every triangle. A top-down BVH dropped per-pixel cost from 166.6 ms to 0.040 ms. The acceleration structure is the whole ballgame for a scene this size: the speedup came entirely from not touching most of the geometry, not from micro-optimizing intersection.</p>
       </section>
       </div>
     </div>

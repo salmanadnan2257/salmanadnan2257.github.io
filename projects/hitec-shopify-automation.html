@@ -119,7 +119,6 @@
       <section class="proj-section">
         <h2>Overview</h2>
         <p>Freelance automation tools for Hi-Tec Bearings that reconcile stock quantities, costs, and product specs by working directly on the CSV and XLSX files exported from the Shopify admin. Nothing here touches the Shopify API; a human review step sits in front of every catalogue change.</p>
-        <p>Hi-Tec Bearings runs a Shopify store with thousands of product variants whose stock system and catalogue lived in separate spreadsheets, and keeping them in sync by hand took hours per cycle. The workflow is export, run a tool, review the output, re-import.</p>
       </section>
       <section class="proj-section">
         <h2>Key features</h2>
@@ -143,10 +142,6 @@
           <li>tkinter</li>
           <li>PyInstaller</li>
         </ul>
-      </section>
-      <section class="proj-section">
-        <h2>A challenge worth noting</h2>
-        <p>The stock list and the Shopify export do not share a key, and an item like 6205 can appear under different brands. The fix filters the stock list to the HI-TEC brand before matching, then joins on title for single-variant products and on the variant value for variants. Matching records without a shared key is mostly about picking the right disambiguator first.</p>
       </section>
       </div>
     </div>

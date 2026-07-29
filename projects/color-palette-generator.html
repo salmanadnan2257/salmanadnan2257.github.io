@@ -119,7 +119,6 @@
       <section class="proj-section">
         <h2>Overview</h2>
         <p>A Flask web app that extracts the dominant colors from an uploaded image and renders them as a set of swatch cards (hex, RGB, share of the image) next to a preview of the source image. It computes the 10 most frequent exact RGB values with <code>numpy.unique</code>, with no database, no external API calls, and no state shared between visitors.</p>
-        <p>Pulling a usable palette out of a photo, for a mood board, a UI theme, or just curiosity, usually means installing a desktop tool or using a third-party site. This is a self-contained version: pick an image, get its top colors and how much of the image each one covers, done in the browser with no upload limits or ads.</p>
       </section>
       <section class="proj-section">
         <h2>Key features</h2>
@@ -144,10 +143,6 @@
           <li>numpy</li>
           <li>Bootstrap (vendored)</li>
         </ul>
-      </section>
-      <section class="proj-section">
-        <h2>A challenge worth noting</h2>
-        <p>A numpy 2.x upgrade broke the rendered swatches silently: the original code built RGB tuples straight from <code>np.unique</code> output, which repr'd as plain integers under numpy 1.x but as <code>np.uint8(255)</code> under numpy 2.x. Since the template embeds those tuples directly into inline CSS (<code>rgb{{ color }}</code>), every swatch rendered as invalid CSS like <code>rgb(np.uint8(255), np.uint8(0), np.uint8(0))</code> and silently failed to show a color, with no exception anywhere in the stack. It was caught by actually running the app and uploading a test image, not by reading the code, and fixed by casting every channel to a plain Python <code>int</code> before building the tuple.</p>
       </section>
       </div>
     </div>

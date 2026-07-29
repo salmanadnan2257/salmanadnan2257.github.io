@@ -118,8 +118,6 @@
       <section class="proj-section">
         <h2>Overview</h2>
         <p>The production codebase behind digitalise.agency: a static marketing site plus a Django SaaS that generates, stores, and publishes AI-written blog posts, gates premium workflows behind redemption codes, and gives clients a portal for progress updates.</p>
-        <p>It optimizes for one operator running real client work: everything is admin-manageable, failures refund credits, and destructive actions land in an audit log.</p>
-        <p>Who it serves: this is the live software of Salman's own agency, Digitalise Agency, and it runs that agency's real client work. Clients are not hard-coded. Staff create each client record in the portal at runtime, assign users to it, and post updates against it, so the roster lives in the production database rather than in the codebase. The public marketing site names the companies the agency has worked with, showing three client logos: Chronosa, Hi-Tec Bearings, and IQI.</p>
       </section>
       <section class="proj-section">
         <h2>Key features</h2>
@@ -151,10 +149,6 @@
           <li>optional Celery / Redis / Twilio / Sentry</li>
           <li>n8n</li>
         </ul>
-      </section>
-      <section class="proj-section">
-        <h2>A challenge worth noting</h2>
-        <p>The cache backend is DatabaseCache and context processors call it on every request, but migrate does not create the cache table, so a migrations-only deploy would 500 on the first page load. The fix makes createcachetable a first-class deploy step, and the lesson learned was that a guarded UPDATE with F() beats read-modify-write for anything that behaves like a balance.</p>
       </section>
       </div>
     </div>
