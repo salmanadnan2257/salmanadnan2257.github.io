@@ -66,6 +66,50 @@
     ]
   }
   </script>
+
+  <!-- The FAQ section carried no structured data until 2026-07-29, so six written
+       answers were earning nothing in search. Kept as its own block rather than
+       merged into the one above, because build-agency.py rewrites that block from
+       Person to Organization and this one is identical on both sites. Any edit to a
+       FAQ answer in the body must be mirrored here or the markup starts lying. -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "What languages and frameworks do you use?",
+        "acceptedAnswer": { "@type": "Answer", "text": "Python (Django, PyTorch), JavaScript and React, SQL, and C++. PostgreSQL behind the scenes, React in the browser, C++ when raw speed decides the outcome." }
+      },
+      {
+        "@type": "Question",
+        "name": "How long do projects typically take?",
+        "acceptedAnswer": { "@type": "Answer", "text": "A single feature: 1 to 2 weeks. A complete application, browser through to database: 4 to 12 weeks. A system built from the ground up: 8 weeks or more. Estimated upfront, with milestones." }
+      },
+      {
+        "@type": "Question",
+        "name": "Do you do revisions and changes?",
+        "acceptedAnswer": { "@type": "Answer", "text": "Yes. Reasonable changes to what we agreed are covered. If the job grows significantly, the timeline and the budget change with it, and only with your agreement." }
+      },
+      {
+        "@type": "Question",
+        "name": "What about maintenance and updates?",
+        "acceptedAnswer": { "@type": "Answer", "text": "Every system ships production-ready and documented. Bug fixes and minor updates are covered. Ongoing maintenance or post-launch features run as a retainer or per request." }
+      },
+      {
+        "@type": "Question",
+        "name": "How do you handle security?",
+        "acceptedAnswer": { "@type": "Answer", "text": "Everything a user types is checked before it is trusted. Data is scrambled on disk and in transit. Sign-in and permissions are enforced on the server, not hidden in the interface. Reviewed against the OWASP Top Ten before launch." }
+      },
+      {
+        "@type": "Question",
+        "name": "What is your communication style?",
+        "acceptedAnswer": { "@type": "Answer", "text": "Weekly status updates minimum: what is being built, what is blocked, and what comes next." }
+      }
+    ]
+  }
+  </script>
 </head>
 <body>
 <a class="skip-link" href="#main">Skip to content</a>
@@ -178,44 +222,35 @@
       <div class="section__head">
         <p class="eyebrow">Is this you?</p>
         <h2 id="pain-title" class="section__title">If any of these sound familiar, it's costing you.</h2>
-        <p class="section__intro">
-          Every system on this page exists because a real version of one of these problems showed up first.
-        </p>
       </div>
       <div class="pain-grid">
         <div class="pain-card">
           <div class="pain-card__icon" aria-hidden="true"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 22h14" /><path d="M5 2h14" /><path d="M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22" /><path d="M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l4.414-4.414A2 2 0 0 0 17 6.172V2" /></svg></div>
           <h3>Manual work eating your week</h3>
-          <p>Someone still copies data by hand, work a script could do unattended.</p>
         </div>
         <div class="pain-card">
           <div class="pain-card__icon" aria-hidden="true"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m12 14 4-4" /><path d="M3.34 19a10 10 0 1 1 17.32 0" /></svg></div>
           <h3>Slow, clunky software</h3>
-          <p>Fine with one user, buckles the moment real traffic arrives.</p>
         </div>
         <div class="pain-card">
           <div class="pain-card__icon" aria-hidden="true"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" /><path d="m14.5 9.5-5 5" /><path d="m9.5 9.5 5 5" /></svg></div>
           <h3>No tests, no confidence</h3>
-          <p>Every release is a gamble, because nothing checks it first.</p>
         </div>
         <div class="pain-card">
           <div class="pain-card__icon" aria-hidden="true"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><ellipse cx="12" cy="5" rx="9" ry="3" /><path d="M3 5V19A9 3 0 0 0 21 19V5" /><path d="M3 12A9 3 0 0 0 21 12" /></svg></div>
           <h3>Data you can't trust</h3>
-          <p>A crash or a power blip can quietly corrupt the data you run on.</p>
         </div>
         <div class="pain-card">
           <div class="pain-card__icon" aria-hidden="true"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M10 22V7a1 1 0 0 0-1-1H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-5a1 1 0 0 0-1-1H2" /><rect x="14" y="2" width="8" height="8" rx="1" /></svg></div>
           <h3>A fragile MVP you outgrew</h3>
-          <p>It shipped fast to prove the idea. Now every new feature breaks an old one.</p>
         </div>
         <div class="pain-card">
           <div class="pain-card__icon" aria-hidden="true"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 8V4H8" /><rect width="16" height="12" x="4" y="8" rx="2" /><path d="M2 14h2" /><path d="M20 14h2" /><path d="M15 13v2" /><path d="M9 13v2" /></svg></div>
           <h3>AI features you can't audit</h3>
-          <p>Your AI does something and nobody can explain why.</p>
         </div>
       </div>
       <div class="pain-cta">
-        <a class="btn btn--primary btn--big" href="#book-a-call">Sound familiar? Let's fix it &rarr; Book a free call</a>
+        <a class="btn btn--primary btn--big" href="#book-a-call">Book a free call &rarr;</a>
       </div>
     </div>
   </section>
@@ -225,31 +260,24 @@
       <div class="section__head">
         <p class="eyebrow">My Approach</p>
         <h2 id="process-title" class="section__title">How I work.</h2>
-        <p class="section__intro">
-          The same four steps on every job, from the first call to launch, so you always know what is being built and what state it is in.
-        </p>
       </div>
 
       <div class="process-grid">
         <div class="process-step">
           <div class="step-num">01</div>
           <h3>Understand the Problem</h3>
-          <p>I start with what you actually need, what you cannot change, and what success would look like. Not every project is solved the same way, and assumptions are the enemy of good software.</p>
         </div>
         <div class="process-step">
           <div class="step-num">02</div>
           <h3>Plan & Design</h3>
-          <p>Design first. I map out how the pieces fit, how the data is stored, and how the pieces talk to each other, before writing the real code. A problem caught on paper is cheap. The same problem caught after launch is not.</p>
         </div>
         <div class="process-step">
           <div class="step-num">03</div>
           <h3>Implement with Tests</h3>
-          <p>I write the checks before the code. Every feature gets automatic tests: on each small piece, on the pieces working together, and on the whole thing as a person would actually use it. Tests are documentation that never lies.</p>
         </div>
         <div class="process-step">
           <div class="step-num">04</div>
           <h3>Verify & Deploy</h3>
-          <p>Before it goes live I push it under heavy traffic, review it for security holes, and run it on a copy of the real setup. Going live is one command, and so is undoing it. No surprises on launch day.</p>
         </div>
       </div>
     </div>
@@ -914,9 +942,6 @@
       <div class="section__head">
         <p class="eyebrow">Recognition</p>
         <h2 id="achievements-title" class="section__title">Notable achievements.</h2>
-        <p class="section__intro">
-          Measured results from real work. No vanity metrics, only outcomes that matter.
-        </p>
       </div>
 
       <div class="achievements-grid">
@@ -942,41 +967,32 @@
       <div class="section__head">
         <p class="eyebrow">Value Delivered</p>
         <h2 id="deliverables-title" class="section__title">What you'll get.</h2>
-        <p class="section__intro">
-          Every project ships with more than just code. You get systems that are tested, documented, deployable, and maintainable.
-        </p>
       </div>
 
       <div class="deliverables-grid">
         <div class="deliverable">
           <div class="deliverable-icon" aria-hidden="true"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m16 18 6-6-6-6" /><path d="m8 6-6 6 6 6" /></svg></div>
           <h3>Working Code</h3>
-          <p>Code written for the next person to read, not to show off. It follows the ordinary conventions of its language, so any competent developer can pick it up. Boring and maintainable beats clever.</p>
         </div>
         <div class="deliverable">
           <div class="deliverable-icon" aria-hidden="true"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M14 2v6a2 2 0 0 0 .245.96l5.51 10.08A2 2 0 0 1 18 22H6a2 2 0 0 1-1.755-2.96l5.51-10.08A2 2 0 0 0 10 8V2" /><path d="M6.453 15h11.094" /><path d="M8.5 2h7" /></svg></div>
           <h3>Full Test Suite</h3>
-          <p>Automatic checks at every level: on each small piece, on the pieces working together, and on the whole thing as a person would use it. The paths that matter most are covered heaviest, and the tests double as documentation: read them and you know what the system does.</p>
         </div>
         <div class="deliverable">
           <div class="deliverable-icon" aria-hidden="true"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 7v14" /><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z" /></svg></div>
           <h3>Documentation</h3>
-          <p>A plain-English guide, diagrams of how the pieces fit, a reference for anything another program plugs into, and step-by-step instructions for putting it live. Enough to understand, maintain, or extend it without having to ask me.</p>
         </div>
         <div class="deliverable">
           <div class="deliverable-icon" aria-hidden="true"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5" /><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09" /><path d="M9 12a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.4 22.4 0 0 1-4 2z" /><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 .05 5 .05" /></svg></div>
           <h3>Deploy Ready</h3>
-          <p>One command puts it live: the build and release steps run themselves, the app is packaged so it behaves the same on any machine, and there is a written way to undo the release if something goes wrong.</p>
         </div>
         <div class="deliverable">
           <div class="deliverable-icon" aria-hidden="true"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect width="18" height="11" x="3" y="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg></div>
           <h3>Security Verified</h3>
-          <p>A security review before launch: everything a user types is checked before it is trusted, passwords and keys are kept out of the code, and sign-in and permissions are enforced on the server. Reviewed against the OWASP Top Ten, the industry's standard list of the most common web weaknesses.</p>
         </div>
         <div class="deliverable">
           <div class="deliverable-icon" aria-hidden="true"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2" /></svg></div>
           <h3>Performance Audited</h3>
-          <p>I push the system under heavy traffic until something gives, fix what gave, and hand you the number: how many people it can serve at once, and what breaks first when it cannot.</p>
         </div>
       </div>
     </div>
@@ -994,42 +1010,42 @@
         <details class="faq-item">
           <summary>What languages and frameworks do you use?</summary>
           <div class="faq-content">
-            <p>Python (Django, PyTorch), JavaScript and React, SQL, and C++. I pick the tool that fits the job instead of forcing one everywhere: Python and PostgreSQL for the machinery behind the scenes, React for what you see in the browser, C++ when raw speed decides the outcome.</p>
+            <p>Python (Django, PyTorch), JavaScript and React, SQL, and C++. PostgreSQL behind the scenes, React in the browser, C++ when raw speed decides the outcome.</p>
           </div>
         </details>
 
         <details class="faq-item">
           <summary>How long do projects typically take?</summary>
           <div class="faq-content">
-            <p>Depends entirely on how big it is. A single feature: 1 to 2 weeks. A complete application, browser through to database: 4 to 12 weeks. A system built from the ground up: 8 weeks or more. I give honest estimates upfront, with clear milestones, so you know what to expect at every step.</p>
+            <p>A single feature: 1 to 2 weeks. A complete application, browser through to database: 4 to 12 weeks. A system built from the ground up: 8 weeks or more. Estimated upfront, with milestones.</p>
           </div>
         </details>
 
         <details class="faq-item">
           <summary>Do you do revisions and changes?</summary>
           <div class="faq-content">
-            <p>Yes. I budget time for feedback and rework. Reasonable changes to what we agreed are covered. If the job grows, we talk about it openly: when what you need changes significantly, the timeline and the budget change with it, and only with your agreement.</p>
+            <p>Yes. Reasonable changes to what we agreed are covered. If the job grows significantly, the timeline and the budget change with it, and only with your agreement.</p>
           </div>
         </details>
 
         <details class="faq-item">
           <summary>What about maintenance and updates?</summary>
           <div class="faq-content">
-            <p>Every system I ship is production-ready and documented. I'm available for bug fixes and minor updates. For ongoing maintenance or new features post-launch, we can discuss retainer arrangements or per-request pricing.</p>
+            <p>Every system ships production-ready and documented. Bug fixes and minor updates are covered. Ongoing maintenance or post-launch features run as a retainer or per request.</p>
           </div>
         </details>
 
         <details class="faq-item">
           <summary>How do you handle security?</summary>
           <div class="faq-content">
-            <p>Security is built in from day one, not bolted on later. Everything a user types is checked before it is trusted. Data is scrambled both while it sits on disk and while it travels. Sign-in and permissions are enforced on the server, not just hidden in the interface. Every system gets a security review against the OWASP Top Ten, the industry's standard list of the ten most common web weaknesses, before it goes live.</p>
+            <p>Everything a user types is checked before it is trusted. Data is scrambled on disk and in transit. Sign-in and permissions are enforced on the server, not hidden in the interface. Reviewed against the OWASP Top Ten before launch.</p>
           </div>
         </details>
 
         <details class="faq-item">
           <summary>What's your communication style?</summary>
           <div class="faq-content">
-            <p>Clear and frequent. Weekly status updates minimum. You'll always know what's being built, what's blocked, and what comes next. No surprises, no jargon unless you ask for technical depth.</p>
+            <p>Weekly status updates minimum: what is being built, what is blocked, and what comes next.</p>
           </div>
         </details>
       </div>
@@ -1040,9 +1056,6 @@
     <div class="wrap contact__inner">
       <p class="eyebrow eyebrow--light">Contact</p>
       <h2 id="contact-title" class="contact__title">Have a system that needs building?</h2>
-      <p class="contact__lead">
-        I take on AI work and the systems underneath it, and I am happy to talk a hard problem through before you commit to anything.
-      </p>
       <div class="contact__actions">
         <a class="btn btn--primary btn--big" href="#book-a-call">Book a free call &rarr;</a>
         <a class="btn btn--ghost btn--big" href="mailto:salman@digitalise.agency">salman@digitalise.agency</a>
@@ -1058,7 +1071,7 @@
     <div class="wrap book__inner">
       <p class="eyebrow eyebrow--light">Book a call</p>
       <h2 id="book-title" class="book__title">Let's talk about what you're building.</h2>
-      <p class="book__lead">Pick a slot below. No forms, no back-and-forth emails.</p>
+      <p class="book__lead">Pick a slot below.</p>
       <div class="book__embed">
         <iframe src="https://cal.com/salman-adnan/meeting?embed=true&amp;layout=month_view" title="Book a call with Salman Adnan" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
       </div>
