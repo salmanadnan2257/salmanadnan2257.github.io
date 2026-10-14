@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Trade Intelligence Copilot · Salman Adnan</title>
+  <meta name="description" content="An agentic RAG system over agricultural-trade data with a published evaluation layer on live Gemini. SQL correctness 15/15, refusal 1.00/1.00, judge faithfulness 95.5%.">
+  <meta name="author" content="Salman Adnan">
+  <meta name="theme-color" content="#FFFDF5">
+
+  <!--
+    SITE_URL: the site's absolute base URL is https://salmanadnan.com
+    It is the only absolute host the site uses, and it appears in robots.txt,
+    sitemap.xml, and the head of every HTML file. If the domain ever moves,
+    change it in all three places together.
+  -->
+  <link rel="canonical" href="https://salmanadnan.com/projects/trade-intelligence-copilot.html">
+
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="Salman Adnan">
+  <meta property="og:title" content="Trade Intelligence Copilot · Salman Adnan">
+  <meta property="og:description" content="An agentic RAG system over agricultural-trade data with a published evaluation layer on live Gemini. SQL correctness 15/15, refusal 1.00/1.00, judge faithfulness 95.5%.">
+  <meta property="og:url" content="https://salmanadnan.com/projects/trade-intelligence-copilot.html">
+  <meta property="og:image" content="https://salmanadnan.com/assets/og/trade-intelligence-copilot.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Trade Intelligence Copilot · Salman Adnan">
+  <meta name="twitter:description" content="An agentic RAG system over agricultural-trade data with a published evaluation layer on live Gemini. SQL correctness 15/15, refusal 1.00/1.00, judge faithfulness 95.5%.">
+  <meta name="twitter:image" content="https://salmanadnan.com/assets/og/trade-intelligence-copilot.png">
+
+  <!-- partial:head-icons -->
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="../assets/favicon.png" sizes="any">
+  <link rel="apple-touch-icon" href="../assets/apple-touch-icon.png">
+  <!-- /partial:head-icons -->
+  <link rel="stylesheet" href="../styles.css?v=20260711">
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareSourceCode",
+    "name": "Trade Intelligence Copilot",
+    "description": "An agentic RAG system over agricultural-trade data with a published evaluation layer on live Gemini. SQL correctness 15/15, refusal 1.00/1.00, judge faithfulness 95.5%.",
+    "programmingLanguage": ["Python"],
+    "url": "https://salmanadnan.com/projects/trade-intelligence-copilot.html",
+    "author": {
+      "@type": "Person",
+      "name": "Salman Adnan",
+      "url": "https://salmanadnan.com/"
+    }
+  }
+  </script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+
+<!-- partial:nav-project -->
+<header class="nav" id="top">
+  <div class="wrap nav__inner">
+    <a class="nav__brand" href="../index.html" aria-label="Salman Adnan, home">
+      <span class="nav__mark" aria-hidden="true">SA</span>
+      <span class="nav__name">Salman Adnan</span>
+    </a>
+    <nav class="nav__links" aria-label="Primary">
+      <a href="../index.html#work">Work</a>
+      <a href="../index.html#process">Process</a>
+      <a href="../index.html#about">About</a>
+      <a href="#book-a-call" class="nav__cta">Book a call</a>
+    </nav>
+  </div>
+</header>
+<!-- /partial:nav-project -->
+
+<main id="main">
+
+  <section class="proj-hero acc-coral" aria-labelledby="proj-title">
+    <div class="wrap">
+      <a class="proj-crumb" href="../index.html"><span aria-hidden="true">&larr;</span> Salman Adnan</a>
+      <p class="proj-kicker">trade-intelligence-copilot</p>
+      <h1 id="proj-title" class="proj-title">Trade Intelligence Copilot</h1>
+      <p class="proj-lede">Ask a plain-English question about a year of Pakistani sugar import records, and this tool looks the answer up in the records themselves and shows the exact rows it used. When the records cannot support an answer, it says so instead of inventing one, the mistake most such tools make. It was graded on a 28-question test with answers computed from the records beforehand; every score, including its misses, is published below.</p>
+        <div class="proj-note">
+          <div>
+            <strong>Runs on live Gemini</strong>
+            <p>Verified end to end against a live Google Cloud Vertex AI project: ingestion, cited answers, the refusal path, and the full evaluation run were all exercised for real.</p>
+          </div>
+        </div>
+      <figure class="proj-media proj-viz">
+        <div class="proj-viz__frame">
+          <iframe src="../viz/trade-intelligence-copilot.html" title="Interactive 3D visualization: Trade Intelligence Copilot" loading="lazy" allow="fullscreen"></iframe>
+        </div>
+        <figcaption>Signal Routes: a question travels the shipping lanes of a globe and comes back with the trade records that answer it. An artwork of the idea, not a live query running against the data. Live and interactive: drag it to orbit, scroll or pinch to zoom. <a href="../viz/trade-intelligence-copilot.html" target="_blank" rel="noopener">Open full screen</a></figcaption>
+      </figure>
+
+      <figure class="proj-media">
+        <img src="../assets/screenshots/trade-intelligence-copilot.webp" alt="Bar chart of trade-intelligence-copilot's real evaluation results on synthetic data: SQL correctness, refusal recall and precision, judge faithfulness, and retrieval hit rate." loading="lazy" decoding="async" width="1200" height="733">
+        <figcaption>Real eval run across 28 test items on synthetic data (eval/results.json).</figcaption>
+      </figure>
+
+      <div class="proj-stats">
+          <div class="proj-stat"><b>15 / 15</b><span>SQL answer correctness</span></div>
+          <div class="proj-stat"><b>1.00 / 1.00</b><span>refusal precision / recall</span></div>
+          <div class="proj-stat"><b>$0.00093</b><span>mean cost per query</span></div>
+      </div>
+
+      <div class="proj-actions">
+        <a class="btn btn--ghost" href="../index.html#work">All projects</a>
+      </div>
+
+    </div>
+  </section>
+
+  <div class="proj-body acc-coral">
+    <div class="wrap">
+      <div class="proj-layout">
+      <section class="proj-section">
+        <h2>Overview</h2>
+        <p>An agentic retrieval-augmented copilot over agricultural-trade data, with a real, published evaluation layer. Ask a plain-English question about Pakistani sugar-sector import data and get a grounded, cited answer, or an honest refusal when the data does not support one.</p>
+      </section>
+      <section class="proj-section">
+        <h2>Key features</h2>
+        <ul class="proj-list">
+          <li>Agentic planning that picks the right tools per question.</li>
+          <li>Text-to-SQL passed through a read-only guard (single SELECT only, write and DDL keywords blocked, multiple statements rejected) on an immutable read-only SQLite connection.</li>
+          <li>Grounded answers that cite the SQL query and rows, the HS-lookup rows, and the regulation chunks used.</li>
+          <li>A deterministic no-evidence refusal path that fires before any synthesis call.</li>
+          <li>A FastAPI service with POST /ask, GET /health, and a UI showing the answer, the tool-call trace, citations, and per-query cost and latency.</li>
+        </ul>
+      </section>
+      <section class="proj-section">
+        <h2>Results</h2>
+        <div class="proj-table-wrap"><table class="proj-table">
+          <thead><tr><th>Metric</th><th>Result</th></tr></thead>
+          <tbody>
+            <tr><td>SQL answer correctness (vs ground truth)</td><td>15 / 15 = 100%</td></tr>
+            <tr><td>Retrieval hit rate</td><td>8 / 10 = 80%</td></tr>
+            <tr><td>Refusal precision / recall</td><td>1.00 / 1.00</td></tr>
+            <tr><td>LLM-as-judge faithfulness (gemini-2.5-pro)</td><td>21 / 22 = 95.5%</td></tr>
+            <tr><td>Judge vs human agreement</td><td>Pending: not yet labelled for this run</td></tr>
+            <tr><td>Mean cost per query</td><td>$0.00093</td></tr>
+            <tr><td>Latency p50 / p95</td><td>9.0 s / 27.0 s (8.8 s / 12.5 s without 3 rate-limited items)</td></tr>
+          </tbody></table></div>
+      </section>
+      <section class="proj-section">
+        <h2>Reading the numbers honestly</h2>
+        <p>SQL correctness is 100% only after an earlier fix. In the first version's first run the model matched a company name without wildcards and returned 0 shipments for an importer that had dozens; tightening the schema prompt fixed it, and the gold numbers are computed directly from the database.</p>
+        <p>The one faithfulness miss is a judgment call: asked about HS code 1702.1100 "(lactose)", the model gave the right count and repeated the question's own label, which the evidence rows never state. The judge-vs-human check exists for exactly this, and it has not been redone for this run yet. Latency p95 is inflated by rate limiting: three items waited out Vertex 429 responses. Refusal was perfect on this set, but the set is small, so read it as the path works, not it never fails.</p>
+      </section>
+      <section class="proj-section">
+        <h2>Data</h2>
+        <p>The trade data is synthetic: a seeded generator builds a compact SQLite database of made-up importers, suppliers and 2,000 import shipments across calendar 2025, so every run of the generator produces the same file and the test answers can be recomputed from it. Only the HS chapter 17 headings and the country names are real. The regulations corpus is 16 authored plain-language explainers written for this demo. The source is private; available on request.</p>
+      </section>
+      <section class="proj-section">
+        <h2>Tech stack</h2>
+        <ul class="tech-tags">
+          <li>Python 3.11+</li>
+          <li>FastAPI</li>
+          <li>gemini-2.5-flash</li>
+          <li>gemini-2.5-pro</li>
+          <li>Vertex AI embeddings</li>
+          <li>SQLite</li>
+          <li>numpy</li>
+          <li>pytest</li>
+        </ul>
+      </section>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<!-- partial:book-a-call -->
+<section class="book" id="book-a-call" aria-labelledby="book-title">
+  <div class="wrap book__inner">
+    <p class="eyebrow eyebrow--light">Book a call</p>
+    <h2 id="book-title" class="book__title">Let's talk about what you're building.</h2>
+    <p class="book__lead">Pick a slot below.</p>
+    <div class="book__embed">
+      <iframe src="https://cal.com/salman-adnan/meeting?embed=true&amp;layout=month_view" title="Book a call with Salman Adnan" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+    </div>
+  </div>
+</section>
+<!-- /partial:book-a-call -->
+
+<footer class="proj-foot">
+  <div class="wrap proj-foot__row">
+    <a class="proj-foot__link" href="../index.html">&larr; Back to all work</a>
+    <nav class="footer__nav" aria-label="Site policies">
+      <a href="../terms.html">Terms</a>
+      <a href="../privacy.html">Privacy</a>
+    </nav>
+    <nav class="proj-foot__nav" aria-label="More projects">
+      <a class="proj-foot__link" href="dino-game-bot.html">Prev: Dino Game Bot</a>
+      <a class="proj-foot__link" href="inference-engine.html">Next: LLM Inference Engine</a>
+    </nav>
+  </div>
+</footer>
+
+<script src="../script.js" defer></script>
+</body>
+</html>

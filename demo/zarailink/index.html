@@ -1,0 +1,271 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ZaraiLink: Demo</title>
+  <meta name="description" content="A fabricated, scripted walkthrough of ZaraiLink's dashboard, search, trade directory, company profiles, and contact unlock flow. No live calls, no real trade data.">
+  <meta name="robots" content="noindex">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="favicon.png" sizes="any">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="demo-banner">
+    <strong>Demo mode</strong>: fabricated example data. No live calls happen here; no real company or customs data is shown.
+  </div>
+
+  <nav class="zl-navbar">
+    <div class="zl-navbar__inner">
+      <div class="zl-navbar__brand">
+        <span class="zl-navbar__logo" aria-hidden="true">Z</span>
+        <span class="zl-navbar__name">ZaraiLink</span>
+      </div>
+      <div class="zl-navbar__links">
+        <a href="#" data-view="dashboard" class="is-active">Dashboard</a>
+        <div class="zl-nav-dropdown" id="intel-dropdown">
+          <button type="button" id="intel-toggle">Intelligence <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button>
+          <div class="zl-nav-dropdown__panel">
+            <a href="#" data-view="directory" data-role="Supplier">Find Suppliers</a>
+            <a href="#" data-view="directory" data-role="Buyer">Find Buyers</a>
+          </div>
+        </div>
+        <a href="#" data-view="subscription">Subscription</a>
+        <a href="#" data-view="watchlist">Watchlist</a>
+      </div>
+      <div class="zl-navbar__spacer"></div>
+      <div class="zl-navbar__right">
+        <span class="zl-token-pill"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8Z"/></svg> <span id="token-balance"></span> tokens</span>
+        <button type="button" class="zl-theme-toggle" aria-label="Toggle dark mode"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg></button>
+        <div class="zl-user-menu">
+          <span class="zl-avatar" id="user-avatar" aria-hidden="true"></span>
+          <span class="zl-user-menu__name">Demo User</span>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <main>
+
+    <!-- ============ DASHBOARD (real post-login search home) ============ -->
+    <section class="view is-active" id="view-dashboard">
+      <header class="dash-hero">
+        <div class="wrap">
+          <p class="eyebrow">zarailink / demo</p>
+          <div class="method-card">
+            <p class="method-card__title">4 Ways to Search ZaraiLink</p>
+            <div class="method-grid">
+              <div class="method-tile c-blue"><div class="method-tile__title">HS Code</div><div class="method-tile__sub">Type a numeric code</div><span class="method-tile__ex">1702.3000</span></div>
+              <div class="method-tile c-orange"><div class="method-tile__title">Category</div><div class="method-tile__sub">Broad product class</div><span class="method-tile__ex">glucose syrup</span></div>
+              <div class="method-tile c-emerald"><div class="method-tile__title">Product Name</div><div class="method-tile__sub">Specific variant</div><span class="method-tile__ex">dextrose ball</span></div>
+              <div class="method-tile c-violet"><div class="method-tile__title">AI Query</div><div class="method-tile__sub">Select Import/Export first</div><span class="method-tile__ex">buy urea from india</span></div>
+            </div>
+          </div>
+
+          <h1>What are you looking for, <span id="dash-username"></span>?</h1>
+
+          <div class="search-form">
+            <div class="search-pill">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+              <input id="query-input" type="text" placeholder="Try 'Import Dextrose from China under $700'...">
+              <button id="search-btn" type="button">Search</button>
+            </div>
+            <div id="mode-pill-wrap"></div>
+            <div class="scope-toggle">
+              <button class="scope-btn is-active" data-scope="import" type="button">Import</button>
+              <button class="scope-btn" data-scope="export" type="button">Export</button>
+            </div>
+            <div class="quick-pills">
+              <button class="quick-pill" type="button">I want to buy</button>
+              <button class="quick-pill" type="button">I want to sell</button>
+              <button class="quick-pill" type="button" data-view="directory" data-role="Supplier">Find suppliers</button>
+              <button class="quick-pill" type="button" data-view="directory" data-role="Buyer">Find buyers</button>
+            </div>
+            <div class="example-row">
+              <button type="button" data-example="Dextrose suppliers in Brazil">Dextrose suppliers in Brazil</button>
+              <button type="button" data-example="Buy Urea 46%">Buy Urea 46%</button>
+              <button type="button" data-example="Who sells PVC Resin?">Who sells PVC Resin?</button>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <div class="stats-strip">
+        <div class="wrap stats-grid">
+          <div><b id="stat-records"></b><span>Trade Records</span></div>
+          <div><b id="stat-companies"></b><span>Companies Listed</span></div>
+          <div><b id="stat-products"></b><span>Products Tracked</span></div>
+        </div>
+      </div>
+
+      <div class="wrap features-grid">
+        <div class="feature-card"><div class="feature-card__icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></div><h3>Discover Buyers &amp; Suppliers</h3><p>Natural-language search across customs trade history.</p></div>
+        <div class="feature-card"><div class="feature-card__icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg></div><h3>Understand the Market</h3><p>Volume, price trends, and partner counts per company.</p></div>
+        <div class="feature-card"><div class="feature-card__icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/><path d="M10 6h4"/><path d="M10 10h4"/><path d="M10 14h4"/><path d="M10 18h4"/></svg></div><h3>Deep-Dive Company Profiles</h3><p>Products, history, and verification status in one view.</p></div>
+        <div class="feature-card"><div class="feature-card__icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13.832 16.568a1 1 0 0 0 1.213-.303l.355-.465A2 2 0 0 1 17 15h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2A18 18 0 0 1 2 4a2 2 0 0 1 2-2h3a2 2 0 0 1 2 2v3a2 2 0 0 1-.8 1.6l-.468.351a1 1 0 0 0-.292 1.233 14 14 0 0 0 6.392 6.384"/></svg></div><h3>Contact Decision Makers</h3><p>Unlock verified contacts with a token-based system.</p></div>
+      </div>
+
+      <div class="wrap">
+        <div class="bottom-cta">
+          <h2>Find your next trading partner</h2>
+          <p>Browse the full directory, or start with a natural-language search above.</p>
+          <div class="btn-row">
+            <button class="btn btn--primary" type="button" data-view="directory" data-role="Supplier">Find Suppliers</button>
+            <button class="btn btn--ghost" type="button" data-view="directory" data-role="Buyer" style="background:#fff">Find Buyers</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ DATA DASHBOARD (search results) ============ -->
+    <section class="view" id="view-results">
+      <div class="dd-header">
+        <div class="wrap">
+          <p class="eyebrow">Market Intelligence</p>
+          <h1 id="dd-title"></h1>
+          <p id="dd-sub"></p>
+          <div class="dd-header__meta">
+            <span class="dd-chip" id="dd-shipment-count"></span>
+            <button class="dd-chip" type="button" data-view="dashboard" style="cursor:pointer;border:none">&larr; Dashboard</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="wrap dd-body">
+        <aside class="dd-sidebar">
+          <h3><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg> Refine by Product</h3>
+          <div id="dd-filters"></div>
+        </aside>
+        <div class="dd-main">
+          <div class="dd-pills" id="dd-pills"></div>
+          <div id="dd-results-wrap">
+            <p style="text-align:center;color:var(--text-2);padding:40px 0"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-3px;margin-right:4px"><path d="M9.037 9.69a.498.498 0 0 1 .653-.653l11 4.5a.5.5 0 0 1-.074.949l-4.349 1.041a1 1 0 0 0-.74.739l-1.04 4.35a.5.5 0 0 1-.95.074z"/></svg>Select a trade perspective above</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ TRADE DIRECTORY ============ -->
+    <section class="view" id="view-directory">
+      <header class="td-header-band">
+        <div class="wrap">
+          <p class="eyebrow" id="td-eyebrow">Trade Directory</p>
+          <h1 id="td-title">Find Suppliers</h1>
+          <p class="lede" id="td-lede">Browse verified suppliers with real trade history.</p>
+          <div class="td-search-row">
+            <input id="td-search-input" type="text" placeholder="Search companies...">
+            <button class="btn btn--ghost" type="button" id="td-switch-btn">Switch to Buyers &rarr;</button>
+          </div>
+        </div>
+      </header>
+      <div class="wrap">
+        <div class="company-grid" id="directory-grid"></div>
+      </div>
+    </section>
+
+    <!-- ============ WATCHLIST ============ -->
+    <section class="view" id="view-watchlist">
+      <header class="td-header-band">
+        <div class="wrap">
+          <p class="eyebrow">My Watchlist</p>
+          <h1><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-3px;margin-right:4px"><path d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z"/></svg>Starred companies</h1>
+          <p class="lede">Companies you've starred from the Trade Directory appear here.</p>
+        </div>
+      </header>
+      <div class="wrap">
+        <div class="company-grid" id="watchlist-grid"></div>
+      </div>
+    </section>
+
+    <!-- ============ COMPANY PROFILE ============ -->
+    <section class="view" id="view-profile">
+      <div class="profile-header">
+        <div class="wrap">
+          <a href="#" class="profile-back" data-view="directory">&larr; Back to Directory</a>
+          <div class="profile-top">
+            <span class="profile-avatar" id="profile-avatar"></span>
+            <div>
+              <div class="profile-name" id="profile-name"></div>
+              <div class="profile-legal" id="profile-legal"></div>
+              <div class="profile-loc" id="profile-loc"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="wrap" style="padding-bottom:60px">
+        <div class="profile-stats" id="profile-stats"></div>
+
+        <h2 style="font-size:16px;margin:26px 0 10px">Products Dealt In</h2>
+        <div id="profile-products"></div>
+
+        <h2 style="font-size:16px;margin:30px 0 6px">Key Contacts</h2>
+        <p class="contact-section-sub" id="profile-contact-sub"></p>
+        <div id="profile-contacts"></div>
+      </div>
+    </section>
+
+    <!-- ============ SUBSCRIPTION ============ -->
+    <section class="view" id="view-subscription">
+      <header class="td-header-band">
+        <div class="wrap">
+          <p class="eyebrow">Subscription</p>
+          <h1>Subscription Plans</h1>
+          <p class="lede">Tokens unlock company contact details across the directory and search results.</p>
+        </div>
+      </header>
+      <div class="wrap">
+        <div class="plan-grid" id="plan-grid"></div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ============ UNLOCK MODALS ============ -->
+  <div class="zl-modal-overlay" id="modal-confirm">
+    <div class="zl-modal">
+      <div class="zl-modal__icon confirm"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
+      <h3>Unlock this contact?</h3>
+      <p id="confirm-text"></p>
+      <div class="btn-row">
+        <button class="btn btn--ghost" type="button" id="confirm-cancel">Cancel</button>
+        <button class="btn btn--primary" type="button" id="confirm-ok">Unlock (1 token)</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="zl-modal-overlay" id="modal-success">
+    <div class="zl-modal">
+      <div class="zl-modal__icon success"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21.801 10A10 10 0 1 1 17 3.335"/><path d="m9 11 3 3L22 4"/></svg></div>
+      <h3>Contact unlocked</h3>
+      <p id="success-text"></p>
+      <div class="btn-row"><button class="btn btn--primary" type="button" id="success-close">Done</button></div>
+    </div>
+  </div>
+
+  <div class="zl-modal-overlay" id="modal-insufficient">
+    <div class="zl-modal">
+      <div class="zl-modal__icon confirm"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg></div>
+      <h3>Not enough tokens</h3>
+      <p>You're out of tokens. Buy more to keep unlocking contacts.</p>
+      <div class="btn-row">
+        <button class="btn btn--ghost" type="button" id="insufficient-close">Close</button>
+        <button class="btn btn--primary" type="button" data-view="subscription" id="insufficient-buy">Buy Tokens</button>
+      </div>
+    </div>
+  </div>
+
+  <footer class="site-foot">
+    <div class="wrap">
+      This is a companion demo for a private repository (team project, no
+      current publishing consent from all authors). It contains no real
+      company or customs data and makes no live calls; every result on this
+      page is pre-scripted.
+    </div>
+  </footer>
+
+  <script src="demo-data.js"></script>
+  <script src="icons.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
