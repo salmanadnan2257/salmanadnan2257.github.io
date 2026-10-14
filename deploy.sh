@@ -44,7 +44,7 @@ git push origin main || echo "⚠️  Already up to date"
 # they are ordinary public repository files and this repo is a GitHub Pages repo.
 echo "📤 Syncing to VPS..."
 rsync -az --exclude='.git' --exclude='tests' --exclude='tools' \
-  --exclude='partials' --exclude='build-agency.py' --exclude='deploy.sh' \
+  --exclude='partials' --exclude='build-agency.py' --exclude='deploy.sh' --exclude='__pycache__' \
   -e ssh ./ da:/root/salmanadnan.com/
 
 # The agency web root is a generated mirror, so --delete IS correct here: a file

@@ -392,7 +392,8 @@ def main():
         # so shipping the sources too would put an unreferenced, uncrawled copy of
         # the booking section in the web root.
         ["rsync", "-a", "--exclude=.git", "--exclude=tests", "--exclude=build-agency.py",
-         "--exclude=deploy.sh", "--exclude=tools", "--exclude=partials", f"{SRC}/", f"{OUT}/"],
+         "--exclude=deploy.sh", "--exclude=tools", "--exclude=partials", "--exclude=__pycache__",
+         f"{SRC}/", f"{OUT}/"],
         check=True)
 
     for path in sorted(OUT.rglob("*.html")):
