@@ -7,7 +7,7 @@ import puppeteer from 'puppeteer-core';
 const args = process.argv.slice(2);
 const base = (args.find((a) => a.startsWith('http')) || 'http://127.0.0.1:8765').replace(/\/$/, '');
 const names = (args.find((a) => !a.startsWith('http')) ||
-  'agency-blog-saas,blog-posting-pipeline,reelflow-studio,zarailink').split(',');
+  'agency-blog-saas,blog-posting-pipeline,reelflow-studio,cropbridge').split(',');
 
 const browser = await puppeteer.launch({ executablePath: '/usr/bin/google-chrome', headless: true, args: ['--no-sandbox'] });
 let failed = 0;

@@ -54,11 +54,13 @@ that mark into a black shape on a near-black tile.
 The absolute base URL is `https://salmanadnan.com`. It appears in `robots.txt`, `sitemap.xml`, and
 the head of every HTML file. If the domain ever moves, change it in all three places together.
 
-**The rsync deliberately does not use `--delete`, and must not.** The four client demos that the
-"Try the live demo" buttons point at (`/demo/agency-blog-saas/`, `/demo/blog-posting-pipeline/`,
-`/demo/reelflow-studio/`, `/demo/zarailink/`) live only on the VPS; they are built from the
-`*-demo` folders in the Portfolio and are not in this repo. `--delete` would wipe them and break
-those four buttons.
+**The rsync deliberately does not use `--delete`.** The four client demos that the "Try the
+live demo" buttons point at (`/demo/agency-blog-saas/`, `/demo/blog-posting-pipeline/`,
+`/demo/reelflow-studio/`, `/demo/cropbridge/`) are in this repo under `demo/`, copied from each
+`*-demo` repo's HEAD (runtime files only; refresh the copy when a demo changes). Until
+2026-10-15 they were meant to live only on the VPS but had never been put there, so all four
+buttons returned 404. Without `--delete`, a file that exists only on the server is never
+removed by a deploy.
 
 The cost of that is stale files accumulating on the server, so check for them after a rename or a
 move. Two were found and removed on 2026-07-14, both dating from 2026-07-08 and both still carrying
@@ -85,7 +87,7 @@ node test-viz.mjs           # all 38 viz: drag orbits, reset restores exactly, w
 | Harness | What it asserts |
 |---|---|
 | `test-viz.mjs` | All 38 visualizations: drag changes the render, reset restores the framing to exactly 0.000, wheel zooms. |
-| `test-drift.mjs` | The camera-runaway class of bug. Four scenes ease the camera from its own current position, and zarailink never re-aims it at all, so any of them could read the viewer's orbit back as their own starting point and compound away. Runs a no-drag control per scene first, because sparse pulsing scenes vary on their own; coverage is measured against the frame's most common colour. |
+| `test-drift.mjs` | The camera-runaway class of bug. Four scenes ease the camera from its own current position, and cropbridge never re-aims it at all, so any of them could read the viewer's orbit back as their own starting point and compound away. Runs a no-drag control per scene first, because sparse pulsing scenes vary on their own; coverage is measured against the frame's most common colour. |
 | `test-embed.mjs` | An embedded visualization never hijacks host-page scrolling before the visitor engages with it. |
 | `test-a11y.mjs` | Keyboard orbit and zoom, reset via `r`, visible focus ring, `prefers-reduced-motion`, aria labels. |
 | `test-home.mjs` | Opens the folded project wall via the real toggle, then checks 41 card anchors (38 distinct projects plus the three "Start with three" flagship cards, each a deliberate second link to its own wall card), each with a distinct curiosity hook and a metric badge; a card click navigates to its project page. |
@@ -97,8 +99,8 @@ node test-viz.mjs           # all 38 viz: drag orbits, reset restores exactly, w
 | `test-stage.mjs` | The "See it running" stage (its section id is still `start-here`): one live WebGL context at a time (counted as DOM-connected, non-context-lost canvases, so the homepage's `webglOK()` capability probe is not miscounted), no scroll trap, no layout shift, reduced-motion path. |
 | `test-cta-tap.mjs` | Opens the folded wall, then at 390x844 and 360x740 hit-tests each card CTA's centre (the corners are reported but not failed, since the cards' intentional ±1deg rotation moves the axis-aligned bounding box off the visual button). |
 | `test-domain.mjs` | Index and three project pages render with zero JS errors and zero failed local requests; canonical/og/twitter tags all carry the real domain, and no old host remains. |
-| `check-demo-zarailink.mjs` | The ZaraiLink demo served at `/demo/zarailink/` (needs a static server on :8765, or pass a base URL): 200, no console errors or failed requests, the stats strip shows the demo's own counts (125, 4, 3), every view opens, the directory lists only the fabricated companies. `--shot out.png` saves the Find Suppliers screen used on the project page. |
-| `check-demos.mjs` | Every hosted demo under `/demo/` (agency-blog-saas, blog-posting-pipeline, reelflow-studio, zarailink): 200, no console errors, failed requests or dialogs, no sideways scroll, and every visible button and nav link clicked once from a fresh load without an error. Same server and base-URL options. |
+| `check-demo-cropbridge.mjs` | The CropBridge demo served at `/demo/cropbridge/` (needs a static server on :8765, or pass a base URL): 200, no console errors or failed requests, the stats strip shows the demo's own counts (125, 4, 3), every view opens, the directory lists only the fabricated companies. `--shot out.png` saves the Find Suppliers screen used on the project page. |
+| `check-demos.mjs` | Every hosted demo under `/demo/` (agency-blog-saas, blog-posting-pipeline, reelflow-studio, cropbridge): 200, no console errors, failed requests or dialogs, no sideways scroll, and every visible button and nav link clicked once from a fresh load without an error. Same server and base-URL options. |
 | `test-cpu-leak.mjs` | Six viz pages stop requesting animation frames when hidden, when paused-and-settled, and under `prefers-reduced-motion`, so no page burns a core in the background. |
 | `test-compact.mjs` | Compact mode (`?compact=1`) at card size: the title panel, legend and HUD are hidden, the scene still renders and still responds to a drag. Creates its own output dir. One expected non-pass: `disappearing-text-app`, which is excluded from live preview by design and keeps its screenshot. |
 | `check-runtime-identical.mjs` | The load-bearing invariant: the shared runtime block is byte-identical across all 38 viz files, apart from each file's own PNG download name. If this fails, the 38 have forked and any future patch will hit them unevenly. After any change to the runtime, bump the `?v=` on the viz URLs (`script.js` and the 38 project pages), since the VPS sends no Cache-Control and browsers may otherwise keep the old file. |
@@ -228,9 +230,9 @@ not enough either: the arc can cover both left-hand corners, which ties the vote
 sound because every scene paints a flat background and spreads its ink over many
 colours. Checked both ways: on a copy with the camera hand-back deliberately
 removed the test still fails 0/4 on every signature, and on the real files it
-passes 4/4 on six consecutive runs (morse included), 5/5 with zarailink added.
+passes 4/4 on six consecutive runs (morse included), 5/5 with cropbridge added.
 
-zarailink joined the default set the same day, for the orientation half of the
+cropbridge (then named zarailink) joined the default set the same day, for the orientation half of the
 runaway bug (see `tools/edits/2026-10-15-orbit-orientation-feedback.py`).
 
 

@@ -472,7 +472,7 @@ def guard():
         body = re.sub(r"<script.*?</script>", "", body, flags=re.S)
         body = re.sub(r"<!--.*?-->", "", body, flags=re.S)
         # The voice check is for the site's own copy. Hosted product demos under
-        # demo/ speak as their product's user ("I want to buy" in the ZaraiLink
+        # demo/ speak as their product's user ("I want to buy" in the CropBridge
         # demo), not as the site's author, so only this check skips them; the
         # identity checks above and below still cover every demo page.
         if not rel.startswith("demo/"):

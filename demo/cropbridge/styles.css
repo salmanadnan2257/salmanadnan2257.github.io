@@ -1,4 +1,4 @@
-/* ZaraiLink - fabricated demo. Self-contained, no external calls. */
+/* CropBridge: fabricated demo. Self-contained, no external calls. */
 
 /*
   Structure and tokens below reproduce the real app's actual screens and
@@ -18,7 +18,7 @@
   icon SVGs throughout; this demo self-hosts the real Inter variable font
   (assets/fonts/) and uses matching hand-drawn SVG icons (same stroke width,
   size, and style as Lucide's) instead of emoji, since a real screenshot of
-  the app (personal-website/assets/screenshots/zarailink.webp) showed emoji
+  the app showed emoji
   read as a completely different, lower-fidelity visual language.
 */
 @font-face {

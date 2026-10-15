@@ -1,6 +1,6 @@
-// The ZaraiLink demo served under /demo/zarailink/: it loads with no console errors
+// The CropBridge demo served under /demo/cropbridge/: it loads with no console errors
 // or failed requests, shows only its own fabricated data, and every view opens.
-// Usage: node check-demo-zarailink.mjs [baseUrl] [--shot out.png]
+// Usage: node check-demo-cropbridge.mjs [baseUrl] [--shot out.png]
 // baseUrl defaults to a local static server on :8765 serving portfolio-website/.
 import puppeteer from 'puppeteer-core';
 
@@ -22,7 +22,7 @@ page.on('pageerror', e => failures.push(`page error: ${e.message}`));
 page.on('requestfailed', r => failures.push(`request failed: ${r.url()}`));
 page.on('response', r => { if (r.status() >= 400) failures.push(`HTTP ${r.status()}: ${r.url()}`); });
 
-const res = await page.goto(`${base}/demo/zarailink/`, { waitUntil: 'networkidle0' });
+const res = await page.goto(`${base}/demo/cropbridge/`, { waitUntil: 'networkidle0' });
 if (!res || res.status() !== 200) failures.push(`demo returned ${res && res.status()}`);
 
 const stats = await page.$$eval('#stat-records, #stat-companies, #stat-products', els => els.map(e => e.textContent));
@@ -36,7 +36,7 @@ for (const view of ['subscription', 'watchlist', 'dashboard']) {
 
 // Trade Directory, the view the project page shows, from a clean load so no earlier
 // click leaves focus styling on a nav link in the screenshot.
-await page.goto(`${base}/demo/zarailink/`, { waitUntil: 'networkidle0' });
+await page.goto(`${base}/demo/cropbridge/`, { waitUntil: 'networkidle0' });
 await page.evaluate(() => document.querySelector('[data-view="directory"][data-role="Supplier"]').click());
 const cards = await page.$$eval('#view-directory .company-card, #view-directory [class*="card"]', els => els.length);
 if (!cards) failures.push('directory rendered no company cards');
@@ -54,4 +54,4 @@ if (failures.length) {
   console.log('FAIL\n' + failures.map(f => '  ' + f).join('\n'));
   process.exit(1);
 }
-console.log(`PASS ${base}/demo/zarailink/: 200, no console errors or failed requests, stats 125|4|3, all views open, ${cards} directory cards`);
+console.log(`PASS ${base}/demo/cropbridge/: 200, no console errors or failed requests, stats 125|4|3, all views open, ${cards} directory cards`);

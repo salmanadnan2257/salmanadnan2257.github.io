@@ -24,7 +24,7 @@
      collapsed  drag median coverage vs the control's.    fixed >= 0.99x, buggy 0.003x
    Plus: the piece must still be animating and not frozen.
 
-   zarailink is in the set for the other half of the same bug. It places its camera
+   cropbridge (originally zarailink) is in the set for the other half of the same bug. It places its camera
    once and never re-aims it, so when only the position was handed back each frame,
    last frame's orbited orientation came back as the scene's own and the orbit
    compounded: a 6px drag became a spin that never stopped. Measured before the
@@ -35,7 +35,7 @@ import { PNG } from 'pngjs';
 import pixelmatch from 'pixelmatch';
 
 const VIZ = process.env.VIZ_DIR || '/home/rolex/Salman Adnan/Programming/Portfolio/portfolio-website/viz';
-const names = (process.argv[2] || 'dino-game-bot,morse-code-converter,tic-tac-toe-gui,typing-master-gui,zarailink')
+const names = (process.argv[2] || 'dino-game-bot,morse-code-converter,tic-tac-toe-gui,typing-master-gui,cropbridge')
   .split(',').map((s) => s.trim()).filter(Boolean);
 
 const SAMPLES = 8;          // coverage samples across the post-drag window

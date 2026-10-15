@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex">
   <meta name="theme-color" content="#08120A">
-  <title>ZaraiLink in 3D · Salman Adnan</title>
+  <title>CropBridge in 3D · Salman Adnan</title>
   <meta name="description" content="Field of Trade: an interactive 3D study of an agricultural marketplace, wind over wheat under trade routes.">
   <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
   <link rel="icon" href="../assets/favicon.png" sizes="any">
@@ -194,7 +194,7 @@
 <script type="module">
 import * as THREE from 'three';
 
-/* ================= scene: zarailink ================= */
+/* ================= scene: cropbridge ================= */
 // FIELD OF TRADE
 // Wind moves a shader driven wheat field while commodity trade pulses cross the sky above it,
 // and every deal that lands sends a ring down that physically stirs the crop.
@@ -1085,7 +1085,7 @@ btnPng.addEventListener('click', () => {
     if (!blob) return;
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = 'zarailink-3d.png';
+    a.download = 'cropbridge-3d.png';
     a.click();
     setTimeout(() => URL.revokeObjectURL(a.href), 5000);
   });
