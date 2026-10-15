@@ -85,7 +85,7 @@ node test-viz.mjs           # all 38 viz: drag orbits, reset restores exactly, w
 | Harness | What it asserts |
 |---|---|
 | `test-viz.mjs` | All 38 visualizations: drag changes the render, reset restores the framing to exactly 0.000, wheel zooms. |
-| `test-drift.mjs` | The camera-runaway class of bug. Four scenes ease the camera from its own current position, so they can read the viewer's orbit back as their own starting point and compound away. Runs a no-drag control per scene first, because sparse pulsing scenes vary on their own. |
+| `test-drift.mjs` | The camera-runaway class of bug. Four scenes ease the camera from its own current position, and zarailink never re-aims it at all, so any of them could read the viewer's orbit back as their own starting point and compound away. Runs a no-drag control per scene first, because sparse pulsing scenes vary on their own; coverage is measured against the frame's most common colour. |
 | `test-embed.mjs` | An embedded visualization never hijacks host-page scrolling before the visitor engages with it. |
 | `test-a11y.mjs` | Keyboard orbit and zoom, reset via `r`, visible focus ring, `prefers-reduced-motion`, aria labels. |
 | `test-home.mjs` | Opens the folded project wall via the real toggle, then checks 41 card anchors (38 distinct projects plus the three "Start with three" flagship cards, each a deliberate second link to its own wall card), each with a distinct curiosity hook and a metric badge; a card click navigates to its project page. |
@@ -208,36 +208,30 @@ now fixed (see below). Every fix is in the harness, not the site.
   the revealed grid was not re-run under `test-a11y`.
 - **The cursor motif in Firefox / Safari (item 13).** Only Chromium is available in this sandbox.
 
-## test-drift fails morse-code-converter, and the camera is fine
+## test-drift and morse-code-converter: resolved 2026-10-15
 
-Recorded 2026-07-22 after trying and failing to fix it properly.
+Recorded 2026-07-22 as an expected failure: `test-drift` failed `morse-code-converter`
+on its `saturated` signature, peaking at 45 to 99 percent coverage against a natural
+peak near 10, while the camera was visibly fine (churn 0.02 to 0.07, well under the
+0.25 a real runaway always trips). The conclusion then was that pixel coverage
+cannot tell "ran away" from "legitimately turned" for this scene.
 
-`test-drift` fails `morse-code-converter` on its `saturated` signature: the
-dragged arm peaks around 45 to 99 percent coverage against a natural peak near
-10. The camera is not running away. Its churn is 0.02 to 0.07 against a 0.25
-limit, which is the "never settles" signature a real runaway always trips, and
-screenshots after the drag show a stable, readable, correctly framed scene.
+The actual cause was narrower. `coverage()` took the frame's top-left pixel as the
+background colour. Once the view is turned, the beacon's soft arc can reach that
+corner, the reference flips to the arc's colour, and nearly every pixel of a
+correct frame counts as ink. A captured "99 percent" frame looked entirely normal;
+recomputed against the right background it measures 5.8 percent. A corner vote is
+not enough either: the arc can cover both left-hand corners, which ties the vote.
 
-What the number is actually measuring is the beacon's large soft halo swinging
-into view, which is what turning the piece is supposed to do. The file's own
-header already warned that this scene "pulses hard on its own" and built a
-control arm for it; the control arm is not enough, because it never drags, so it
-cannot know how much coverage the new angle legitimately adds.
+`coverage()` now takes the background as the frame's most common colour, which is
+sound because every scene paints a flat background and spreads its ink over many
+colours. Checked both ways: on a copy with the camera hand-back deliberately
+removed the test still fails 0/4 on every signature, and on the real files it
+passes 4/4 on six consecutive runs (morse included), 5/5 with zarailink added.
 
-Two corrections were tried and both reverted. Comparing against a paused arm
-that makes the same gesture, to divide out the framing effect, gave a factor
-that swung between 1.3 and 9.2 between runs, because freezing a hard-pulsing
-scene samples one arbitrary instant. Stepping the paused arm through the cycle
-narrowed that but did not fix it, because the post-drag framing is itself
-non-deterministic: the release momentum decays over a variable number of frames,
-so the camera lands somewhere different each run, and against content this
-anisotropic that moves peak coverage from 45 to 99 percent.
+zarailink joined the default set the same day, for the orientation half of the
+runaway bug (see `tools/edits/2026-10-15-orbit-orientation-feedback.py`).
 
-The honest conclusion is that pixel coverage cannot separate "ran away" from
-"legitimately turned" for this scene. Reaching for the camera position directly
-would settle it, but the runtime exposes no hook and adding one changes the
-byte-identical block in all 38 files. Until then this failure is expected, and
-the three other scenes in the harness still pass and are still meaningful.
 
 ## One harness correction, 2026-07-22
 

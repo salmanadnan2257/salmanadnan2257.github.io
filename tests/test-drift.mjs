@@ -22,13 +22,20 @@
      churn      max frame-to-frame diff over the window.  fixed <= 0.14, buggy >= 0.39
      saturated  drag max coverage vs the control's max.   fixed <= +4pp, buggy >= +31pp
      collapsed  drag median coverage vs the control's.    fixed >= 0.99x, buggy 0.003x
-   Plus: the piece must still be animating and not frozen.  */
+   Plus: the piece must still be animating and not frozen.
+
+   zarailink is in the set for the other half of the same bug. It places its camera
+   once and never re-aims it, so when only the position was handed back each frame,
+   last frame's orbited orientation came back as the scene's own and the orbit
+   compounded: a 6px drag became a spin that never stopped. Measured before the
+   orientation was handed back too: coverage 30.0% idle -> 0.2-1.6% dragged
+   ("scene collapsed"); after: 27.9-28.8%.  */
 import puppeteer from 'puppeteer-core';
 import { PNG } from 'pngjs';
 import pixelmatch from 'pixelmatch';
 
 const VIZ = process.env.VIZ_DIR || '/home/rolex/Salman Adnan/Programming/Portfolio/portfolio-website/viz';
-const names = (process.argv[2] || 'dino-game-bot,morse-code-converter,tic-tac-toe-gui,typing-master-gui')
+const names = (process.argv[2] || 'dino-game-bot,morse-code-converter,tic-tac-toe-gui,typing-master-gui,zarailink')
   .split(',').map((s) => s.trim()).filter(Boolean);
 
 const SAMPLES = 8;          // coverage samples across the post-drag window
@@ -45,10 +52,25 @@ function readCrop(buf) {
   PNG.bitblt(src, out, CROP.x, CROP.y, CROP.w, CROP.h, 0, 0);
   return out;
 }
-/* share of pixels far enough from the scene's background colour to be "scene" */
+/* share of pixels far enough from the scene's background colour to be "scene".
+   The background is the frame's most common colour, not a corner pixel. Every
+   scene paints a flat background and its ink is spread over many colours, so the
+   flat colour always wins the count. Reading it off a corner failed whenever part
+   of the scene sat on that corner: morse-code-converter's arc covers the left-hand
+   corners once the view is turned, and a perfectly normal frame then measured as
+   ~99% ink. */
 function coverage(png) {
   const d = png.data;
-  const br = d[0], bg = d[1], bb = d[2];      // top-left pixel is background
+  const counts = new Map();
+  for (let i = 0; i < d.length; i += 16) {         // every 4th pixel is plenty
+    const key = ((d[i] >> 3) << 10) | ((d[i + 1] >> 3) << 5) | (d[i + 2] >> 3);
+    const c = counts.get(key);
+    if (c) { c.n++; c.r += d[i]; c.g += d[i + 1]; c.b += d[i + 2]; }
+    else counts.set(key, { n: 1, r: d[i], g: d[i + 1], b: d[i + 2] });
+  }
+  let top = null;
+  for (const c of counts.values()) if (!top || c.n > top.n) top = c;
+  const br = top.r / top.n, bg = top.g / top.n, bb = top.b / top.n;
   let n = 0;
   for (let i = 0; i < d.length; i += 4) {
     if (Math.abs(d[i] - br) + Math.abs(d[i + 1] - bg) + Math.abs(d[i + 2] - bb) > 24) n++;

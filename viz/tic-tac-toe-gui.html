@@ -1195,6 +1195,10 @@ document.addEventListener('visibilitychange', () => {
    is layered on. Kept so the orbit is re-derived from the scene's framing every
    frame instead of compounding on its own output. */
 const baseCam = new THREE.Vector3();
+/* Its orientation too. Restoring only the position let a scene that does not
+   re-aim its camera every frame hand back last frame's orbited orientation as its
+   own, and the orbit compounded on itself into a spin that never stopped. */
+const baseCamQ = new THREE.Quaternion();
 const off = new THREE.Vector3();
 /* Whatever the scene rotated the camera by beyond simply aiming it at the pivot
    (the terrain piece banks into its turns). Re-applied after every orbit so the
@@ -1232,6 +1236,7 @@ function stepView(dt) {
 function applyView(fresh) {
   if (fresh) {
     baseCam.copy(camera.position);
+    baseCamQ.copy(camera.quaternion);
     baseSet = true;
     /* Measure the scene's own twist: aim at the pivot, compare with where the
        scene actually left the camera, then put the scene's orientation back. */
@@ -1277,7 +1282,7 @@ function viewSettling() {
 let vraf = 0, vlast = 0;
 function viewFrame(now) {
   vraf = 0;
-  const dt = Math.min((now - vlast) / 1000, 0.1);
+  const dt = Math.max(0, Math.min((now - vlast) / 1000, 0.1));
   vlast = now;
   stepView(dt);
   applyView(false);
@@ -1292,7 +1297,7 @@ function kickView() {
 
 let raf = 0;
 function frame(now) {
-  const dt = Math.min((now - last) / 1000, 0.1);
+  const dt = Math.max(0, Math.min((now - last) / 1000, 0.1));
   last = now;
   t += dt * speed;
   ctx.pointer.x += (target.x - ctx.pointer.x) * 0.06;
@@ -1301,7 +1306,7 @@ function frame(now) {
      from wherever it currently is rather than placing it outright, and they must not
      read the viewer's orbit back as their own starting point: the two would feed each
      other and the framing would run away within a second. */
-  if (baseSet) camera.position.copy(baseCam);
+  if (baseSet) { camera.position.copy(baseCam); camera.quaternion.copy(baseCamQ); }
   piece.update(t, dt * speed);
   stepView(dt);
   applyView(true);
