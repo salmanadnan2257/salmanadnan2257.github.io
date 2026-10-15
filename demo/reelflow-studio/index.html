@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ReelFlow Studio: Demo</title>
+  <meta name="description" content="A fabricated, scripted walkthrough of ReelFlow Studio's video approval, captioning, and publishing flow. No live calls, no real client data.">
+  <meta name="robots" content="noindex">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="favicon.png" sizes="any">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="demo-banner">
+    <strong>Demo mode</strong>: fabricated example queue. No live n8n calls happen here; nothing shown is a real client's data.
+  </div>
+
+  <header class="app-header">
+    <div class="wrap app-header__inner">
+      <div class="brand">
+        <span class="logo" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="6 3 20 12 6 21 6 3"/></svg>
+        </span>
+        <div>
+          <h1>ReelFlow Studio</h1>
+          <p>Approve &middot; Caption &middot; Publish &amp; Schedule</p>
+        </div>
+      </div>
+      <span class="conn-pill" id="conn-pill"><span class="conn-dot" id="conn-dot"></span> <span id="conn-label">Ready</span></span>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <p class="lede">
+      The real system is a static web front end over live n8n workflows for
+      video approval, captioning, and publishing, built for a real Digitalise
+      Agency client. Its source is private since it's a client operations tool.
+      This page replays the same operator console loop (approve, caption,
+      publish and schedule) against a fabricated video queue.
+    </p>
+    <div id="idle-state" class="panel">
+      <button class="btn btn--primary" id="start-btn">Start</button>
+      <p>Click to load the demo video queue.</p>
+    </div>
+    <div id="queue-wrap" style="display:none">
+      <div class="toolbar"><span class="count"><b id="queue-count">0</b> videos in queue</span></div>
+      <div class="queue" id="queue"></div>
+    </div>
+  </main>
+
+  <footer>
+    <div class="wrap">
+      <p id="retry-policy"></p>
+      <p>
+        This is a companion demo for a private repository. It contains no real
+        client data and makes no live network calls; every status update on
+        this page is pre-scripted. Tech stack (real, from the source project):
+        vanilla JS, Netlify edge function, n8n webhooks, Google Sheets/Drive,
+        Pinecone with gemini-embedding-001.
+      </p>
+    </div>
+  </footer>
+
+  <script src="demo-data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

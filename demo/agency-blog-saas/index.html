@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Agency Blog SaaS: Demo</title>
+  <meta name="description" content="A fabricated, scripted walkthrough of the Agency Blog SaaS product: AI blog generation, credits, subscriptions, and client updates. No live API calls; the Blog Library shows a client's 15 already-published posts, everything else is fabricated.">
+  <meta name="robots" content="noindex">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="favicon.png" sizes="any">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="demo-banner">
+    <strong>Demo mode</strong>: fabricated product tour. No live API calls happen here. The Blog Library shows davonex.com's 15 already-published posts; everything else is fabricated.
+  </div>
+
+  <nav class="demo-nav">
+    <div class="wrap demo-nav__inner">
+      <div class="demo-nav__brand">
+        <span class="demo-nav__mark" aria-hidden="true">AB</span>
+        <span class="demo-nav__name">Agency Blog SaaS</span>
+      </div>
+      <span class="demo-nav__tag">Demo</span>
+    </div>
+  </nav>
+
+  <header class="hero">
+    <div class="wrap">
+      <p class="eyebrow">agency-blog-saas / demo</p>
+      <h1>Tour the AI blog generation product</h1>
+      <p class="lede">
+        The real system is a production Django SaaS behind digitalise.agency:
+        AI blog generation, credits and subscriptions, per-client editor roles,
+        and PDF export, serving real agency clients. Its source is private since
+        it's the agency's live product. This page is a scripted product tour of
+        the same features, with fabricated data throughout.
+      </p>
+      <div class="tabs">
+        <button class="tab is-active" data-tab="generator">AI Blog Generator</button>
+        <button class="tab" data-tab="library">Blog Library <span id="library-tab-count"></span></button>
+        <button class="tab" data-tab="subscriptions">Subscriptions</button>
+        <button class="tab" data-tab="clients">Client Updates</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="wrap">
+
+    <section class="panel is-active" id="panel-generator">
+      <div class="credits-banner">
+        <span>Your Credits</span>
+        <b><span class="credits-value"></span> credits</b>
+      </div>
+      <div class="card">
+        <h2>AI Blog Generator</h2>
+        <p style="color:var(--ink-soft);font-size:14px">Create a high-quality, SEO-optimized blog post. Costs 100 credits per post.</p>
+
+        <div class="autofill-row">
+          <button type="button" class="btn btn--yellow" id="autofill-btn">&#127922; Autofill an example</button>
+          <span class="autofill-note" id="autofill-note">Picks one of davonex.com's 15 real posts at random and fills the form below.</span>
+        </div>
+
+        <form id="generator-form">
+          <label for="topic-input">Topic</label>
+          <input id="topic-input" type="text" placeholder="e.g., 5 Ways to Improve Local SEO in 2026">
+          <label for="desc-input">Description</label>
+          <textarea id="desc-input" placeholder="Briefly describe the angle you want."></textarea>
+          <label for="keywords-input">Keywords</label>
+          <input id="keywords-input" type="text" placeholder="local seo, google business profile, citations">
+          <div style="margin-top:16px">
+            <button class="btn btn--primary" id="generate-btn" type="submit">Generate post <span class="arr">&#8594;</span></button>
+          </div>
+          <div class="status-line" id="generate-status"></div>
+        </form>
+      </div>
+    </section>
+
+    <section class="panel" id="panel-library">
+      <p style="color:var(--ink-soft);font-size:14px;max-width:680px;margin-bottom:20px">
+        This mirrors a real configured client's live blog: all 15 real posts from
+        davonex.com/blog, stored locally with their real images and full text so this
+        page stays self-contained. Click any card to read it in full. Autofill and
+        generate on the other tab, and that exact real post is duplicated here for
+        15 minutes with a "Demo" ribbon, then automatically removed.
+      </p>
+      <div class="library-grid" id="library-list"></div>
+    </section>
+
+    <section class="panel" id="panel-reader">
+      <button class="btn btn--ghost" type="button" id="reader-back">&larr; Back to Blog Library</button>
+      <article class="reader" id="reader-article"></article>
+    </section>
+
+    <section class="panel" id="panel-subscriptions">
+      <div class="card">
+        <h2>Subscription Packages</h2>
+        <div class="pricing-grid" id="pricing-grid"></div>
+        <div class="redeem-row">
+          <input id="redeem-input" type="text" placeholder="Have a redemption code? PKG1-XXXX-XXXX-XXXX">
+          <button class="btn btn--yellow" id="redeem-btn" type="button">Redeem</button>
+        </div>
+        <p id="redeem-note" style="font-size:13px;color:var(--ink-soft);margin-top:8px"></p>
+      </div>
+    </section>
+
+    <section class="panel" id="panel-clients">
+      <div class="card">
+        <h2>Client Updates</h2>
+        <p style="font-size:14px"><strong id="client-name"></strong></p>
+        <div class="updates-list" id="updates-list"></div>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="site-foot">
+    <div class="wrap foot-inner">
+      <div>
+        <div class="foot-brand">
+          <span class="demo-nav__mark" aria-hidden="true">AB</span>
+          <strong>Agency Blog SaaS</strong>
+        </div>
+        <p class="foot-tag">This is a companion demo for a private repository. Apart from davonex.com's 15
+          already-published posts in the Blog Library it contains no real client data, and it
+          makes no live API calls; every interaction on this page is pre-scripted.</p>
+      </div>
+      <div class="foot-right">
+        <span>Built with Django 4.2, PostgreSQL 18, Docker, Gunicorn, and nginx</span><br>
+        <span>132/132 tests passing, 56% coverage, per the real project's README</span>
+      </div>
+    </div>
+  </footer>
+
+  <script src="demo-data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

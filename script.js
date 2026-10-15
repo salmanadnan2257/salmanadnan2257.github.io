@@ -178,7 +178,7 @@ const GITHUB_HANDLE = "salmanadnan2257";
     evictTo(LIVE_BUDGET - 1);
     var f = document.createElement("iframe");
     f.className = "stage__canvas";
-    f.src = "viz/" + name + ".html";
+    f.src = "viz/" + name + ".html?v=20261015";            // v: bust caches when the shared viz runtime changes
     f.title = "Interactive 3D visualization of the " + current().title;
     f.setAttribute("allow", "fullscreen");
     f.setAttribute("data-viz-live", name);
@@ -399,7 +399,7 @@ const GITHUB_HANDLE = "salmanadnan2257";
     if (!name || !media) return;
     var f = document.createElement("iframe");
     f.className = "card-viz";
-    f.src = "viz/" + name + ".html?compact=1";       // compact: no panels over the scene
+    f.src = "viz/" + name + ".html?compact=1&v=20261015";       // compact: no panels over the scene
     f.setAttribute("title", "Live 3D preview");
     f.setAttribute("aria-hidden", "true");           // decoration: the screenshot's alt text is the real description
     f.setAttribute("tabindex", "-1");                // and it is never a tab stop

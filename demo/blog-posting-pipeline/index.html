@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Blog Posting Pipeline: Demo</title>
+  <meta name="description" content="A fabricated, scripted walkthrough of the 7-step blog posting pipeline's architecture. No live API calls; the Blog Library shows a client's 15 already-published posts, everything else is fabricated.">
+  <meta name="robots" content="noindex">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="favicon.png" sizes="any">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="demo-banner">
+    <strong>Demo mode</strong>: fabricated example runs for illustration. No live API calls happen here. The Blog Library shows davonex.com's 15 already-published posts; everything else is fabricated.
+  </div>
+
+  <nav class="demo-nav">
+    <div class="wrap demo-nav__inner">
+      <div class="demo-nav__brand">
+        <span class="demo-nav__mark" aria-hidden="true">BP</span>
+        <span class="demo-nav__name">Blog Posting Pipeline</span>
+      </div>
+      <div class="demo-nav__links">
+        <span class="demo-nav__tag">Demo</span>
+      </div>
+    </div>
+  </nav>
+
+  <header class="hero">
+    <div class="wrap">
+      <p class="eyebrow">blog-posting-pipeline / demo</p>
+      <h1>See the pipeline write and publish a post</h1>
+      <p class="lede">
+        The real system is a production 7-step AI content pipeline that researches,
+        writes, illustrates, and publishes SEO/AEO blog posts for real Digitalise
+        Agency clients, including davonex.com. Its source is private, since the
+        pipeline itself is the agency's live product. This page replays fabricated
+        example runs, step by step, against an invented brand ("Nordkast Coffee
+        Supply") so the architecture can be seen working without exposing any real
+        client's actual generation.
+      </p>
+
+      <div class="tabs">
+        <button class="tab is-active" data-tab="pipeline">Run the pipeline</button>
+        <button class="tab" data-tab="library">Blog Library <span id="library-tab-count"></span></button>
+      </div>
+    </div>
+  </header>
+
+  <main class="wrap">
+
+    <section class="panel is-active" id="panel-pipeline">
+
+      <div class="brief-card">
+        <p class="section-label">1. Autofill the brief (pick an example)</p>
+        <div class="preset-row" id="preset-row"></div>
+        <div class="brief-preview" id="brief-preview"></div>
+        <div class="controls">
+          <button class="btn btn--primary" id="run-btn">Run the pipeline <span class="arr">&#8594;</span></button>
+          <button class="btn btn--ghost" id="reset-btn" style="display:none">Reset</button>
+        </div>
+        <div class="rail" id="rail" style="margin-top:22px"></div>
+      </div>
+
+      <div id="steps"></div>
+    </section>
+
+    <section class="panel" id="panel-library">
+      <p class="section-label" style="margin-top:0">Nordkast Coffee Supply / Blog</p>
+      <p class="library-intro">
+        This mirrors davonex.com/blog completely: all 15 real posts this pipeline has
+        actually published there, stored locally with their real images and full text
+        so this page works fully offline. Click any card to read it in full. Run the
+        pipeline on the other tab and a fabricated demo post (against the invented
+        Nordkast brand) is added here for 15 minutes, clearly marked, then automatically
+        removed.
+      </p>
+      <div class="library-grid" id="library-grid"></div>
+    </section>
+
+    <section class="panel" id="panel-reader">
+      <button class="btn btn--ghost" type="button" id="reader-back">&larr; Back to Blog Library</button>
+      <article class="reader" id="reader-article"></article>
+    </section>
+
+  </main>
+
+  <footer class="site-foot">
+    <div class="wrap foot-inner">
+      <div>
+        <div class="foot-brand">
+          <span class="demo-nav__mark" aria-hidden="true">BP</span>
+          <strong>Blog Posting Pipeline</strong>
+        </div>
+        <p class="foot-tag">This is a companion demo for a private repository. Apart from davonex.com's 15
+          already-published posts in the Blog Library it contains no real client data, and it
+          makes no live API calls; every output on this page is pre-scripted.</p>
+      </div>
+      <div class="foot-right">
+        <span>Demo build, not the production system</span>
+      </div>
+    </div>
+  </footer>
+
+  <script src="demo-data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

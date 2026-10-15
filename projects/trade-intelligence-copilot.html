@@ -88,13 +88,13 @@
         </div>
       <figure class="proj-media proj-viz">
         <div class="proj-viz__frame">
-          <iframe src="../viz/trade-intelligence-copilot.html" title="Interactive 3D visualization: Trade Intelligence Copilot" loading="lazy" allow="fullscreen"></iframe>
+          <iframe src="../viz/trade-intelligence-copilot.html?v=20261015" title="Interactive 3D visualization: Trade Intelligence Copilot" loading="lazy" allow="fullscreen"></iframe>
         </div>
-        <figcaption>Signal Routes: a question travels the shipping lanes of a globe and comes back with the trade records that answer it. An artwork of the idea, not a live query running against the data. Live and interactive: drag it to orbit, scroll or pinch to zoom. <a href="../viz/trade-intelligence-copilot.html" target="_blank" rel="noopener">Open full screen</a></figcaption>
+        <figcaption>Signal Routes: a question travels the shipping lanes of a globe and comes back with the trade records that answer it. An artwork of the idea, not a live query running against the data. Live and interactive: drag it to orbit, scroll or pinch to zoom. <a href="../viz/trade-intelligence-copilot.html?v=20261015" target="_blank" rel="noopener">Open full screen</a></figcaption>
       </figure>
 
       <figure class="proj-media">
-        <img src="../assets/screenshots/trade-intelligence-copilot.webp" alt="Bar chart of trade-intelligence-copilot's real evaluation results on synthetic data: SQL correctness, refusal recall and precision, judge faithfulness, and retrieval hit rate." loading="lazy" decoding="async" width="1200" height="733">
+        <img src="../assets/screenshots/trade-intelligence-copilot.webp" alt="Bar chart of trade-intelligence-copilot's real evaluation results on synthetic data: SQL correctness, refusal recall and precision, judge agreement with independent labels, judge faithfulness, and retrieval hit rate." loading="lazy" decoding="async" width="1200" height="733">
         <figcaption>Real eval run across 28 test items on synthetic data (eval/results.json).</figcaption>
       </figure>
 
@@ -137,7 +137,7 @@
             <tr><td>Retrieval hit rate</td><td>8 / 10 = 80%</td></tr>
             <tr><td>Refusal precision / recall</td><td>1.00 / 1.00</td></tr>
             <tr><td>LLM-as-judge faithfulness (gemini-2.5-pro)</td><td>21 / 22 = 95.5%</td></tr>
-            <tr><td>Judge vs human agreement</td><td>Pending: not yet labelled for this run</td></tr>
+            <tr><td>Judge vs independent labels (12 items)</td><td>11 / 12 = 91.7%</td></tr>
             <tr><td>Mean cost per query</td><td>$0.00093</td></tr>
             <tr><td>Latency p50 / p95</td><td>9.0 s / 27.0 s (8.8 s / 12.5 s without 3 rate-limited items)</td></tr>
           </tbody></table></div>
@@ -145,7 +145,7 @@
       <section class="proj-section">
         <h2>Reading the numbers honestly</h2>
         <p>SQL correctness is 100% only after an earlier fix. In the first version's first run the model matched a company name without wildcards and returned 0 shipments for an importer that had dozens; tightening the schema prompt fixed it, and the gold numbers are computed directly from the database.</p>
-        <p>The one faithfulness miss is a judgment call: asked about HS code 1702.1100 "(lactose)", the model gave the right count and repeated the question's own label, which the evidence rows never state. The judge-vs-human check exists for exactly this, and it has not been redone for this run yet. Latency p95 is inflated by rate limiting: three items waited out Vertex 429 responses. Refusal was perfect on this set, but the set is small, so read it as the path works, not it never fails.</p>
+        <p>The one faithfulness miss is a judgment call: asked about HS code 1702.1100 "(lactose)", the model gave the right count and repeated the question's own label, which the evidence rows never state. Independent labels count it faithful, since its one load-bearing claim, the count, is exactly the query result; it is the single disagreement in an 11-of-12 check of the judge. Latency p95 is inflated by rate limiting: three items waited out Vertex 429 responses. Refusal was perfect on this set, but the set is small, so read it as the path works, not it never fails.</p>
       </section>
       <section class="proj-section">
         <h2>Data</h2>
