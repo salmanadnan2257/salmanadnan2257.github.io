@@ -260,3 +260,8 @@ fails against the unchanged 0.0040.
   site, and a local test fixture, and the SaaS keeps its client roster in the production database
   rather than in code. The owner has confirmed the number; it just is not checkable from the code,
   so be ready to answer that.
+- **"8 months of full-time competitive programming in C++, 8+ hours a day"** on the fourth
+  achievements tile (added 2026-10-25, which raised the strip's cap from 3 to 4 in
+  `test-home.mjs` and `test-mobile.mjs`) is the owner's own figure. His older resume says 4 months;
+  he set 8 on 2026-10-25. No handle or rating is shown, by his choice. The Codeforces Mashup
+  Generator is the only code on the site that touches it.

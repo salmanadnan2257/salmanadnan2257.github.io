@@ -116,7 +116,7 @@ if (!(await page.$('#production'))) {
 const heroStats = await page.$$eval('.stats__row .stat', (e) => e.length);
 const achievements = await page.$$eval('.achievement', (e) => e.length);
 if (heroStats > 3) bad.push(`hero strip still has ${heroStats} stats`);
-if (achievements > 3) bad.push(`achievements grid still has ${achievements} stats`);
+if (achievements > 4) bad.push(`achievements grid still has ${achievements} stats`);
 
 /* no number is claimed twice across the two blocks */
 const nums = await page.$$eval('.stat__num, .achievement-stat', (e) => e.map((x) => x.textContent.trim()));

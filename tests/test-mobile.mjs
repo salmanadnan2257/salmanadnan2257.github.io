@@ -240,7 +240,7 @@ for (const dev of DEVICES) {
     }
     return { stat: all.stat, achievement: all.achievement, overlaps: pairs };
   });
-  const a3ok = stats.stat.length === 3 && stats.achievement.length === 3 && stats.overlaps.length === 0
+  const a3ok = stats.stat.length === 3 && stats.achievement.length === 4 && stats.overlaps.length === 0
     && stats.stat.every((s) => s.w > 0 && s.h > 0) && stats.achievement.every((s) => s.w > 0 && s.h > 0);
   say(`A3 .stat x${stats.stat.length}, .achievement x${stats.achievement.length}, overlapping pairs: ${stats.overlaps.length} -> ${a3ok ? 'PASS' : 'FAIL'}`);
   stats.stat.forEach((s, i) => say(`    .stat[${i}] ${s.w}x${s.h} @(${s.x},${s.y}) "${s.t}"`));
