@@ -39,8 +39,8 @@
 
   <!-- The only inline script on the page. It marks the document as scripted BEFORE
        first paint, which is what lets the project wall ship expanded in the HTML (so
-       a crawler and a JS-less visitor get all 38 projects) while a scripted visitor
-       sees it collapsed behind the "See all 38 projects" button with no flash of the
+       a crawler and a JS-less visitor get all 39 projects) while a scripted visitor
+       sees it collapsed behind the "See all 39 projects" button with no flash of the
        full grid and no layout shift. -->
   <script>document.documentElement.className += " js";</script>
 
@@ -193,7 +193,7 @@
   <section class="hero-cta" aria-label="At a glance and next step">
     <div class="wrap">
       <div class="hero-panel hero-panel--row">
-        <div class="hero-banner hero-banner--yellow">38 projects, 703 tests across 14 systems</div>
+        <div class="hero-banner hero-banner--yellow">39 projects, 703 tests across 14 systems</div>
         <div class="hero-banner hero-banner--cream">2 production systems, live clients</div>
       </div>
       <div class="hero-cta__actions">
@@ -208,7 +208,7 @@
     <div class="wrap stats__row">
       <div class="stat"><span class="stat__num">2</span><span class="stat__label">in production</span></div>
       <div class="stat"><span class="stat__num">6</span><span class="stat__label">core systems, built solo</span></div>
-      <div class="stat"><span class="stat__num">38</span><span class="stat__label">projects shipped</span></div>
+      <div class="stat"><span class="stat__num">39</span><span class="stat__label">projects shipped</span></div>
     </div>
   </section>
 
@@ -280,12 +280,12 @@
   </section>
 
   <!-- THE FLAGSHIP
-       Thirty-eight cards is a wall, and a wall gets scrolled past. So the wall is folded
+       Thirty-nine cards is a wall, and a wall gets scrolled past. So the wall is folded
        away behind one button and a single project leads: the SQL database engine, chosen
        because its proof needs no vocabulary (it was killed 300 times and lost nothing)
        and because it is the claim the achievements strip already leads on.
 
-       The other 37 cards are NOT injected by script. They are in the HTML, exactly as
+       The other 38 cards are NOT injected by script. They are in the HTML, exactly as
        they always were, one <div> below this one; a crawler and a JS-less visitor get the
        whole grid. The only thing script does is fold it. -->
   <section class="section flagship" id="flagship" aria-labelledby="flag-title">
@@ -342,7 +342,7 @@
       </div>
 
       <div class="flagship__more">
-        <button class="btn btn--ghost btn--big" id="all-toggle" type="button" aria-expanded="false" aria-controls="all-projects">See all 38 projects</button>
+        <button class="btn btn--ghost btn--big" id="all-toggle" type="button" aria-expanded="false" aria-controls="all-projects">See all 39 projects</button>
       </div>
     </div>
   </section>
@@ -566,7 +566,7 @@
       <div class="section__head section__head--row">
         <div>
           <p class="eyebrow">Also built</p>
-          <h2 id="more-title" class="section__title">Twenty-five more, same standards.</h2>
+          <h2 id="more-title" class="section__title">Twenty-six more, same standards.</h2>
         </div>
         <a class="btn btn--ghost" data-repo="" rel="noopener">All repositories</a>
       </div>
@@ -639,6 +639,14 @@
           <span class="mini__repo">codeforces-mashup-generator</span>
           <h3>Codeforces Mashup Generator</h3>
           <span class="mini__go">Only unsolved problems <span aria-hidden="true">&rarr;</span></span>
+        </a>
+
+        <a class="mini" href="projects/competitive-programming.html" aria-label="Competitive Programming: every answer checked against brute force">
+          <div class="mini__media"><img src="assets/screenshots/competitive-programming.webp" alt="Terminal output from the competitive programming verification run" loading="lazy" decoding="async"></div>
+          <span class="mini__metric">398 C++ solutions</span>
+          <span class="mini__repo">competitive-programming</span>
+          <h3>Competitive Programming</h3>
+          <span class="mini__go">Brute-force checked <span aria-hidden="true">&rarr;</span></span>
         </a>
 
         <a class="mini" href="projects/paws-rescue-donations.html" aria-label="Paws Rescue Donations: replaces the spreadsheet anyone could edit">

@@ -130,7 +130,7 @@ for (const dev of DEVICES) {
   await sleep(200);
 
   const bad = [];
-  if (cards.length !== 41) bad.push(`expected 41 cards (38 wall + 3 flagship), found ${cards.length}`);
+  if (cards.length !== 42) bad.push(`expected 42 cards (39 wall + 3 flagship), found ${cards.length}`);
   const missing = cards.filter((c) => c.missing);
   const invisible = cards.filter((c) => !c.missing && (c.display === 'none' || c.visibility === 'hidden' || c.opacity < 0.99 || c.w < 1 || c.h < 1));
   const clipped = cards.filter((c) => !c.missing && (c.spillRight > 0.6 || c.spillBottom > 0.6 || c.spillLeft > 0.6));
@@ -152,7 +152,7 @@ for (const dev of DEVICES) {
   if (tooShort.length) say('    short e.g.: ' + tooShort.slice(0, 5).map((c) => `${c.href} ${c.w}x${c.h}`).join(', '));
   if (coveredC.length) say('    covered e.g.: ' + coveredC.slice(0, 3).map((c) => `${c.href} (centre hit: ${c.hitDesc})`).join(', '));
   if (missing.length || invisible.length || clipped.length || offCanvas.length || coveredC.length || tooShort.length) bad.push('A1 CTA problems');
-  say(`A1: ${missing.length + invisible.length + clipped.length + offCanvas.length + coveredC.length + tooShort.length === 0 && cards.length === 41 ? 'PASS' : 'FAIL'}`);
+  say(`A1: ${missing.length + invisible.length + clipped.length + offCanvas.length + coveredC.length + tooShort.length === 0 && cards.length === 42 ? 'PASS' : 'FAIL'}`);
 
   // A2 horizontal overflow
   const ov = await page.evaluate(() => {

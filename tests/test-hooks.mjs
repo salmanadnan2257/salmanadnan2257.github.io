@@ -36,7 +36,7 @@ for (const v of VIEWS) {
 
   const bad = [];
   const n = await page.$$eval('.pcard, .mini', (e) => e.length);
-  if (n !== 41) bad.push(`${n} cards, expected 41 (38 wall + 3 flagship)`);
+  if (n !== 42) bad.push(`${n} cards, expected 42 (39 wall + 3 flagship)`);
 
   /* measure each card with it scrolled into view (getBoundingClientRect is fine either
      way, but reveal animations are not, so force everything visible first) */
@@ -77,7 +77,7 @@ for (const v of VIEWS) {
   console.log(`\n===== ${v.w}x${v.h} =====`);
   console.log(`cards ${cards.length} | CTA h ${Math.min(...cards.map((c) => c.goH))}-${Math.max(...cards.map((c) => c.goH))}px, w ${Math.min(...cards.map((c) => c.goW))}-${Math.max(...cards.map((c) => c.goW))}px | number badges ${cards.filter((c) => c.metric).length}`);
   console.log(`scrollWidth ${ov.sw} vs innerWidth ${ov.iw} | JS errors ${errs.length}`);
-  console.log(bad.length ? 'FAIL\n  ' + bad.join('\n  ') : 'PASS: 41 cards, nothing clipped, no sideways scroll, clean console');
+  console.log(bad.length ? 'FAIL\n  ' + bad.join('\n  ') : 'PASS: 42 cards, nothing clipped, no sideways scroll, clean console');
   if (bad.length) failed++;
 
   for (const [name, sel] of [['prod', '#production'], ['core', '#work'], ['apps', '#apps'], ['minis', '.minis']]) {

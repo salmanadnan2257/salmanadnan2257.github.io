@@ -43,9 +43,9 @@ PARTIALS = ROOT / "partials"
 # is not decoration: it is what catches a new page that forgot the block, and a
 # glob that silently stopped matching.
 MANIFEST = {
-    "head-icons":   {"targets": ["*.html", "projects/*.html"], "expect": 41},
-    "book-a-call":  {"targets": ["index.html", "projects/*.html"], "expect": 39},
-    "nav-project":  {"targets": ["projects/*.html"], "expect": 38},
+    "head-icons":   {"targets": ["*.html", "projects/*.html"], "expect": 42},
+    "book-a-call":  {"targets": ["index.html", "projects/*.html"], "expect": 40},
+    "nav-project":  {"targets": ["projects/*.html"], "expect": 39},
 }
 
 

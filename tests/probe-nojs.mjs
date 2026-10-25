@@ -17,7 +17,7 @@ const r=await p.evaluate(()=>{
 });
 const wallOpen=r.disp!=='none';
 console.log(`JS-OFF: html.js=${r.jsClass} wallDisplay=${r.disp} project-links=${r.total} distinct=${r.distinct} toggleShown=${r.toggleShown}`);
-const ok=wallOpen && r.distinct>=38 && !r.jsClass;
+const ok=wallOpen && r.distinct>=39 && !r.jsClass;
 console.log(ok?'PASS: wall ships open, all links crawlable, no js-class, toggle not blocking':'FAIL');
 await b.close();
 process.exit(ok?0:1);

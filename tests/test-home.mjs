@@ -58,9 +58,9 @@ const cards = await page.$$eval('.pcard, .mini', (els) => els.map((el) => {
    (agency-blog-saas, inference-engine, raft-kv), each a deliberate second link to
    its own wall card, so exactly three duplicate hrefs are expected. The flagship
    hooks are shorter than their wall counterparts, so no duplicate hook is created. */
-if (cards.length !== 41) bad.push(`expected 41 card anchors, found ${cards.length}`);
+if (cards.length !== 42) bad.push(`expected 42 card anchors, found ${cards.length}`);
 const distinctHrefs = new Set(cards.map((c) => c.href)).size;
-if (distinctHrefs !== 38) bad.push(`expected 38 distinct project links, found ${distinctHrefs}`);
+if (distinctHrefs !== 39) bad.push(`expected 39 distinct project links, found ${distinctHrefs}`);
 const hooks = new Map();   // hook -> href it first appeared on
 for (const c of cards) {
   if (c.missing) { bad.push(`card ${c.href} has no CTA`); continue; }
@@ -140,7 +140,7 @@ console.log('cards checked:', cards.length, '| hero stats:', heroStats, '| achie
 console.log('distinct CTA hooks:', hooks.size, '| number badges:', metrics.filter((m) => m.n === 1).length);
 console.log('stat numbers on the page:', nums.join(' , '));
 if (bad.length) { console.log('\nFAIL'); bad.slice(0, 12).forEach((b) => console.log('  ' + b)); }
-else console.log('\nPASS: 41 card anchors (38 distinct projects + 3 flagship duplicates), each a distinct specific hook + one number, all pointing at project pages, click navigates, stats trimmed, no JS errors');
+else console.log('\nPASS: 42 card anchors (39 distinct projects + 3 flagship duplicates), each a distinct specific hook + one number, all pointing at project pages, click navigates, stats trimmed, no JS errors');
 
 await browser.close();
 process.exit(bad.length ? 1 : 0);

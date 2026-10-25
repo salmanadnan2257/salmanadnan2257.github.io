@@ -112,6 +112,8 @@ CREDITS = {
         "This is the software that runs our own agency.",
     "Codeforces is a site full of programming puzzles, and Salman's study group ran practice contests on them.":
         "Codeforces is a site full of programming puzzles, and our founder's study group ran practice contests on them.",
+    "Salman spent about eight months on it full time, starting with a university course.":
+        "Our founder, Salman Adnan, spent about eight months on it full time, starting with a university course.",
 
     # A company is not an "Engineer". The personal site's job title becomes a
     # discipline on the agency build.

@@ -1,12 +1,12 @@
 # Portfolio website
 
-The personal site for Salman Adnan: a homepage plus 38 project detail pages, each with its own
+The personal site for Salman Adnan: a homepage plus 39 project detail pages, each with its own
 self-contained 3D visualization. Static files, no build step. Deployed to https://salmanadnan.com.
 
 ```
 index.html          the homepage
-projects/*.html     38 project detail pages
-viz/*.html          38 self-contained Three.js visualizations
+projects/*.html     39 project detail pages
+viz/*.html          39 self-contained Three.js visualizations
 assets/             screenshots, Open Graph cards, favicons
 partials/           the one copy of each block that repeats across the pages
 tests/              headless-Chrome checks (see below)
@@ -16,28 +16,28 @@ deploy.sh           rsync to the VPS, gated on [deploy] in the latest commit mes
 
 ## Editing something that appears on every page
 
-Three blocks are the same on nearly every page: the booking section (39 pages), the icon links
-(41) and the project header (38). They are not templated at runtime, because the pages are what
+Three blocks are the same on nearly every page: the booking section (40 pages), the icon links
+(42) and the project header (39). They are not templated at runtime, because the pages are what
 ships and a crawler has to see them. Instead each one sits between a pair of marker comments and
 has a single source copy in `partials/`.
 
 ```bash
 # edit partials/book-a-call.html, then:
 tools/sync-partials.py            # what would change
-tools/sync-partials.py --apply    # write it to all 39
+tools/sync-partials.py --apply    # write it to all 40
 tools/sync-partials.py --check    # exit 1 if any page has drifted; deploy.sh runs this
 ```
 
 `--check` runs in `deploy.sh` before anything is built or pushed, so a block edited in one page
 and not the rest fails the deploy instead of shipping.
 
-For a change to the 38 `viz/*.html` files, which are 38 copies of one shell, use the anchored
+For a change to the 39 `viz/*.html` files, which are 39 copies of one shell, use the anchored
 all-or-nothing patcher rather than a bare `sed`. It refuses to write anything unless the anchor
 matches exactly once in every file, so the set cannot half-apply and fork:
 
 ```bash
-tools/patch-set.py --glob 'viz/*.html' --patch tools/edits/<edit>.py --expect 38
-tools/patch-set.py --glob 'viz/*.html' --patch tools/edits/<edit>.py --expect 38 --apply
+tools/patch-set.py --glob 'viz/*.html' --patch tools/edits/<edit>.py --expect 39
+tools/patch-set.py --glob 'viz/*.html' --patch tools/edits/<edit>.py --expect 39 --apply
 ```
 
 Past edits are kept in `tools/edits/` as a record of what was changed and why.
@@ -71,7 +71,7 @@ To audit:
 
 ```bash
 ssh da 'grep -rl "salmanadnan2257.github.io" /root/salmanadnan.com --include=*.html --include=*.xml --include=*.txt'
-ssh da 'ls /root/salmanadnan.com/projects/*.html | wc -l'   # must be 38
+ssh da 'ls /root/salmanadnan.com/projects/*.html | wc -l'   # must be 39
 ```
 
 ## Tests
@@ -81,17 +81,17 @@ The checks drive a real headless Chrome. They are not wired to CI; run them by h
 ```bash
 cd tests
 npm install                 # puppeteer-core, pngjs, pixelmatch
-node test-viz.mjs           # all 38 viz: drag orbits, reset restores exactly, wheel zooms
+node test-viz.mjs           # all 39 viz: drag orbits, reset restores exactly, wheel zooms
 ```
 
 | Harness | What it asserts |
 |---|---|
-| `test-viz.mjs` | All 38 visualizations: drag changes the render, reset restores the framing to exactly 0.000, wheel zooms. |
+| `test-viz.mjs` | All 39 visualizations: drag changes the render, reset restores the framing to exactly 0.000, wheel zooms. |
 | `test-drift.mjs` | The camera-runaway class of bug. Four scenes ease the camera from its own current position, and cropbridge never re-aims it at all, so any of them could read the viewer's orbit back as their own starting point and compound away. Runs a no-drag control per scene first, because sparse pulsing scenes vary on their own; coverage is measured against the frame's most common colour. |
 | `test-embed.mjs` | An embedded visualization never hijacks host-page scrolling before the visitor engages with it. |
 | `test-a11y.mjs` | Keyboard orbit and zoom, reset via `r`, visible focus ring, `prefers-reduced-motion`, aria labels. |
-| `test-home.mjs` | Opens the folded project wall via the real toggle, then checks 41 card anchors (38 distinct projects plus the three "Start with three" flagship cards, each a deliberate second link to its own wall card), each with a distinct curiosity hook and a metric badge; a card click navigates to its project page. |
-| `test-hooks.mjs` | Opens the folded wall, then at 1280x800, 390x844 and 360x740: no card CTA or badge spills its card, and the page never scrolls horizontally (39 cards). |
+| `test-home.mjs` | Opens the folded project wall via the real toggle, then checks 42 card anchors (39 distinct projects plus the three "Start with three" flagship cards, each a deliberate second link to its own wall card), each with a distinct curiosity hook and a metric badge; a card click navigates to its project page. |
+| `test-hooks.mjs` | Opens the folded wall, then at 1280x800, 390x844 and 360x740: no card CTA or badge spills its card, and the page never scrolls horizontally (42 cards). |
 | `test-mobile.mjs` | Opens the folded wall for the homepage layout checks (tap targets, no horizontal pan). Then, on a project page, the scroll-trap check: a vertical swipe starting on a visualization must still scroll the page, before and after the viz is engaged. |
 | `probe-autoplay.mjs` | Card previews play with nothing touching them: the header stage mounts on load, all three "Start with three" cards are live once the section is on screen, the three sit in two rows (01 full width, 02 and 03 half), and the desktop cap of 4 holds across a full scroll of the open wall. |
 | `probe-phone-thrash.mjs` | The same at 390x844 and 1280x800, counting mounts and unmounts: the cap holds (2 phone, 4 desktop) and a slow scroll does not tear contexts up and down. |
@@ -103,14 +103,14 @@ node test-viz.mjs           # all 38 viz: drag orbits, reset restores exactly, w
 | `check-demos.mjs` | Every hosted demo under `/demo/` (agency-blog-saas, blog-posting-pipeline, reelflow-studio, cropbridge): 200, no console errors, failed requests or dialogs, no sideways scroll, and every visible button and nav link clicked once from a fresh load without an error. Same server and base-URL options. |
 | `test-cpu-leak.mjs` | Six viz pages stop requesting animation frames when hidden, when paused-and-settled, and under `prefers-reduced-motion`, so no page burns a core in the background. |
 | `test-compact.mjs` | Compact mode (`?compact=1`) at card size: the title panel, legend and HUD are hidden, the scene still renders and still responds to a drag. Creates its own output dir. One expected non-pass: `disappearing-text-app`, which is excluded from live preview by design and keeps its screenshot. |
-| `check-runtime-identical.mjs` | The load-bearing invariant: the shared runtime block is byte-identical across all 38 viz files, apart from each file's own PNG download name. If this fails, the 38 have forked and any future patch will hit them unevenly. After any change to the runtime, bump the `?v=` on the viz URLs (`script.js` and the 38 project pages), since the VPS sends no Cache-Control and browsers may otherwise keep the old file. |
+| `check-runtime-identical.mjs` | The load-bearing invariant: the shared runtime block is byte-identical across all 39 viz files, apart from each file's own PNG download name. If this fails, the 38 have forked and any future patch will hit them unevenly. After any change to the runtime, bump the `?v=` on the viz URLs (`script.js` and the 38 project pages), since the VPS sends no Cache-Control and browsers may otherwise keep the old file. |
 
 Probe scripts (added 2026-07-15 to verify the folded-wall and 2026-07-14 conversion batch; not in the table above because they target specific claims rather than a broad surface):
-`probe-wall.mjs` (folded → open, 41 anchors / 38 distinct, all CTAs render, whole-card tap resolves),
+`probe-wall.mjs` (folded → open, 42 anchors / 39 distinct, all CTAs render, whole-card tap resolves),
 `probe-conversion.mjs` (exit-nudge suppression + triggers, reduced-motion stage button, deep-link cold load),
 `probe-stage-ctx.mjs` (locates every WebGL context per frame, live vs released),
 `probe-cursor.mjs` (cursor motif at the 1240px breakpoint and 200% zoom),
-`probe-nojs.mjs` (with JavaScript off the wall ships open, all 38 links crawlable, toggle not rendered).
+`probe-nojs.mjs` (with JavaScript off the wall ships open, all 39 links crawlable, toggle not rendered).
 
 Chrome path is hardcoded to `/usr/bin/google-chrome`. On a machine without a GPU, Chrome falls back
 to software rendering, so absolute frame rates from these runs are not representative of real
@@ -249,6 +249,17 @@ that fills at least 5% of the crop, and 8% of the scene's own lit pixels for one
 That is stricter for every dense scene (at 30% ink it asks for 2.4%). Validated: with the viewer's
 rotation disabled, the sparse scene fails at 0.0000 against its 0.0008 floor and a dense scene
 fails against the unchanged 0.0040.
+
+## Added 2026-10-25: competitive-programming
+
+The 39th project. Its page, card, sitemap entry, share card and viz (`viz/competitive-programming.html`,
+a live segment tree) went in together, and every count above, in `script.js`, in
+`tools/sync-partials.py` and in the test harnesses moved from 38 to 39 (41 to 42 anchors) in the same
+change. The viz passed `test-viz`, `test-a11y`, `test-compact` and `test-drift` on its own, and the
+runtime check still reports one hash across all 39. `scripts/og-images.py` assigns accents by position
+in PROJECT_NAMING.md, so the project sits in its own last table to avoid recolouring 17 other cards;
+the same script also overwrites the hand-made `n8n-automations` card, which was restored from git and
+must be restored again after any rerun.
 
 ## Open questions for the owner
 

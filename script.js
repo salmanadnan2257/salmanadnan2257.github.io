@@ -499,12 +499,12 @@ const GITHUB_HANDLE = "salmanadnan2257";
 })();
 
 // ============================================================================
-// THE FOLDED WALL: one flagship, and 38 projects one button away
+// THE FOLDED WALL: one flagship, and 39 projects one button away
 //
-// Thirty-eight cards asks a stranger to choose, and a stranger who has to choose
+// Thirty-nine cards asks a stranger to choose, and a stranger who has to choose
 // scrolls. So the page leads with one project and folds the rest.
 //
-// What is NOT done here, on purpose: the 37 other cards are never injected. They ship
+// What is NOT done here, on purpose: the 38 other cards are never injected. They ship
 // in the HTML, in the ordinary flow, and this only folds them with a class. So the
 // markup a crawler reads is the whole portfolio, a visitor with no JavaScript sees the
 // whole portfolio (the toggle is not even shown to them), and nothing about the fold
@@ -522,7 +522,7 @@ const GITHUB_HANDLE = "salmanadnan2257";
   var all = document.getElementById("all-projects");
   if (!btn || !all) return;
 
-  var OPEN_LABEL = "See all 38 projects";
+  var OPEN_LABEL = "See all 39 projects";
   var SHUT_LABEL = "Hide the full list";
 
   function open() {

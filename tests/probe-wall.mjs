@@ -86,8 +86,8 @@ for (const dev of [{ w: 1280, h: 800, label: 'desktop' }, { w: 390, h: 844, labe
   say(`open:   whole-card tap resolves to its own link: ${open.tapWholeCard}/${open.count}`);
   if (open.aria !== 'true') bad.push('toggle aria-expanded != true after open');
   if (open.wallDisplay === 'none') bad.push('wall still display:none after open');
-  if (open.count !== 41) bad.push('anchors ' + open.count + ' != 41 (38 wall + 3 flagship)');
-  if (open.distinct !== 38) bad.push('distinct project hrefs ' + open.distinct + ' != 38');
+  if (open.count !== 42) bad.push('anchors ' + open.count + ' != 42 (39 wall + 3 flagship)');
+  if (open.distinct !== 39) bad.push('distinct project hrefs ' + open.distinct + ' != 39');
   if (open.goZero > 0) bad.push(open.goZero + ' CTAs still 0x0 after open');
   if (open.tapWholeCard !== open.count) bad.push('whole-card tap failed on ' + (open.count - open.tapWholeCard) + ' cards');
 

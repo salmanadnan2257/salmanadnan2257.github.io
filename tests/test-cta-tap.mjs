@@ -87,7 +87,7 @@ for (const dev of [{ w: 390, h: 844 }, { w: 360, h: 740 }]) {
      and under-40px are the real defects. */
   const cornerOnly = anyBadPt.length - badCentre.length;
   if (cornerOnly > 0) console.log(`   (${cornerOnly} cards miss only on inset corners, expected from the +-1deg card rotation; centres all tappable)`);
-  const pass = out.length === 41 && !badCentre.length && !clipped.length && !offView.length && !short.length;
+  const pass = out.length === 42 && !badCentre.length && !clipped.length && !offView.length && !short.length;
   if (!pass) verdictFail++;
   console.log('A1 verdict: ' + (pass ? 'PASS' : 'FAIL'));
   await page.close();
