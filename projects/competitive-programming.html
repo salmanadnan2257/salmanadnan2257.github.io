@@ -126,12 +126,13 @@
           <li>The CSES Range Queries section solved with the structures it is there to teach: a Fenwick tree, a segment tree, a lazy segment tree for range add, one carrying both an add tag and an assign tag, and one carrying an arithmetic progression.</li>
           <li>Hotel Queries answered by walking down a max segment tree to the leftmost hotel with enough rooms, in O(log n) rather than binary searching over range queries.</li>
           <li>A stress harness that feeds each range-query solution random inputs and compares every answer to a brute-force loop. The seed is fixed, so a failure reproduces exactly.</li>
+          <li>A regression script for the bugs a full review turned up: each fixed solution is checked against a brute force written from its problem statement, with sanitizers on.</li>
           <li>A build script that compiles every file with the flags a judge uses and reports anything that fails.</li>
         </ul>
       </section>
       <section class="proj-section">
         <h2>Results</h2>
-        <div class="proj-callout"><p>Verified on 2026-10-26 in a clean gcc:13 container: every file in the repository, the template included, compiles with g++ 13 at -std=gnu++17 -O2, and all eight range-query solutions agree with brute force on 1,000 random cases each. To prove the check can fail, the minimum query was deliberately broken and it failed on the first case. Not verified: whether each solution is accepted by its judge, since no verdicts were kept.</p></div>
+        <div class="proj-callout"><p>Verified on 2026-10-26 in a clean gcc:13 container: every file in the repository, the template included, compiles with g++ 13 at -std=gnu++17 -O2, all eight range-query solutions agree with brute force on 1,000 random cases each, and every solution fixed after a line-by-line review passes its own brute-force test under AddressSanitizer. To prove the checks can fail, the minimum query was deliberately broken and it failed on the first case, and the old versions of the fixed solutions fail the same tests.</p></div>
       </section>
       <section class="proj-section">
         <h2>Tech stack</h2>
